@@ -83,3 +83,15 @@ Five skills come from other projects. All are MIT licensed, and each LICENSE fil
 - `anatomy`: [wheresryan22/anatomy](https://github.com/wheresryan22/anatomy)
 - `anatomy-reveal`: [annnguyentt/anatomy-reveal-skill](https://github.com/annnguyentt/anatomy-reveal-skill)
 - `hairline-create`: [lucasmarkes/hairline](https://github.com/lucasmarkes/hairline)
+
+## ui-lock
+
+`ui-lock` installs a stack's UI lint preset into a repo and keeps it in sync. The one preset today is `react-web` (ESLint and Stylelint).
+
+```bash
+python3 <ui-suite plugin>/ui-lock/bin/ui-lock.py install react-web <lint-dir>
+python3 <ui-suite plugin>/ui-lock/bin/ui-lock.py status <lint-dir>
+python3 <ui-suite plugin>/ui-lock/bin/ui-lock.py sync <lint-dir>
+```
+
+`<lint-dir>` holds the repo's lint config, and the preset lands in `<lint-dir>/.ui-lock/`. It reads the nearest `DESIGN.md` at or above `<lint-dir>`. The rules it adds are listed in the preset's `RULES.md`.
