@@ -1,0 +1,1086 @@
+<!doctype html>
+<html lang="en" data-rung="2" data-look="loud" data-motion="snappy">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lake at dusk</title>
+<script>
+  (function () {
+    var t = new URLSearchParams(location.search).get("theme");
+    if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+  })();
+</script>
+<link rel="preconnect" href="https://api.fontshare.com">
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=gambarino@400&display=swap">
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600&display=swap">
+<style>
+  /* ---------- tokens: color ---------- */
+  :root {
+    color-scheme: light;
+    --bg: #ff7a1f;
+    --surface: #ff8633;
+    --ink: #050f16;
+    --muted: #5a2306;
+    --accent: #050f16;
+    --accent-ink: #ff7a1f;
+    --line: rgba(5, 15, 22, 0.22);
+    --hover: rgba(5, 15, 22, 0.08);
+    --well: #050f16;
+    --well-ink: #ff7a1f;
+    --well-dim: rgba(255, 122, 31, 0.4);
+    --shadow: 0 1px 2px rgba(5, 15, 22, 0.25), 0 8px 24px rgba(5, 15, 22, 0.18);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #050f16;
+      --surface: #0c1a24;
+      --ink: #ff8633;
+      --muted: #c8682c;
+      --accent: #ff7a1f;
+      --accent-ink: #050f16;
+      --line: rgba(255, 134, 51, 0.24);
+      --hover: rgba(255, 134, 51, 0.1);
+      --well: #ff7a1f;
+      --well-ink: #050f16;
+      --well-dim: rgba(5, 15, 22, 0.4);
+      --shadow: 0 1px 2px rgba(5, 15, 22, 0.3), 0 10px 28px rgba(5, 15, 22, 0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #050f16;
+    --surface: #0c1a24;
+    --ink: #ff8633;
+    --muted: #c8682c;
+    --accent: #ff7a1f;
+    --accent-ink: #050f16;
+    --line: rgba(255, 134, 51, 0.24);
+    --hover: rgba(255, 134, 51, 0.1);
+    --well: #ff7a1f;
+    --well-ink: #050f16;
+    --well-dim: rgba(5, 15, 22, 0.4);
+    --shadow: 0 1px 2px rgba(5, 15, 22, 0.3), 0 10px 28px rgba(5, 15, 22, 0.35);
+  }
+
+  /* ---------- tokens: type, space, shape ---------- */
+  :root {
+    --font-ui: "General Sans", system-ui, sans-serif;
+    --font-display: "Gambarino", Georgia, serif;
+    --text-meta: 13px;
+    --text-ui: 14px;
+    --text-h2: 18px;
+    --text-h1: 24px;
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 24px;
+    --radius: 8px;
+    --radius-sm: 6px;
+    --row: 36px;
+    --btn: 32px;
+    --tools-w: 220px;
+    --history-w: 288px;
+    --top-h: 64px;
+
+    /* motion: motion-kit snappy (tap .07/.15, enter .16/.15, exit .10/0, move .16/.15, attention .13/.15).
+       JS replaces these with spring linear() curves at boot. */
+    --tap-ms: 110ms;    --tap-ease: cubic-bezier(.3, 1.4, .5, 1);
+    --enter-ms: 260ms;  --enter-ease: cubic-bezier(.3, 1.3, .5, 1);
+    --exit-ms: 180ms;   --exit-ease: cubic-bezier(.4, 0, .6, 1);
+    --move-ms: 260ms;   --move-ease: cubic-bezier(.3, 1.3, .5, 1);
+    --still-ms: 260ms;  --still-ease: cubic-bezier(.2, .8, .3, 1);
+    --fade-ms: 150ms;
+    --swap-ms: 90ms;   /* a label swap: the old word fades out in this time, then the new one fades in */
+    --glide-ms: 260ms;  --glide-ease: cubic-bezier(.45, 0, .55, 1);  /* rows that make room: even in and out, no front-loaded burst */
+  }
+  @media (prefers-reduced-motion: reduce) {
+    :root { --tap-ms: 0ms; --enter-ms: 0ms; --exit-ms: 0ms; --move-ms: 0ms; --still-ms: 0ms; --glide-ms: 0ms; }
+  }
+
+  /* ---------- base ---------- */
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  html { background: var(--bg); }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font: 400 var(--text-ui)/1.4 var(--font-ui);
+    -webkit-font-smoothing: antialiased;
+  }
+  button { font: inherit; color: inherit; }
+  h1, h2 { margin: 0; font-family: var(--font-display); font-weight: 400; letter-spacing: 0; }
+  h1 { font-size: var(--text-h1); line-height: 1.15; overflow-wrap: anywhere; }
+  h2 { font-size: var(--text-h2); line-height: 1.4; }
+  .num { font-variant-numeric: tabular-nums; }
+  .meta { font-size: var(--text-meta); color: var(--muted); }
+  :focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+  /* ---------- buttons ---------- */
+  .btn {
+    min-height: var(--btn);
+    min-width: var(--btn);
+    padding: 0 var(--space-3);
+    border-radius: var(--radius);
+    border: 1px solid var(--line);
+    background: transparent;
+    font-size: var(--text-ui);
+    font-weight: 500;
+    display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2);
+    cursor: pointer;
+    transition: transform var(--tap-ms) var(--tap-ease), background-color var(--fade-ms) linear;
+  }
+  .btn:hover { background: var(--hover); }
+  .btn:active { transform: scale(.95); }
+  .btn:disabled { cursor: default; color: var(--muted); border-color: transparent; }
+  .btn:disabled:hover { background: transparent; }
+  .btn.icon { padding: 0; width: var(--btn); }
+  .btn svg { width: 18px; height: 18px; }
+  .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); position: relative; overflow: hidden; min-width: 96px; }
+  .btn.primary .fill { position: absolute; inset: 0; transform-origin: left; transform: scaleX(0); background: var(--accent-ink); opacity: .28; transition: transform var(--still-ms) var(--still-ease); }
+  /* Every label sits in one cell, so the button keeps one width and no label moves; only the current one shows */
+  .btn.primary .labels { position: relative; display: grid; }
+  /* Fade-through: the old word is gone before the new one shows, so the two never overlap */
+  .btn.primary .label { grid-area: 1 / 1; justify-self: center; white-space: nowrap; opacity: 0; visibility: hidden; transition: opacity var(--swap-ms) linear, visibility 0s linear var(--swap-ms); }
+  .btn.primary .label.on { opacity: 1; visibility: visible; transition: opacity var(--swap-ms) linear var(--swap-ms), visibility 0s linear var(--swap-ms); }
+
+  .tipwrap { position: relative; display: inline-flex; }
+  .tip {
+    position: absolute; top: calc(100% + 6px); left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-sm);
+    background: var(--ink); color: var(--bg);
+    font-size: var(--text-meta); font-weight: 500;
+    display: none; opacity: 1;
+    transition: opacity var(--fade-ms) linear;
+    z-index: 5; pointer-events: none;
+  }
+  .tipwrap:hover .tip, .tipwrap:focus-within .tip { display: block; animation: tip-in var(--fade-ms) linear 300ms both; }
+  @keyframes tip-in { from { opacity: 0; } to { opacity: 1; } }
+
+  /* ---------- shell ---------- */
+  .app { height: 100dvh; display: grid; grid-template-rows: auto minmax(0, 1fr); grid-template-columns: minmax(0, 1fr); }
+  .top {
+    display: flex; align-items: center; gap: var(--space-4);
+    min-height: var(--top-h);
+    padding: var(--space-2) var(--space-5);
+    border-bottom: 1px solid var(--line);
+  }
+  .title .meta { white-space: nowrap; flex: none; }
+  .title { display: flex; align-items: baseline; gap: var(--space-3); min-width: 0; flex: 1; }
+  .stepper { display: flex; align-items: center; gap: var(--space-2); }
+  .stepper .readout { min-width: 64px; text-align: center; font-weight: 500; }
+  .export-slot { display: flex; align-items: center; gap: var(--space-3); }
+
+  /* Test toggle: plain grey test chrome, so it never looks like a second Export */
+  .chrome { display: inline-flex; gap: 8px; padding: 4px; background: #e4e4e4; border-radius: 999px; font: 500 13px/1 system-ui, -apple-system, sans-serif; }
+  .chrome button {
+    min-height: 28px; padding: 0 12px; border: 0; border-radius: 999px;
+    background: transparent; font: inherit; cursor: pointer; color: #222; white-space: nowrap;
+  }
+  .chrome button[aria-pressed="true"] { background: #fff; color: #111; }
+  .chrome button:focus-visible { outline: 2px solid #222; outline-offset: 1px; }
+  .chrome.at-end { display: flex; width: max-content; margin: var(--space-4) auto; }
+  /* A long file name keeps its start and its extension, and gives up the middle */
+  h1#file-name { display: flex; min-width: 0; white-space: pre; overflow-wrap: normal; line-height: 1.4; }
+  h1#file-name .head { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  h1#file-name .tail { flex: none; }
+
+  main {
+    display: grid;
+    grid-template-columns: var(--tools-w) minmax(0, 1fr) var(--history-w);
+    min-height: 0;
+  }
+  .tabs { display: none; }
+
+  /* ---------- tools ---------- */
+  .tools { border-right: 1px solid var(--line); overflow: auto; padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3); }
+  .tools ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+  .tool {
+    position: relative;
+    padding: var(--space-2) var(--space-2) var(--space-1);
+    border-radius: var(--radius);
+    box-shadow: inset 0 0 0 0 var(--ink);
+    transition: box-shadow var(--tap-ms) var(--tap-ease);
+  }
+  .tool.preview { background: var(--hover); box-shadow: inset 0 0 0 1px var(--muted); }
+  .tool.touched { box-shadow: inset 0 0 0 2px var(--ink); }
+  .tool-head { display: flex; align-items: center; gap: var(--space-2); min-height: 20px; }
+  .tool-head svg { width: 16px; height: 16px; flex: none; }
+  .tool-head .name { flex: 1; font-weight: 500; }
+  /* The value slot keeps one width, so a new value never shifts its box while the thumb springs */
+  .tool-head .val { font-size: var(--text-meta); flex: none; min-width: 5.5ch; text-align: right; }
+  .slider { position: relative; height: 28px; cursor: pointer; touch-action: none; border-radius: var(--radius-sm); }
+  .slider:focus-visible { outline-offset: 0; }
+  .slider .track { position: absolute; left: 8px; right: 8px; top: 13px; height: 2px; background: var(--line); border-radius: 1px; }
+  .slider .zero { position: absolute; top: 9px; width: 2px; height: 10px; margin-left: -1px; background: var(--line); }
+  .slider .ghost { position: absolute; top: 6px; width: 2px; height: 16px; margin-left: -1px; background: var(--muted); opacity: 0; transition: opacity var(--fade-ms) linear; }
+  .tool.touched .slider .ghost { opacity: 1; }
+  .slider .thumb {
+    position: absolute; top: 6px; left: 0; width: 16px; height: 16px; margin-left: -8px;
+    border-radius: 50%; background: var(--ink);
+    transition: transform var(--move-ms) var(--move-ease);
+  }
+  .slider .thumb i { position: absolute; inset: 0; border-radius: 50%; transition: transform var(--tap-ms) var(--tap-ease); }
+  .slider.dragging .thumb { transition: none; }
+  .tool.touched .slider .thumb i, .slider.dragging .thumb i { transform: scale(1.08); }
+  .slider-inner { position: absolute; left: 8px; right: 8px; top: 0; bottom: 0; }
+
+  /* ---------- stage ---------- */
+  .stage { background: var(--well); display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: var(--space-4); padding: var(--space-5); min-height: 0; }
+  .frame-box { container-type: size; min-height: 0; display: grid; place-items: center; }
+  .frame {
+    width: min(100cqw, 150cqh);
+    aspect-ratio: 3 / 2;
+    position: relative; overflow: hidden;
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow);
+    background: #120d1a;
+  }
+  .frame canvas { display: block; width: 100%; height: 100%; }
+
+  .scrub { position: relative; height: 28px; cursor: pointer; touch-action: none; border-radius: var(--radius-sm); }
+  .scrub:focus-visible { outline-color: var(--well-ink); }
+  .scrub .rail { position: absolute; left: 8px; right: 8px; top: 13px; height: 2px; background: var(--well-dim); }
+  .scrub .done { position: absolute; left: 0; top: 0; height: 2px; width: 100%; background: var(--well-ink); transform-origin: left; transition: transform var(--move-ms) var(--move-ease); }
+  .scrub .ticks { position: absolute; left: 8px; right: 8px; top: 8px; height: 12px; }
+  .scrub .tick { position: absolute; top: 0; width: 2px; height: 12px; margin-left: -1px; background: var(--well-dim); border-radius: 1px; }
+  .scrub .tick.past { background: var(--well-ink); }
+  .scrub .knob { position: absolute; left: 8px; top: 4px; width: 20px; height: 20px; margin-left: -10px; transition: transform var(--move-ms) var(--move-ease); }
+  .scrub .knob i { position: absolute; inset: 0; border-radius: 50%; background: var(--well-ink); box-shadow: 0 0 0 3px var(--well); transition: transform var(--tap-ms) var(--tap-ease); }
+  .scrub.dragging .knob { transition: none; }
+  .scrub.dragging .knob i { transform: scale(1.08); }
+
+  /* ---------- history ---------- */
+  .history { border-left: 1px solid var(--line); display: grid; grid-template-rows: auto minmax(0, 1fr); min-height: 0; }
+  .history-head { display: flex; align-items: baseline; justify-content: space-between; padding: var(--space-4) var(--space-4) var(--space-2); }
+  .steps { list-style: none; margin: 0; padding: 0 var(--space-2) var(--space-4); overflow: auto; overscroll-behavior: contain; touch-action: pan-y; }
+  .step {
+    border-radius: var(--radius);
+    transition: background-color var(--tap-ms) linear, color var(--tap-ms) linear;
+  }
+  .step button {
+    width: 100%; min-height: var(--row);
+    display: grid; grid-template-columns: 16px minmax(0, 1fr) auto; align-items: center; column-gap: var(--space-2);
+    grid-template-rows: auto 0fr;
+    padding: var(--space-2); border: 0; background: transparent; border-radius: var(--radius);
+    text-align: left; cursor: pointer; color: inherit;
+    transition: grid-template-rows var(--glide-ms) var(--glide-ease) var(--fade-ms);
+  }
+  .step button:hover { background: var(--hover); }
+  .step svg { width: 16px; height: 16px; }
+  .step .name { overflow-wrap: anywhere; }
+  .step .val { font-size: var(--text-meta); color: var(--muted); text-align: right; }
+  /* The "from" line sits in a second grid row that opens (0fr to 1fr) and closes, so the rows below
+     glide instead of snapping. Opening: the row first, then the text fades in. Closing: the text fades out, then the row. */
+  .step .from {
+    display: block; grid-column: 2 / 4; font-size: var(--text-meta); line-height: 1.5; text-align: right;
+    min-height: 0; overflow: hidden; opacity: 0; visibility: hidden;
+    transition: opacity var(--fade-ms) linear, visibility 0s linear calc(var(--fade-ms) + var(--glide-ms));
+  }
+  .step.later { color: var(--muted); }
+  .step.current { background: var(--accent); color: var(--accent-ink); }
+  .step.current .name { font-weight: 600; }
+  .step.current .val { color: var(--accent-ink); font-weight: 600; }
+  .step.current button { grid-template-rows: auto 1fr; transition: grid-template-rows var(--glide-ms) var(--glide-ease); }
+  .step.current .from {
+    opacity: 1; visibility: visible;
+    transition: opacity var(--fade-ms) linear var(--glide-ms), visibility 0s;
+  }
+  .step.current button:hover { background: transparent; }
+  .step.preview button { background: var(--hover); }
+
+  /* ---------- middle widths ---------- */
+  @media (max-width: 1180px) and (min-width: 901px) {
+    :root { --tools-w: 200px; --history-w: 240px; }
+  }
+
+  /* ---------- phone ---------- */
+  @media (max-width: 900px) {
+    .app { height: auto; display: block; }
+    .top { flex-wrap: wrap; padding: var(--space-3) var(--space-4); gap: var(--space-3); min-height: 0; }
+    .title { flex-basis: 100%; flex-wrap: wrap; row-gap: 0; }
+    .stepper { order: 1; }
+    .export-slot { order: 2; margin-left: auto; }
+    main { display: flex; flex-direction: column; }
+    .stage { order: 1; padding: var(--space-4); }
+    .frame-box { container-type: inline-size; }
+    .frame { width: 100%; }
+    .tabs { order: 2; display: flex; gap: var(--space-2); padding: var(--space-3) var(--space-4) 0; }
+    .tabs button { flex: 1; }
+    .tabs button[aria-selected="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+    .history, .tools { order: 3; border: 0; }
+    .tools { overflow: visible; }
+    .history { display: block; }
+    .history-head { display: none; }
+    .steps { max-height: 400px; padding: var(--space-2) var(--space-2) var(--space-4); }
+    main[data-tab="history"] .tools { display: none; }
+    main[data-tab="adjust"] .history { display: none; }
+    .tools > h2 { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="title">
+      <h1 id="file-name">Lake at dusk.jpg</h1>
+      <span class="meta">(a made-up example)</span>
+    </div>
+    <div class="stepper" data-ui-actions>
+      <span class="tipwrap">
+        <button class="btn icon" data-ui-step="back" id="back" aria-label="Step back" aria-describedby="tip-back">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>
+        </button>
+        <span class="tip" role="tooltip" id="tip-back">Step back, ⌘Z</span>
+      </span>
+      <span class="readout num" id="readout" data-ui-number aria-live="polite">1 of 1</span>
+      <span class="tipwrap">
+        <button class="btn icon" data-ui-step="forward" id="forward" aria-label="Step forward" aria-describedby="tip-forward">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg>
+        </button>
+        <span class="tip" role="tooltip" id="tip-forward">Step forward, ⇧⌘Z</span>
+      </span>
+    </div>
+    <div class="export-slot">
+      <button class="btn primary" id="export"><span class="fill"></span><span class="labels"><span class="label on" data-state="idle">Export</span><span class="label" data-state="busy" aria-hidden="true">Exporting</span><span class="label" data-state="done" aria-hidden="true">Saved</span><span class="label" data-state="fail" aria-hidden="true">Export failed</span></span></button>
+    </div>
+    <div class="chrome" data-ui-chrome role="group" aria-label="Data">
+      <button type="button" data-set="demo" aria-pressed="true">Demo data</button>
+      <button type="button" data-set="worst" aria-pressed="false">Worst case</button>
+      <button type="button" data-set="empty" aria-pressed="false">Empty</button>
+    </div>
+  </header>
+
+  <main id="main" data-tab="history">
+    <section class="tools" id="tools" aria-label="Adjust">
+      <h2>Adjust</h2>
+      <ul id="tool-list"></ul>
+    </section>
+
+    <section class="stage" id="stage" data-ui-pane="reading" aria-label="Photo">
+      <div class="frame-box">
+        <div class="frame">
+          <canvas id="photo" role="img" aria-label="A lake at dusk, with mountains, a low sun, a pier and a boat"></canvas>
+        </div>
+      </div>
+      <div class="scrub" id="scrub" role="slider" tabindex="0" aria-label="History" aria-valuemin="1" aria-valuemax="1" aria-valuenow="1">
+        <div class="rail"><div class="done" id="scrub-done"></div></div>
+        <div class="ticks" id="ticks"></div>
+        <div class="knob" id="knob"><i></i></div>
+      </div>
+    </section>
+
+    <div class="tabs" role="tablist" aria-label="Panels">
+      <button class="btn" role="tab" id="tab-history" aria-selected="true" aria-controls="history" data-tab="history">History</button>
+      <button class="btn" role="tab" id="tab-adjust" aria-selected="false" aria-controls="tools" data-tab="adjust">Adjust</button>
+    </div>
+
+    <section class="history" id="history" data-ui-pane="list" aria-label="History">
+      <div class="history-head">
+        <h2>History</h2>
+        <span class="meta num" id="count" data-ui-number hidden></span>
+      </div>
+      <ol class="steps" id="steps"></ol>
+    </section>
+  </main>
+</div>
+
+<div hidden id="photo-src">
+            <svg id="photo-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice">
+              <defs>
+                <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stop-color="#132a44"/>
+                  <stop offset=".42" stop-color="#6e4568"/>
+                  <stop offset=".78" stop-color="#ef8a5c"/>
+                  <stop offset="1" stop-color="#ffd59c"/>
+                </linearGradient>
+                <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+                  <stop offset="0" stop-color="#fff2d2" stop-opacity="1"/>
+                  <stop offset=".35" stop-color="#ffc27a" stop-opacity=".55"/>
+                  <stop offset="1" stop-color="#ff9a5c" stop-opacity="0"/>
+                </radialGradient>
+                <linearGradient id="water" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stop-color="#f2a06c"/>
+                  <stop offset=".28" stop-color="#a65f78"/>
+                  <stop offset="1" stop-color="#181f36"/>
+                </linearGradient>
+              </defs>
+              <rect width="1200" height="530" fill="url(#sky)"/>
+              <circle cx="610" cy="430" r="320" fill="url(#glow)" opacity=".8"/>
+              <circle cx="610" cy="428" r="54" fill="#fff0cf"/>
+              <path d="M0 470 L110 418 L210 446 L330 376 L450 432 L560 392 L680 452 L770 428 L900 352 L1010 420 L1110 392 L1200 430 L1200 530 L0 530 Z" fill="#8a5a7a"/>
+              <path d="M0 500 L90 468 L180 492 L300 438 L420 486 L520 466 L640 506 L760 482 L860 502 L980 452 L1080 492 L1200 468 L1200 530 L0 530 Z" fill="#4a3150"/>
+              <rect y="526" width="1200" height="274" fill="url(#water)"/>
+              <path d="M0 556 L90 588 L180 564 L300 618 L420 570 L520 590 L640 550 L760 574 L860 554 L980 604 L1080 564 L1200 588 L1200 526 L0 526 Z" fill="#4a3150" opacity=".35"/>
+              <g fill="#ffe3b2">
+                <rect x="520" y="540" width="180" height="5" rx="2.5" opacity=".75"/>
+                <rect x="542" y="560" width="136" height="4" rx="2" opacity=".6"/>
+                <rect x="562" y="582" width="96" height="4" rx="2" opacity=".5"/>
+                <rect x="576" y="606" width="68" height="3" rx="1.5" opacity=".4"/>
+                <rect x="588" y="632" width="44" height="3" rx="1.5" opacity=".3"/>
+                <rect x="596" y="660" width="28" height="2" rx="1" opacity=".25"/>
+              </g>
+              <path d="M0 640 C120 612 250 636 360 700 L430 800 L0 800 Z" fill="#120d1a"/>
+              <g fill="#0b0812">
+                <path d="M44 650 L72 520 L100 650 Z"/>
+                <path d="M86 646 L120 470 L154 646 Z"/>
+                <path d="M146 652 L170 556 L194 652 Z"/>
+                <path d="M196 664 L226 528 L256 664 Z"/>
+                <rect x="118" y="640" width="4" height="22"/>
+                <rect x="224" y="660" width="4" height="18"/>
+              </g>
+              <g fill="#120d1a">
+                <rect x="330" y="664" width="270" height="8" rx="2"/>
+                <rect x="380" y="672" width="5" height="26"/>
+                <rect x="460" y="672" width="5" height="22"/>
+                <rect x="540" y="672" width="5" height="18"/>
+                <rect x="592" y="672" width="5" height="16"/>
+              </g>
+              <g fill="#140f1d">
+                <path d="M930 612 L1010 612 L996 626 L944 626 Z"/>
+                <rect x="968" y="560" width="3" height="52"/>
+                <path d="M971 564 L1000 606 L971 606 Z" opacity=".85"/>
+              </g>
+              <g fill="none" stroke="#2a1e33" stroke-width="3" stroke-linecap="round">
+                <path d="M520 230 q10 -8 20 0 q10 -8 20 0"/>
+                <path d="M590 262 q7 -6 14 0 q7 -6 14 0"/>
+              </g>
+            </svg>
+</div>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 17-5-5-9 8"/></symbol>
+    <symbol id="i-exposure" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+    <symbol id="i-contrast" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18Z" fill="currentColor"/></symbol>
+    <symbol id="i-saturation" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3s6 6.6 6 11a6 6 0 0 1-12 0c0-4.4 6-11 6-11Z"/></symbol>
+    <symbol id="i-warmth" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 14.8V5a2 2 0 0 0-4 0v9.8a4 4 0 1 0 4 0Z"/></symbol>
+    <symbol id="i-straighten" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></symbol>
+    <symbol id="i-crop" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/></symbol>
+    <symbol id="i-vignette" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="12" cy="12" r="5"/></symbol>
+    <symbol id="i-preset" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 13 9 5 9-5"/></symbol>
+  </defs>
+</svg>
+
+<script>
+(function () {
+  "use strict";
+  var root = document.documentElement;
+  var reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ---------- motion: motion-kit snappy, as springs ---------- */
+  var FEEL = { tap: [0.07, 0.15], enter: [0.16, 0.15], exit: [0.1, 0], move: [0.16, 0.15], attention: [0.13, 0.15] };
+  function spring(vd, bounce) {
+    var w = (2 * Math.PI) / (vd * 1.2), k = w * w;
+    var zeta = Math.min(1, Math.max(0.05, 1 - bounce)), c = 2 * zeta * w;
+    var x = 0, v = 0, t = 0, dt = 1 / 240, pts = [0];
+    while (t < 4) {
+      var a = -k * (x - 1) - c * v; v += a * dt; x += v * dt; t += dt; pts.push(x);
+      if (Math.abs(x - 1) < 0.002 && Math.abs(v) < 0.02) break;
+    }
+    var out = [], step = Math.max(1, Math.floor(pts.length / 48));
+    for (var i = 0; i < pts.length; i += step) out.push(+pts[i].toFixed(4));
+    out.push(1);
+    return { ms: Math.round(t * 1000), ease: "linear(" + out.join(", ") + ")" };
+  }
+  var M = {};
+  Object.keys(FEEL).forEach(function (name) {
+    var s = spring(FEEL[name][0], FEEL[name][1]);
+    M[name] = s;
+    if (!reduce) {
+      root.style.setProperty("--" + name + "-ms", s.ms + "ms");
+      root.style.setProperty("--" + name + "-ease", s.ease);
+    }
+  });
+  var STILL = spring(0.16, 0);
+  if (!reduce) { root.style.setProperty("--still-ms", STILL.ms + "ms"); root.style.setProperty("--still-ease", STILL.ease); }
+
+  /* ---------- tools ---------- */
+  function signed(d) { return function (v) { var s = v.toFixed(d); return v > 0 ? "+" + s : s; }; }
+  var TOOLS = [
+    { id: "exposure", name: "Exposure", min: -2, max: 2, step: 0.05, def: 0, fmt: signed(2) },
+    { id: "contrast", name: "Contrast", min: -50, max: 50, step: 1, def: 0, fmt: signed(0) },
+    { id: "saturation", name: "Saturation", min: -100, max: 100, step: 1, def: 0, fmt: signed(0) },
+    { id: "warmth", name: "Warmth", min: -50, max: 50, step: 1, def: 0, fmt: signed(0) },
+    { id: "straighten", name: "Straighten", min: -15, max: 15, step: 0.5, def: 0, fmt: function (v) { return (v > 0 ? "+" : "") + v.toFixed(1) + "°"; } },
+    { id: "crop", name: "Crop", min: 1, max: 2, step: 0.01, def: 1, fmt: function (v) { return v.toFixed(2) + "×"; } },
+    { id: "vignette", name: "Vignette", min: 0, max: 100, step: 1, def: 0, fmt: function (v) { return v.toFixed(0); } }
+  ];
+  var TOOL = {}; TOOLS.forEach(function (t) { TOOL[t.id] = t; });
+  function defaults() { var s = {}; TOOLS.forEach(function (t) { s[t.id] = t.def; }); return s; }
+
+  /* ---------- data ---------- */
+  function one(tool, v) { var set = {}; set[tool] = v; return { tool: tool, set: set }; }
+  function preset(name, set) { return { tool: "preset", name: name, set: set }; }
+  var DATA = {
+    demo: function () {
+      return {
+        name: "Lake at dusk.jpg",
+        steps: [
+          { tool: "open", set: {} },
+          one("exposure", 0.35), one("warmth", 18), one("contrast", 14),
+          preset("Dusk", { saturation: 22, warmth: 26, contrast: 20 }),
+          one("straighten", -2.5), one("crop", 1.18), one("vignette", 38), one("exposure", 0.15)
+        ],
+        current: 6
+      };
+    },
+    worst: function () {
+      var seed = 7, steps = [{ tool: "open", set: {} }];
+      function rnd() { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }
+      var names = [
+        "Kodak Portra 400 emulation with faded blacks and lifted shadows for overcast afternoons",
+        "夕焼けの湖、静かな夜",
+        "🌅🔥 Golden hour",
+        "Ünïcödé Fïlm",
+        "X",
+        "Supercalifragilisticexpialidociouslylongpresetnamewithnospaces"
+      ];
+      for (var i = 1; i < 180; i++) {
+        var r = rnd();
+        if (i % 11 === 0) {
+          steps.push(preset(names[(i / 11) % names.length | 0], { saturation: -100, warmth: 50, contrast: -50, exposure: 2, vignette: 100, straighten: -15, crop: 2 }));
+        } else {
+          // a real editor records only edits that change something: flip to the other extreme
+          var t = TOOLS[Math.floor(r * TOOLS.length)];
+          var now = stateAtSteps(steps)[t.id];
+          steps.push(one(t.id, now === t.max ? t.min : t.max));
+        }
+      }
+      return {
+        name: "IMG_20261015_183245_HDR_final_FINAL_v12_export_from_the_camera_roll_backup_copy_of_a_copy.jpeg",
+        steps: steps,
+        current: 120
+      };
+    },
+    empty: function () { return { name: "Lake at dusk.jpg", steps: [{ tool: "open", set: {} }], current: 0 }; }
+  };
+
+  function stateAtSteps(steps) { var s = defaults(); steps.forEach(function (st) { Object.assign(s, st.set); }); return s; }
+  var params = new URLSearchParams(location.search);
+  var dataSet = DATA[params.get("data")] ? params.get("data") : "demo";
+  var doc = DATA[dataSet]();
+  var uid = 0;
+  doc.steps.forEach(function (s) { s.id = ++uid; });
+
+  function stateAt(i) {
+    var s = defaults();
+    for (var k = 0; k <= i && k < doc.steps.length; k++) Object.assign(s, doc.steps[k].set);
+    return s;
+  }
+
+  /* ---------- elements ---------- */
+  var $ = function (id) { return document.getElementById(id); };
+  var els = {
+    name: $("file-name"), back: $("back"), forward: $("forward"), readout: $("readout"),
+    toolList: $("tool-list"), photo: $("photo"), stage: $("stage"),
+    steps: $("steps"), count: $("count"), scrub: $("scrub"), ticks: $("ticks"), knob: $("knob"),
+    done: $("scrub-done"), exportBtn: $("export"), main: $("main")
+  };
+
+  /* ---------- tool rows ---------- */
+  var toolRows = {};
+  function pct(t, v) { return (v - t.min) / (t.max - t.min); }
+  TOOLS.forEach(function (t) {
+    var li = document.createElement("li");
+    li.className = "tool"; li.dataset.tool = t.id;
+    li.innerHTML =
+      '<div class="tool-head"><svg aria-hidden="true"><use href="#i-' + t.id + '"/></svg>' +
+      '<span class="name">' + t.name + '</span><span class="val num meta" data-ui-number></span></div>' +
+      '<div class="slider" role="slider" tabindex="0" aria-label="' + t.name + '" aria-valuemin="' + t.min + '" aria-valuemax="' + t.max + '">' +
+      '<div class="track"></div><div class="slider-inner"><div class="zero"></div><div class="ghost"></div><div class="thumb"><i style="background:inherit"></i></div></div></div>';
+    els.toolList.appendChild(li);
+    var row = { li: li, val: li.querySelector(".val"), slider: li.querySelector(".slider"), inner: li.querySelector(".slider-inner"), thumb: li.querySelector(".thumb"), ghost: li.querySelector(".ghost"), zero: li.querySelector(".zero") };
+    row.zero.style.left = (pct(t, t.def) * 100) + "%";
+    toolRows[t.id] = row;
+    bindSlider(t, row);
+  });
+
+  function setToolValue(t, v) {
+    var row = toolRows[t.id];
+    row.thumb.style.transform = "translateX(" + (pct(t, v) * row.inner.clientWidth) + "px)";
+    row.thumb.dataset.p = pct(t, v);
+    row.val.textContent = t.fmt(v);
+    row.slider.setAttribute("aria-valuenow", v);
+    row.slider.setAttribute("aria-valuetext", t.fmt(v));
+  }
+
+  /* ---------- photo: a raster on a canvas, eased by the move spring ---------- */
+  function cover(deg) {
+    var a = Math.abs(deg) * Math.PI / 180, r = 1.5;
+    return Math.max(Math.cos(a) + Math.sin(a) / r, r * Math.sin(a) + Math.cos(a));
+  }
+  function filterOf(s) {
+    return "brightness(" + Math.pow(2, s.exposure * 0.5).toFixed(3) + ") contrast(" + (1 + s.contrast / 100).toFixed(3) +
+      ") saturate(" + (1 + s.saturation / 100).toFixed(3) + ")";
+  }
+  var src = new Image(), srcReady = false;
+  src.onload = function () { srcReady = true; drawNow(); };
+  src.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(new XMLSerializer().serializeToString(document.getElementById("photo-svg")));
+  var ctx = els.photo.getContext("2d");
+  function paint(c, w, h, s) {
+    c.save();
+    c.fillStyle = "#120d1a"; c.fillRect(0, 0, w, h);
+    if (srcReady) {
+      c.filter = filterOf(s);
+      c.translate(w / 2, h / 2);
+      c.rotate(s.straighten * Math.PI / 180);
+      var k = s.crop * cover(s.straighten);
+      c.scale(k * w / 1200, k * h / 800);
+      c.drawImage(src, -600, -400, 1200, 800);
+    }
+    c.restore();
+    // warmth tints toward amber, coolness toward blue
+    if (Math.abs(s.warmth) > 0.01) {
+      c.save();
+      c.globalCompositeOperation = "soft-light";
+      c.fillStyle = s.warmth > 0 ? "rgba(255,150,40," + (s.warmth / 50 * 0.6).toFixed(3) + ")" : "rgba(40,110,255," + (-s.warmth / 50 * 0.6).toFixed(3) + ")";
+      c.fillRect(0, 0, w, h);
+      c.restore();
+    }
+    if (s.vignette > 0) {
+      var g = c.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.36, w / 2, h / 2, Math.hypot(w, h) / 2);
+      g.addColorStop(0, "rgba(0,0,0,0)"); g.addColorStop(1, "rgba(0,0,0," + (0.88 * s.vignette / 100).toFixed(3) + ")");
+      c.fillStyle = g; c.fillRect(0, 0, w, h);
+    }
+  }
+  function sizeCanvas() {
+    var r = els.photo.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1);
+    var w = Math.max(1, Math.round(r.width * dpr)), h = Math.max(1, Math.round(r.height * dpr));
+    if (els.photo.width !== w || els.photo.height !== h) { els.photo.width = w; els.photo.height = h; drawNow(); }
+  }
+  var shown = null, target = null, vel = {}, raf = 0, last = 0;
+  var MW = (2 * Math.PI) / (FEEL.move[0] * 1.2), MK = MW * MW, MC = 2 * Math.max(0.05, 1 - FEEL.move[1]) * MW;
+  function drawNow() { if (shown) paint(ctx, els.photo.width, els.photo.height, shown); }
+  function tick(now) {
+    var dt = Math.min(0.034, (now - last) / 1000); last = now;
+    var moving = false, n = 4, h = dt / n;
+    TOOLS.forEach(function (t) {
+      var x = shown[t.id], v = vel[t.id] || 0, goal = target[t.id], span = t.max - t.min;
+      for (var i = 0; i < n; i++) { var a = -MK * (x - goal) - MC * v; v += a * h; x += v * h; }
+      if (Math.abs(x - goal) < span * 1e-4 && Math.abs(v) < span * 1e-3) { x = goal; v = 0; } else moving = true;
+      shown[t.id] = x; vel[t.id] = v;
+    });
+    drawNow();
+    raf = moving ? requestAnimationFrame(tick) : 0;
+  }
+  // instant: a drag or first paint; otherwise the photo springs onto the new step
+  function applyPhoto(s, instant) {
+    target = Object.assign({}, s);
+    if (instant || reduce || !shown) {
+      if (raf) cancelAnimationFrame(raf);
+      raf = 0; vel = {}; shown = Object.assign({}, s); drawNow(); return;
+    }
+    if (!raf) { last = performance.now(); raf = requestAnimationFrame(tick); }
+  }
+
+  /* ---------- history rows ---------- */
+  function label(step) {
+    if (step.tool === "open") return { icon: "open", name: "Open", val: "" };
+    if (step.tool === "preset") return { icon: "preset", name: step.name + " preset", val: Object.keys(step.set).length + " tools" };
+    var t = TOOL[step.tool];
+    return { icon: t.id, name: t.name, val: t.fmt(step.set[t.id]) };
+  }
+  function makeRow(step, i) {
+    var l = label(step);
+    var li = document.createElement("li");
+    li.className = "step"; li.dataset.id = step.id;
+    var b = document.createElement("button");
+    b.type = "button";
+    b.innerHTML = '<svg aria-hidden="true"><use href="#i-' + l.icon + '"/></svg><span class="name"></span><span class="val num"></span><span class="from num"></span>';
+    b.querySelector(".name").textContent = l.name;
+    b.querySelector(".val").textContent = l.val;
+    li.appendChild(b);
+    return li;
+  }
+  function rowEls() { return [].slice.call(els.steps.querySelectorAll(".step:not(.leaving)")); }
+  function buildHistory() {
+    els.steps.textContent = "";
+    doc.steps.forEach(function (s, i) { els.steps.appendChild(makeRow(s, i)); });
+  }
+
+  /* ---------- scrubber ---------- */
+  function buildTicks() {
+    els.ticks.textContent = "";
+    var n = doc.steps.length;
+    if (n > 60) return;
+    for (var i = 0; i < n; i++) {
+      var d = document.createElement("div");
+      d.className = "tick";
+      d.style.left = (n === 1 ? 0 : (i / (n - 1)) * 100) + "%";
+      els.ticks.appendChild(d);
+    }
+  }
+  function placeScrub() {
+    var n = doc.steps.length, f = n === 1 ? 0 : doc.current / (n - 1);
+    var w = els.ticks.clientWidth;
+    els.knob.style.transform = "translateX(" + (f * w) + "px)";
+    els.done.style.transform = "scaleX(" + f + ")";
+    [].forEach.call(els.ticks.children, function (t, i) { t.classList.toggle("past", i <= doc.current); });
+    els.scrub.setAttribute("aria-valuemax", n);
+    els.scrub.setAttribute("aria-valuenow", doc.current + 1);
+    els.scrub.setAttribute("aria-valuetext", "Step " + (doc.current + 1) + " of " + n + ", " + label(doc.steps[doc.current]).name);
+  }
+
+  /* ---------- the one update ---------- */
+  var touched = [];
+  function render(prevState) {
+    var s = stateAt(doc.current);
+    var n = doc.steps.length;
+    applyPhoto(s);
+    TOOLS.forEach(function (t) { setToolValue(t, s[t.id]); });
+
+    // trace: which tools this move changed, and where each one came from
+    touched = [];
+    TOOLS.forEach(function (t) {
+      var row = toolRows[t.id];
+      var changed = prevState && prevState[t.id] !== s[t.id];
+      row.li.classList.toggle("touched", !!changed);
+      if (changed) {
+        touched.push(t.id);
+        row.ghost.style.left = (pct(t, prevState[t.id]) * 100) + "%";
+      }
+    });
+
+    var rows = rowEls();
+    rows.forEach(function (li, i) {
+      var cur = i === doc.current;
+      li.classList.toggle("current", cur);
+      li.classList.toggle("later", i > doc.current);
+      if (cur) li.setAttribute("data-ui-need", ""); else li.removeAttribute("data-ui-need");
+      var btn = li.firstChild;
+      btn.setAttribute("aria-current", cur ? "step" : "false");
+      // Only the current row's "from" text is rewritten; a row that just left keeps
+      // its text while its line closes, so the close is a glide, not a snap.
+      if (cur) {
+        var from = li.querySelector(".from"), step = doc.steps[i], text = "";
+        if (i > 0 && step.tool !== "preset" && step.tool !== "open") {
+          var t = TOOL[step.tool];
+          text = "from " + t.fmt(stateAt(i - 1)[t.id]);
+        }
+        from.textContent = text;
+      }
+    });
+
+    els.readout.textContent = (doc.current + 1) + " of " + n;
+    els.count.textContent = n + (n === 1 ? " step" : " steps");
+    els.back.disabled = doc.current === 0;
+    els.forward.disabled = doc.current === n - 1;
+    placeScrub();
+    resetExport();
+  }
+
+  function keepInView(li, center) {
+    if (!li) return;
+    var list = els.steps;
+    var top = li.offsetTop - list.offsetTop, bottom = top + li.offsetHeight;
+    if (center) { list.scrollTop = top - list.clientHeight / 2 + li.offsetHeight / 2; return; }
+    if (top < list.scrollTop) list.scrollTop = top - 8;
+    else if (bottom > list.scrollTop + list.clientHeight) list.scrollTop = bottom - list.clientHeight + 8;
+  }
+
+  function setStep(i, opts) {
+    i = Math.max(0, Math.min(doc.steps.length - 1, i));
+    if (i === doc.current && !(opts && opts.force)) return;
+    var prev = stateAt(doc.current);
+    doc.current = i;
+    render(prev);
+    if (!(opts && opts.noScroll)) keepInView(rowEls()[i]);
+  }
+
+  /* ---------- committing a new edit ---------- */
+  function commit(toolId, value) {
+    var before = stateAt(doc.current);
+    if (before[toolId] === value) return;
+    // later steps leave the branch
+    var rows = rowEls();
+    rows.slice(doc.current + 1).forEach(function (li) {
+      li.classList.add("leaving");
+      li.removeAttribute("data-ui-need");
+      var h = li.offsetHeight;
+      if (reduce) { li.remove(); return; }
+      var a = li.animate([{ opacity: 1, height: h + "px" }, { opacity: 0, height: "0px" }], { duration: M.exit.ms, easing: "ease-in" });
+      a.onfinish = function () { li.remove(); };
+    });
+    doc.steps = doc.steps.slice(0, doc.current + 1);
+    var step = one(toolId, value); step.id = ++uid;
+    doc.steps.push(step);
+    var li = makeRow(step, doc.steps.length - 1);
+    els.steps.appendChild(li);
+    if (reduce) li.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150 });
+    else li.animate([{ opacity: 0, transform: "translateY(10px) scale(.96)" }, { opacity: 1, transform: "none" }], { duration: M.enter.ms, easing: M.enter.ease });
+    buildTicks();
+    doc.current = doc.steps.length - 1;
+    render(before);
+    keepInView(li);
+  }
+
+  /* ---------- tool sliders ---------- */
+  function snap(t, v) { v = Math.round(v / t.step) * t.step; return +Math.max(t.min, Math.min(t.max, v)).toFixed(4); }
+  var keyTimer = null, pending = null;
+  function bindSlider(t, row) {
+    var live = null;
+    function valueAt(x) {
+      var r = row.inner.getBoundingClientRect();
+      return snap(t, t.min + ((x - r.left) / r.width) * (t.max - t.min));
+    }
+    function preview(v) {
+      live = v;
+      var s = stateAt(doc.current); s[t.id] = v;
+      applyPhoto(s, true);
+      setToolValue(t, v);
+    }
+    row.slider.addEventListener("pointerdown", function (e) {
+      if (e.button !== 0) return;
+      row.slider.setPointerCapture(e.pointerId);
+      row.slider.classList.add("dragging");
+      els.stage.classList.add("live");
+      preview(valueAt(e.clientX));
+    });
+    row.slider.addEventListener("pointermove", function (e) {
+      if (!row.slider.hasPointerCapture(e.pointerId)) return;
+      preview(valueAt(e.clientX));
+    });
+    function end(e) {
+      if (!row.slider.classList.contains("dragging")) return;
+      row.slider.classList.remove("dragging");
+      els.stage.classList.remove("live");
+      if (live !== null) { var v = live; live = null; commit(t.id, v); }
+    }
+    row.slider.addEventListener("pointerup", end);
+    row.slider.addEventListener("pointercancel", end);
+    row.slider.addEventListener("dblclick", function () { commit(t.id, t.def); });
+    row.slider.addEventListener("keydown", function (e) {
+      var cur = pending && pending.t === t ? pending.v : stateAt(doc.current)[t.id];
+      var big = (t.max - t.min) / 10, v = null;
+      if (e.key === "ArrowRight" || e.key === "ArrowUp") v = cur + (e.shiftKey ? big : t.step * (t.step < 1 ? 5 : 1));
+      else if (e.key === "ArrowLeft" || e.key === "ArrowDown") v = cur - (e.shiftKey ? big : t.step * (t.step < 1 ? 5 : 1));
+      else if (e.key === "Home") v = t.min;
+      else if (e.key === "End") v = t.max;
+      if (v === null) return;
+      e.preventDefault(); e.stopPropagation();
+      v = snap(t, v);
+      pending = { t: t, v: v };
+      var s = stateAt(doc.current); s[t.id] = v; applyPhoto(s, true); setToolValue(t, v);
+      clearTimeout(keyTimer);
+      keyTimer = setTimeout(flushKeys, 500);
+    });
+    row.slider.addEventListener("blur", flushKeys);
+  }
+  function flushKeys() {
+    clearTimeout(keyTimer);
+    if (!pending) return;
+    var p = pending; pending = null;
+    commit(p.t.id, p.v);
+  }
+
+  /* ---------- scrubbing the history list ---------- */
+  var scrubbing = false;
+  function rowIndexAt(x, y) {
+    var el = document.elementFromPoint(x, y);
+    var li = el && el.closest && el.closest(".step:not(.leaving)");
+    return li ? rowEls().indexOf(li) : -1;
+  }
+  els.steps.addEventListener("pointerdown", function (e) {
+    if (e.button !== 0) return;
+    var i = rowIndexAt(e.clientX, e.clientY);
+    if (i < 0) return;
+    if (e.pointerType === "mouse") { scrubbing = true; els.steps.setPointerCapture(e.pointerId); }
+    setStep(i, { noScroll: true });
+  });
+  els.steps.addEventListener("pointermove", function (e) {
+    if (scrubbing) {
+      var i = rowIndexAt(e.clientX, e.clientY);
+      if (i >= 0) setStep(i, { noScroll: true });
+      return;
+    }
+    // hover: point at the tools a step touched
+    var j = rowIndexAt(e.clientX, e.clientY);
+    previewTools(j);
+  });
+  els.steps.addEventListener("pointerleave", function () { previewTools(-1); });
+  function endScrub() { scrubbing = false; }
+  els.steps.addEventListener("pointerup", endScrub);
+  els.steps.addEventListener("pointercancel", endScrub);
+  els.steps.addEventListener("click", function (e) {
+    var li = e.target.closest(".step:not(.leaving)");
+    if (li) setStep(rowEls().indexOf(li), { noScroll: true });
+  });
+  els.steps.addEventListener("keydown", function (e) {
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      setStep(doc.current + (e.key === "ArrowDown" ? 1 : -1));
+      var b = rowEls()[doc.current]; if (b) b.firstChild.focus({ preventScroll: true });
+    }
+  });
+  var previewed = -1;
+  function previewTools(i) {
+    if (i === previewed) return;
+    previewed = i;
+    var set = i >= 0 && doc.steps[i] ? doc.steps[i].set : {};
+    TOOLS.forEach(function (t) { toolRows[t.id].li.classList.toggle("preview", t.id in set); });
+    rowEls().forEach(function (li, k) { li.classList.toggle("preview", k === i); });
+  }
+
+  /* ---------- scrubber ---------- */
+  function scrubTo(x) {
+    var r = els.ticks.getBoundingClientRect(), n = doc.steps.length;
+    var f = Math.max(0, Math.min(1, (x - r.left) / r.width));
+    setStep(Math.round(f * (n - 1)));
+  }
+  els.scrub.addEventListener("pointerdown", function (e) {
+    if (e.button !== 0) return;
+    els.scrub.setPointerCapture(e.pointerId);
+    els.scrub.classList.add("dragging");
+    scrubTo(e.clientX);
+  });
+  els.scrub.addEventListener("pointermove", function (e) { if (els.scrub.hasPointerCapture(e.pointerId)) scrubTo(e.clientX); });
+  function scrubEnd() { els.scrub.classList.remove("dragging"); }
+  els.scrub.addEventListener("pointerup", scrubEnd);
+  els.scrub.addEventListener("pointercancel", scrubEnd);
+  els.scrub.addEventListener("keydown", function (e) {
+    var map = { ArrowLeft: -1, ArrowDown: -1, ArrowRight: 1, ArrowUp: 1 };
+    if (e.key in map) { e.preventDefault(); setStep(doc.current + map[e.key]); }
+    else if (e.key === "Home") { e.preventDefault(); setStep(0); }
+    else if (e.key === "End") { e.preventDefault(); setStep(doc.steps.length - 1); }
+  });
+
+  /* ---------- step controls ---------- */
+  els.back.addEventListener("click", function () { flushKeys(); setStep(doc.current - 1); });
+  els.forward.addEventListener("click", function () { flushKeys(); setStep(doc.current + 1); });
+  document.addEventListener("keydown", function (e) {
+    if (!(e.metaKey || e.ctrlKey)) return;
+    var k = e.key.toLowerCase();
+    if (k === "z" && !e.shiftKey) { e.preventDefault(); flushKeys(); setStep(doc.current - 1); }
+    else if ((k === "z" && e.shiftKey) || k === "y") { e.preventDefault(); setStep(doc.current + 1); }
+  });
+
+  /* ---------- export ---------- */
+  var exporting = false;
+  function setExport(p, state) {
+    els.exportBtn.querySelector(".fill").style.transform = "scaleX(" + p + ")";
+    [].forEach.call(els.exportBtn.querySelectorAll(".label"), function (l) {
+      var on = l.dataset.state === state;
+      l.classList.toggle("on", on);
+      if (on) l.removeAttribute("aria-hidden"); else l.setAttribute("aria-hidden", "true");
+    });
+  }
+  function resetExport() { if (!exporting) setExport(0, "idle"); }
+  function slug(name) { return name.replace(/\.[a-z]+$/i, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "photo"; }
+  els.exportBtn.addEventListener("click", function () {
+    if (exporting) return;
+    exporting = true;
+    els.exportBtn.setAttribute("aria-busy", "true");
+    var s = stateAt(doc.current), started = performance.now();
+    setExport(0.15, "busy");
+    requestAnimationFrame(function () {
+      var c = document.createElement("canvas"); c.width = 2400; c.height = 1600;
+      paint(c.getContext("2d"), 2400, 1600, s);
+      setExport(0.6, "busy");
+      c.toBlob(function (blob) {
+        if (!blob) { exporting = false; els.exportBtn.removeAttribute("aria-busy"); setExport(0, "fail"); return; }
+        setExport(0.9, "busy");
+        var wait = Math.max(0, 500 - (performance.now() - started));
+        setTimeout(function () {
+          var a = document.createElement("a");
+          a.href = URL.createObjectURL(blob); a.download = slug(doc.name) + ".png";
+          document.body.appendChild(a); a.click(); a.remove();
+          setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+          exporting = false;
+          els.exportBtn.removeAttribute("aria-busy");
+          setExport(1, "done");
+        }, wait);
+      }, "image/png");
+    });
+  });
+
+  /* ---------- phone tabs ---------- */
+  [].forEach.call(document.querySelectorAll(".tabs [role=tab]"), function (b) {
+    b.addEventListener("click", function () {
+      els.main.dataset.tab = b.dataset.tab;
+      [].forEach.call(document.querySelectorAll(".tabs [role=tab]"), function (o) { o.setAttribute("aria-selected", o === b ? "true" : "false"); });
+      requestAnimationFrame(function () { TOOLS.forEach(function (t) { setToolValue(t, stateAt(doc.current)[t.id]); }); });
+    });
+  });
+
+  /* ---------- data toggle (demo chrome) ---------- */
+  function load(set) {
+    dataSet = set;
+    doc = DATA[set](); doc.steps.forEach(function (s) { s.id = ++uid; });
+    var cut = Math.max(0, doc.name.length - 14);
+    els.name.textContent = "";
+    var head = document.createElement("span"); head.className = "head"; head.textContent = doc.name.slice(0, cut);
+    var tail = document.createElement("span"); tail.className = "tail"; tail.textContent = doc.name.slice(cut);
+    els.name.append(head, tail);
+    els.name.title = doc.name;
+    document.title = doc.name.replace(/\.[a-z]+$/i, "");
+    buildHistory(); buildTicks();
+    shown = null;
+    render(null);
+    keepInView(rowEls()[doc.current], true);
+    [].forEach.call(document.querySelectorAll("[data-set]"), function (b) { b.setAttribute("aria-pressed", b.dataset.set === set ? "true" : "false"); });
+  }
+  // On a phone the test toggle leaves the header and sits at the end of the page, so the photo comes first.
+  var chromeEl = document.querySelector(".chrome"), chromeHome = chromeEl.parentNode;
+  var phone = matchMedia("(max-width: 900px)");
+  function placeChrome() {
+    if (phone.matches) { document.body.appendChild(chromeEl); chromeEl.classList.add("at-end"); }
+    else { chromeHome.appendChild(chromeEl); chromeEl.classList.remove("at-end"); }
+  }
+  placeChrome();
+  phone.addEventListener("change", placeChrome);
+  [].forEach.call(document.querySelectorAll("[data-set]"), function (b) {
+    b.addEventListener("click", function () {
+      var u = new URL(location.href);
+      if (b.dataset.set === "demo") u.searchParams.delete("data"); else u.searchParams.set("data", b.dataset.set);
+      history.replaceState(null, "", u);
+      load(b.dataset.set);
+    });
+  });
+
+  // a size change is not a step: re-place thumbs and the knob with no transition
+  var sizes = new WeakMap();
+  function placeAll() {
+    root.classList.add("no-move");
+    TOOLS.forEach(function (t) { setToolValue(t, stateAt(doc.current)[t.id]); });
+    placeScrub();
+    requestAnimationFrame(function () { requestAnimationFrame(function () { root.classList.remove("no-move"); }); });
+  }
+  if ("ResizeObserver" in window) {
+    var ro = new ResizeObserver(function (entries) {
+      var changed = false;
+      entries.forEach(function (en) {
+        var w = Math.round(en.contentRect.width);
+        if (sizes.get(en.target) !== w) { sizes.set(en.target, w); changed = true; }
+      });
+      if (changed) placeAll();
+    });
+    ro.observe(els.ticks);
+    new ResizeObserver(sizeCanvas).observe(els.photo);
+    TOOLS.forEach(function (t) { ro.observe(toolRows[t.id].inner); });
+  }
+
+  /* ---------- boot: first paint holds still ---------- */
+  root.classList.add("no-move");
+  load(dataSet);
+  requestAnimationFrame(function () { requestAnimationFrame(function () { root.classList.remove("no-move"); }); });
+
+  window.photoEditor = {
+    snapshot: function () {
+      return { step: doc.current + 1, of: doc.steps.length, current: label(doc.steps[doc.current]).name, touched: touched.slice(), state: stateAt(doc.current) };
+    },
+    setStep: function (i) { setStep(i - 1); },
+    exportPreview: function (p) { exporting = true; setExport(p, "busy"); },
+    hoverPreview: function (i) { previewTools(i - 1); }
+  };
+})();
+</script>
+<style>
+  .no-move *, .no-move *::before, .no-move *::after { transition: none !important; }
+</style>
+</body>
+</html>

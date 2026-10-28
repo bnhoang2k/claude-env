@@ -1,0 +1,785 @@
+<!doctype html>
+<html lang="en" data-rung="2" data-look="quiet" data-motion="calm">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Team Board</title>
+<script>
+  (function () {
+    var t = new URLSearchParams(location.search).get("theme");
+    if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+  })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* Tokens: palette (draw: rose grey, green), type, space, radius, motion */
+  :root {
+    color-scheme: light;
+    --bg: #ebe5e3;
+    --well: #e1dad7;
+    --card: #f6f2f0;
+    --card-mine: #fffdfc;
+    --ink: #2b2622;
+    --muted: #6a615d;
+    --accent: #0f7d45;
+    --accent-ink: #ffffff;
+    --line: rgba(43, 38, 34, 0.12);
+    --line-strong: rgba(43, 38, 34, 0.28);
+    --ring: rgba(15, 125, 69, 0.5);
+    --lift: 0 10px 24px rgba(43, 38, 34, 0.16);
+
+    --font: "Hanken Grotesk", system-ui, -apple-system, sans-serif;
+    --fs-xs: 13px; --fs-sm: 13px; --fs-md: 14px; --fs-h1: 24px;
+    --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 24px; --sp-6: 32px;
+    --r-sm: 6px; --r-md: 8px; --r-lg: 10px;
+    --avatar: 24px; --btn: 24px;
+
+    /* motion-kit calm, typed in from core/defaults.js; JS turns each into a spring curve */
+    --d-tap: 0.15s; --d-enter: 0.38s; --d-exit: 0.23s; --d-move: 0.38s;
+    --e-tap: ease-out; --e-enter: ease-out; --e-exit: ease-out; --e-move: ease-out;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #1d1a18; --well: #262220; --card: #2f2a27; --card-mine: #3a3431;
+      --ink: #ede7e4; --muted: #a89e99; --accent: #4cb882; --accent-ink: #11231a;
+      --line: rgba(237, 231, 228, 0.10); --line-strong: rgba(237, 231, 228, 0.26);
+      --ring: rgba(76, 184, 130, 0.55); --lift: 0 10px 24px rgba(0, 0, 0, 0.4);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #1d1a18; --well: #262220; --card: #2f2a27; --card-mine: #3a3431;
+    --ink: #ede7e4; --muted: #a89e99; --accent: #4cb882; --accent-ink: #11231a;
+    --line: rgba(237, 231, 228, 0.10); --line-strong: rgba(237, 231, 228, 0.26);
+    --ring: rgba(76, 184, 130, 0.55); --lift: 0 10px 24px rgba(0, 0, 0, 0.4);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  html { background: var(--bg); }
+  body {
+    background: var(--bg); color: var(--ink); font-family: var(--font); font-size: var(--fs-md); line-height: 1.4;
+    -webkit-font-smoothing: antialiased;
+  }
+  button, textarea { font: inherit; color: inherit; }
+
+  .app { display: grid; grid-template-rows: auto minmax(0, 1fr); height: 100dvh; padding: var(--sp-5) var(--sp-6) 64px; gap: var(--sp-5); }
+  .top { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-4); min-width: 0; }
+  .top .title { display: flex; align-items: baseline; gap: var(--sp-3); min-width: 0; flex-wrap: wrap; }
+  .top h1 { margin: 0; font-size: var(--fs-h1); font-weight: 600; letter-spacing: -0.01em; }
+  .top .made { font-size: var(--fs-sm); color: var(--muted); }
+  .team { display: flex; align-items: center; gap: var(--sp-1); flex-shrink: 0; }
+  .team .you { font-size: var(--fs-sm); color: var(--muted); margin: 0 var(--sp-3) 0 var(--sp-1); }
+
+  .avatar {
+    width: var(--avatar); height: var(--avatar); border-radius: 50%; flex-shrink: 0;
+    display: inline-grid; place-items: center; font-size: var(--fs-xs); font-weight: 600; line-height: 1;
+    background: var(--well); color: var(--ink); box-shadow: inset 0 0 0 1px var(--line);
+  }
+  .avatar.me { background: var(--accent); color: var(--accent-ink); box-shadow: none; }
+  .avatar.none { background: transparent; box-shadow: inset 0 0 0 1px var(--line-strong); }
+
+  .board { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-4); min-height: 0; }
+  .col { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+  .col-head { display: flex; flex-shrink: 0; align-items: center; gap: var(--sp-2); height: 32px; padding: 0 var(--sp-1) 0 0; }
+  .col-name { font-size: var(--fs-md); font-weight: 600; }
+  .col-count { font-size: var(--fs-sm); color: var(--muted); font-variant-numeric: tabular-nums; display: inline-block; }
+  .col-head .add { margin-left: auto; }
+  .col-body {
+    flex: 0 1 auto; min-height: 96px; overflow-y: auto; border-radius: var(--r-lg);
+    padding: 0; display: flex; flex-direction: column; gap: var(--sp-2);
+    transition: box-shadow var(--d-move) var(--e-move);
+  }
+  .col-body.over { box-shadow: inset 0 0 0 1px var(--line-strong); }
+  .col-empty { padding: var(--sp-3) 0; font-size: var(--fs-sm); color: var(--ink); }
+
+  .card {
+    position: relative; flex-shrink: 0; background: var(--card); border: 1px solid var(--line); border-radius: var(--r-md);
+    padding: var(--sp-3); display: flex; flex-direction: column; gap: var(--sp-2); cursor: grab; touch-action: pan-y;
+    user-select: none; -webkit-user-select: none;
+    transition: box-shadow var(--d-tap) var(--e-tap), border-color var(--d-move) var(--e-move);
+  }
+  .card.mine { background: var(--card-mine); border: 1.5px solid var(--accent); }
+  .card .t { font-size: var(--fs-md); font-weight: 500; overflow-wrap: anywhere; word-break: keep-all; }
+  .card.done .t { color: var(--muted); }
+  .card.mine.done { background: color-mix(in srgb, var(--accent) 5%, var(--card)); border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
+  .card .meta { display: flex; align-items: center; gap: var(--sp-2); min-height: var(--avatar); }
+  .card .due { font-size: var(--fs-xs); color: var(--muted); font-variant-numeric: tabular-nums; margin-right: auto; }
+  .card .acts { display: flex; gap: var(--sp-2); opacity: 0; transition: opacity var(--d-tap) var(--e-tap); }
+  .card:hover .acts, .card:focus-within .acts { opacity: 1; }
+  @media (hover: none) { .card .acts { opacity: 1; } }
+  .card:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+  .card.lifted { box-shadow: var(--lift); cursor: grabbing; z-index: 50; }
+  .card .edit {
+    width: 100%; resize: none; border: 1px solid var(--ring); border-radius: var(--r-sm); background: var(--card-mine);
+    padding: var(--sp-1) var(--sp-2); font-size: var(--fs-md); font-weight: 500; outline: none; min-height: 56px;
+  }
+
+  .slot { flex-shrink: 0; border-radius: var(--r-md); }
+  .gap { flex-shrink: 0; }
+  .slot.drag { box-shadow: inset 0 0 0 1px var(--line-strong); }
+  .flight { position: fixed; inset: 0; pointer-events: none; z-index: 40; }
+  .flight .card { position: absolute; pointer-events: auto; margin: 0; }
+
+  .icon-btn {
+    position: relative; width: var(--btn); height: var(--btn); padding: 0; border: 0; border-radius: var(--r-sm);
+    background: transparent; color: var(--muted); display: grid; place-items: center; cursor: pointer;
+    transition: background-color var(--d-tap) var(--e-tap), color var(--d-tap) var(--e-tap), transform var(--d-tap) var(--e-tap);
+  }
+  .icon-btn:hover { background: var(--line); color: var(--ink); }
+  .icon-btn:active { transform: scale(0.97); }
+  .icon-btn:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+  .icon-btn[hidden] { display: grid; visibility: hidden; }
+  .icon-btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .tip {
+    position: absolute; bottom: calc(100% + 6px); right: 0; z-index: 60; white-space: nowrap;
+    padding: var(--sp-1) var(--sp-2); border-radius: var(--r-sm); background: var(--ink); color: var(--bg);
+    font-size: var(--fs-xs); font-weight: 500; pointer-events: none; opacity: 0;
+    transition: opacity var(--d-exit) var(--e-exit);
+  }
+  .icon-btn:hover .tip, .icon-btn:focus-visible .tip { opacity: 1; }
+  .card .tip { display: none; }
+  .floattip {
+    position: fixed; z-index: 70; padding: var(--sp-1) var(--sp-2); border-radius: var(--r-sm); background: var(--ink); color: var(--bg);
+    font-size: var(--fs-xs); font-weight: 500; pointer-events: none; white-space: nowrap; opacity: 0;
+    transition: opacity var(--d-exit) var(--e-exit);
+  }
+  .floattip.show { opacity: 1; }
+
+  .skel { cursor: default; }
+  .skel .t, .skel .due { color: transparent; background: var(--well); border-radius: 4px; }
+  .skel .t { width: 70%; } .skel .due { width: 30%; }
+
+  /* Data toggle (dev chrome, not part of the design) */
+  .chrome { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 80; font-family: system-ui, -apple-system, sans-serif; }
+  .seg { display: flex; gap: var(--sp-2); padding: var(--sp-1); border-radius: var(--r-md); background: #d9d9d9; box-shadow: 0 2px 8px rgba(0,0,0,.2); }
+  .seg button { height: 28px; padding: 0 var(--sp-3); border: 0; border-radius: var(--r-sm); background: transparent; color: #333; font-size: var(--fs-sm); cursor: pointer; white-space: nowrap; }
+  .seg button[aria-pressed="true"] { background: #ffffff; color: #111; }
+
+  .tabbar { display: none; }
+  @media (max-width: 900px) {
+    .app { padding: var(--sp-4) var(--sp-4) 72px; gap: var(--sp-3); grid-template-rows: auto auto minmax(0, 1fr); }
+    .top { align-items: flex-start; }
+    .tabbar { display: flex; align-items: center; gap: var(--sp-2); }
+    .tabs { display: flex; flex: 1; min-width: 0; gap: var(--sp-2); padding: var(--sp-1); background: var(--well); border-radius: var(--r-md); }
+    .tabs button {
+      flex: 1 1 auto; height: 32px; padding: 0 var(--sp-2); border: 0; border-radius: var(--r-sm); background: transparent; cursor: pointer; white-space: nowrap;
+      font-size: var(--fs-sm); font-weight: 500; color: var(--ink); display: flex; align-items: center; justify-content: center; gap: var(--sp-1);
+      transition: background-color var(--d-tap) var(--e-tap), transform var(--d-tap) var(--e-tap);
+    }
+    .tabs button:active { transform: scale(0.97); }
+    .tabs button[aria-selected="true"] { background: var(--card-mine); }
+    .tabs .n { font-variant-numeric: tabular-nums; font-weight: 400; display: inline-block; }
+    .tabbar .icon-btn { width: 32px; height: 32px; }
+    .board { grid-template-columns: minmax(0, 1fr); }
+    .col { display: none; }
+    .col.active { display: flex; }
+    .col-head { display: none; }
+    .card .acts { opacity: 1; }
+  }
+  @media (max-width: 359px) {
+    .tabs .n { display: none; }
+    .top { flex-wrap: wrap; row-gap: var(--sp-2); }
+    .top h1 { white-space: nowrap; }
+    .team .you { margin-right: var(--sp-2); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    :root { --d-tap: 0s; --d-enter: 0.15s; --d-exit: 0.15s; --d-move: 0.15s; --e-tap: linear; --e-enter: linear; --e-exit: linear; --e-move: linear; }
+    .icon-btn:active { transform: none; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="title">
+      <h1>Autumn launch</h1>
+      <span class="made">(a made-up example)</span>
+    </div>
+    <div class="team" id="team"></div>
+  </header>
+  <div class="tabbar">
+    <div class="tabs" id="tabs" role="tablist" aria-label="Columns"></div>
+    <button type="button" class="icon-btn" id="tabAdd" aria-label="Add card" aria-describedby="tip-tabadd"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg><span class="tip" role="tooltip" id="tip-tabadd">Add card</span></button>
+  </div>
+  <main class="board" id="board" aria-label="Board"></main>
+</div>
+<div class="flight" id="flight"></div>
+<div class="floattip" id="floattip" role="tooltip"></div>
+
+<div class="chrome" data-ui-chrome>
+  <div class="seg" role="group" aria-label="Data set">
+    <button type="button" data-set="demo">Demo data</button>
+    <button type="button" data-set="worst">Worst case</button>
+    <button type="button" data-set="empty">Empty</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ---------- Motion: motion-kit calm, as springs (bounce 0 everywhere) ---------- */
+  var FEEL = {
+    tap: { visualDuration: 0.15, bounce: 0, amount: 0.97 },
+    enter: { visualDuration: 0.38, bounce: 0 },
+    exit: { visualDuration: 0.23, bounce: 0 },
+    move: { visualDuration: 0.38, bounce: 0 },
+    attention: { visualDuration: 0.3, bounce: 0, amount: 1.08 },
+    celebrate: { visualDuration: 0.53, bounce: 0 }
+  };
+  var reduce = matchMedia("(prefers-reduced-motion: reduce)");
+  function spring(visualDuration, bounce) {
+    var root = (2 * Math.PI) / (visualDuration * 1.2);
+    var k = root * root;
+    var zeta = Math.min(1, Math.max(0.05, 1 - bounce));
+    var c = 2 * zeta * Math.sqrt(k);
+    var x = 0, v = 0, t = 0, dt = 1 / 1000, samples = [0], step = 1 / 60, next = step;
+    while (t < 2) {
+      var a = k * (1 - x) - c * v;
+      v += a * dt; x += v * dt; t += dt;
+      if (t >= next) { samples.push(x); next += step; }
+      if (t > visualDuration && Math.abs(1 - x) < 0.002 && Math.abs(v) < 0.05) break;
+    }
+    samples.push(1);
+    var n = samples.length - 1;
+    return { duration: t, easing: "linear(" + samples.map(function (s, i) { return s.toFixed(4) + " " + ((i / n) * 100).toFixed(2) + "%"; }).join(", ") + ")" };
+  }
+  var CURVES = {};
+  Object.keys(FEEL).forEach(function (k) { CURVES[k] = spring(FEEL[k].visualDuration, FEEL[k].bounce); });
+  if (!reduce.matches) ["tap", "enter", "exit", "move"].forEach(function (k) {
+    document.documentElement.style.setProperty("--d-" + k, CURVES[k].duration.toFixed(3) + "s");
+    document.documentElement.style.setProperty("--e-" + k, CURVES[k].easing);
+  });
+  function play(el, frames, kind, opts) {
+    if (!el || !el.animate) return null;
+    el.getAnimations().forEach(function (a) { if (a.id === "spring") a.cancel(); });
+    if (reduce.matches) {
+      if (!opts || !opts.fade) return null;
+      var f = el.animate([{ opacity: 0.4 }, { opacity: 1 }], { duration: 150, easing: "linear" });
+      f.id = "spring"; return f;
+    }
+    var an = el.animate(frames, { duration: CURVES[kind].duration * 1000, easing: CURVES[kind].easing });
+    an.id = "spring"; return an;
+  }
+  function measure(els) { var m = new Map(); els.forEach(function (el) { m.set(el, el.getBoundingClientRect()); }); return m; }
+  // A card or slot leaving a column leaves a gap that closes with the move spring, so the
+  // column shrinks with the cards below it and never cuts the last one off mid-slide.
+  var GAP = 8; // the col-body flex gap (--sp-2)
+  function leaveGap(node) {
+    var parent = node.parentElement;
+    if (!parent) return;
+    var h = node.getBoundingClientRect().height, next = node.nextSibling;
+    node.remove();
+    if (reduce.matches || !h) return;
+    var g = document.createElement("div");
+    g.className = "gap"; g.setAttribute("aria-hidden", "true");
+    g.style.height = "0px"; g.style.marginBottom = -GAP + "px";
+    parent.insertBefore(g, next);
+    var an = g.animate([{ height: h + "px", marginBottom: "0px" }, { height: "0px", marginBottom: -GAP + "px" }],
+      { duration: CURVES.move.duration * 1000, easing: CURVES.move.easing });
+    an.onfinish = an.oncancel = function () { g.remove(); };
+  }
+  function flip(before) {
+    if (reduce.matches) return;
+    before.forEach(function (r, el) {
+      if (!el.isConnected || el.parentElement === flightEl) return;
+      var now = el.getBoundingClientRect();
+      var dx = r.left - now.left, dy = r.top - now.top;
+      if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) return;
+      play(el, [{ transform: "translate(" + dx + "px," + dy + "px)" }, { transform: "none" }], "move");
+    });
+  }
+
+  /* ---------- Data (made up) ---------- */
+  var COLS = [
+    { id: "todo", name: "To do" }, { id: "doing", name: "Doing" },
+    { id: "review", name: "Review" }, { id: "done", name: "Done" }
+  ];
+  var today = new Date(); today.setHours(0, 0, 0, 0);
+  function inDays(n) { var d = new Date(today); d.setDate(d.getDate() + n); return d; }
+  var fmtDue = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" });
+  var fmtDueYear = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", year: "numeric" });
+  var fmtNum = new Intl.NumberFormat();
+
+  var TEAMS = {
+    demo: [
+      { id: "ml", name: "Mara Lind", me: true }, { id: "to", name: "Theo Okafor" },
+      { id: "pr", name: "Priya Raman" }, { id: "si", name: "Sam Ito" }
+    ],
+    worst: [
+      { id: "aw", name: "Aleksandra Wiśniewska-Kowalczyk", me: true }, { id: "jo", name: "Jo" },
+      { id: "kh", name: "김하늘" }, { id: "bf", name: "Bartholomew Fitzgerald III" }
+    ]
+  };
+  var n = 0;
+  function card(col, title, who, due) { n++; return { id: "c" + n, col: col, title: title, who: who || null, due: due === undefined ? null : due }; }
+  var SETS = {
+    demo: function () {
+      return [
+        card("todo", "Write release notes for the importer", "ml", inDays(6)),
+        card("todo", "Pick three screenshots for the store page", "pr", inDays(9)),
+        card("todo", "Answer the pricing question from support", "si", inDays(3)),
+        card("todo", "Draft the launch email", "ml", inDays(11)),
+        card("todo", "Check the sign-up form on small phones", null, null),
+        card("doing", "Fix the slow search on large boards", "to", inDays(2)),
+        card("doing", "Record the two-minute walkthrough", "ml", inDays(4)),
+        card("doing", "Update the help center links", "pr", inDays(5)),
+        card("review", "New onboarding checklist", "si", inDays(1)),
+        card("review", "Dark mode for the settings page", "to", inDays(1)),
+        card("done", "Move the blog to the new domain", "pr", null),
+        card("done", "Choose the launch date", "ml", null),
+        card("done", "Rename the export button", "to", null)
+      ];
+    },
+    worst: function () {
+      var list = [
+        card("todo", "Investigate why invoices exported from the legacy billing system lose their line items when the customer's billing address contains a second line or a suite number", "aw", inDays(-3)),
+        card("todo", "X", "jo", inDays(0)),
+        card("todo", "https://northwind-industries-holdings.example.com/projects/autumn-launch/issues/1284?view=board&filter=assignee", "bf", inDays(30)),
+        card("todo", "온보딩 화면의 한국어 번역을 검토하고 맞춤법을 고치기", "kh", inDays(2)),
+        card("todo", "🚀🔥 Ship it", null, null)
+      ];
+      for (var i = 0; i < 55; i++) list.push(card("todo", "Backlog item " + fmtNum.format(i + 1) + ": tidy a help article", ["aw", "jo", "kh", "bf", null][i % 5], i % 3 ? inDays(i) : null));
+      list.push(card("doing", "Rückwärtskompatibilitätsprüfung", "aw", inDays(1)));
+      list.push(card("doing", "Ask Bartholomew Fitzgerald III to sign off on the new contract wording", "bf", inDays(400)));
+      list.push(card("done", "Only card here", "jo", null));
+      list.push(card("done", "Second done card", "kh", null));
+      return list;
+    },
+    empty: function () { return []; }
+  };
+
+  var params = new URLSearchParams(location.search);
+  var setName = SETS[params.get("data")] ? params.get("data") : "demo";
+  var loading = params.get("state") === "loading";
+  var team, cards;
+  function load(name) { n = 0; team = TEAMS[name] || TEAMS.demo; cards = SETS[name](); }
+  load(setName);
+  function person(id) { return team.filter(function (p) { return p.id === id; })[0]; }
+  function me() { return team.filter(function (p) { return p.me; })[0]; }
+
+  var seg = typeof Intl.Segmenter === "function" ? new Intl.Segmenter(undefined, { granularity: "grapheme" }) : null;
+  function first(word) { if (!word) return ""; if (seg) { var it = seg.segment(word)[Symbol.iterator]().next(); return it.done ? "" : it.value.segment; } return Array.from(word)[0]; }
+  function initials(name) {
+    var words = name.split(/\s+/).filter(function (w) { return /[\p{L}\p{N}]/u.test(w) && !/^(I|II|III|IV|Jr\.?|Sr\.?)$/.test(w); });
+    if (!words.length) return "?";
+    if (words.length === 1) return first(words[0]).toUpperCase();
+    return (first(words[0]) + first(words[words.length - 1])).toUpperCase();
+  }
+
+  /* ---------- Render ---------- */
+  var boardEl = document.getElementById("board");
+  var tabsEl = document.getElementById("tabs");
+  var activeCol = "todo";
+  tabsEl.addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-col]");
+    if (!b || b.dataset.col === activeCol) return;
+    activeCol = b.dataset.col;
+    tabsEl.querySelectorAll("button").forEach(function (o) { o.setAttribute("aria-selected", String(o === b)); });
+    boardEl.querySelectorAll(".col").forEach(function (c) { c.classList.toggle("active", c.dataset.col === activeCol); });
+    play(boardEl.querySelector(".col.active .col-body"), [{ opacity: 0, transform: "translateY(6px)" }, { opacity: 1, transform: "none" }], "enter", { fade: true });
+  });
+  document.getElementById("tabAdd").addEventListener("click", function () { startAdd(activeCol); });
+  var flightEl = document.getElementById("flight");
+  var ICON = {
+    back: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13 8H3.5M7.5 4L3.5 8l4 4"/></svg>',
+    fwd: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9.5M8.5 4l4 4-4 4"/></svg>',
+    plus: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg>'
+  };
+  function colIndex(id) { for (var i = 0; i < COLS.length; i++) if (COLS[i].id === id) return i; return -1; }
+  function iconBtn(cls, icon, label, tipId) {
+    return '<button type="button" class="icon-btn ' + cls + '" aria-label="' + label + '" aria-describedby="' + tipId + '">' + icon +
+      '<span class="tip" role="tooltip" id="' + tipId + '">' + label + '</span></button>';
+  }
+  function avatarHTML(p) {
+    if (!p) return '<span class="avatar none" data-name="Unassigned"></span>';
+    return '<span class="avatar' + (p.me ? " me" : "") + '" data-name="' + p.name.replace(/"/g, "&quot;") + (p.me ? " (you)" : "") + '">' + initials(p.name) + '</span>';
+  }
+  function makeCard(c) {
+    var el = document.createElement("article");
+    el.className = "card";
+    el.tabIndex = 0;
+    el.dataset.card = c.id;
+    var ci = colIndex(c.col);
+    var p = person(c.who);
+    el.innerHTML = '<div class="t"></div><div class="meta"><span class="due"></span><span class="acts">' +
+      iconBtn("back", ICON.back, "", "tb-" + c.id) + iconBtn("fwd", ICON.fwd, "", "tf-" + c.id) + '</span>' + avatarHTML(p) + '</div>';
+    el.querySelector(".t").textContent = c.title;
+    paintCard(el, c);
+    return el;
+  }
+  function paintCard(el, c) {
+    var ci = colIndex(c.col);
+    el.dataset.col = c.col;
+    var mine = !!(person(c.who) && person(c.who).me);
+    el.classList.toggle("mine", mine);
+    el.classList.toggle("done", c.col === "done");
+    if (mine) el.setAttribute("data-ui-need", ""); else el.removeAttribute("data-ui-need");
+    var due = el.querySelector(".due");
+    due.textContent = c.due && c.col !== "done" ? "Due " + (c.due.getFullYear() === today.getFullYear() ? fmtDue : fmtDueYear).format(c.due) : "";
+    var back = el.querySelector(".back"), fwd = el.querySelector(".fwd");
+    back.hidden = ci === 0; fwd.hidden = ci === COLS.length - 1;
+    if (ci > 0) { back.setAttribute("aria-label", "Move to " + COLS[ci - 1].name); back.querySelector(".tip").textContent = "Move to " + COLS[ci - 1].name; }
+    if (ci < COLS.length - 1) { fwd.setAttribute("aria-label", "Move to " + COLS[ci + 1].name); fwd.querySelector(".tip").textContent = "Move to " + COLS[ci + 1].name; }
+  }
+  function body(colId) { return boardEl.querySelector('.col[data-col="' + colId + '"] .col-body'); }
+  function render() {
+    boardEl.innerHTML = "";
+    flightEl.innerHTML = "";
+    COLS.forEach(function (col) {
+      var sec = document.createElement("section");
+      sec.className = "col" + (col.id === activeCol ? " active" : ""); sec.dataset.col = col.id;
+      sec.innerHTML = '<div class="col-head"><span class="col-name" role="heading" aria-level="2"></span><span class="col-count" data-ui-number></span>' +
+        iconBtn("add", ICON.plus, "Add card", "ta-" + col.id) + '</div><div class="col-body"></div>';
+      sec.querySelector(".col-name").textContent = col.name;
+      sec.querySelector(".add").setAttribute("aria-label", "Add card to " + col.name);
+      boardEl.appendChild(sec);
+      var b = sec.querySelector(".col-body");
+      if (loading) {
+        for (var s = 0; s < (col.id === "todo" ? 4 : 2); s++) {
+          var sk = document.createElement("div");
+          sk.className = "card skel";
+          sk.innerHTML = '<div class="t">Loading</div><div class="meta"><span class="due">Loading</span></div>';
+          b.appendChild(sk);
+        }
+        return;
+      }
+      cards.filter(function (c) { return c.col === col.id; }).forEach(function (c) { b.appendChild(makeCard(c)); });
+    });
+    tabsEl.innerHTML = "";
+    COLS.forEach(function (col) {
+      var b = document.createElement("button");
+      b.type = "button"; b.setAttribute("role", "tab"); b.dataset.col = col.id;
+      b.setAttribute("aria-selected", String(col.id === activeCol));
+      b.innerHTML = '<span></span><span class="n" data-ui-number></span>';
+      b.firstChild.textContent = col.name;
+      tabsEl.appendChild(b);
+    });
+    var teamEl = document.getElementById("team");
+    teamEl.innerHTML = team.filter(function (p) { return p.me; }).map(avatarHTML).join("") + '<span class="you">You</span>' +
+      team.filter(function (p) { return !p.me; }).map(avatarHTML).join("");
+    counts(false);
+  }
+  function counts(animate) {
+    COLS.forEach(function (col) {
+      var sec = boardEl.querySelector('.col[data-col="' + col.id + '"]');
+      var cnt = sec.querySelector(".col-count");
+      var value = loading ? "" : fmtNum.format(cards.filter(function (c) { return c.col === col.id; }).length);
+      var tabN = tabsEl.querySelector('[data-col="' + col.id + '"] .n');
+      if (cnt.textContent !== value) {
+        cnt.textContent = value;
+        if (tabN) tabN.textContent = value;
+        if (animate) {
+          play(cnt, [{ transform: "translateY(-6px)", opacity: 0 }, { transform: "none", opacity: 1 }], "enter", { fade: true });
+          if (tabN) play(tabN, [{ transform: "translateY(-6px)", opacity: 0 }, { transform: "none", opacity: 1 }], "enter", { fade: true });
+        }
+      } else if (tabN && tabN.textContent !== value) tabN.textContent = value;
+      var b = sec.querySelector(".col-body");
+      var empty = b.querySelector(".col-empty");
+      var has = b.querySelector(".card, .slot");
+      if (!has && !empty && !loading) {
+        var e = document.createElement("div"); e.className = "col-empty"; e.textContent = "No cards"; b.appendChild(e);
+      } else if (has && empty) empty.remove();
+    });
+  }
+
+  /* ---------- Moving cards: the real card flies between columns ---------- */
+  function data(el) { var id = el.dataset.card; return cards.filter(function (c) { return c.id === id; })[0]; }
+  function cardsIn(b) { return Array.prototype.slice.call(b.querySelectorAll(".card, .slot")); }
+
+  // Take the card out of its column (or out of a running flight) into the flight layer, at its current spot.
+  function liftOut(el) {
+    var r = el.getBoundingClientRect();
+    el.getAnimations().forEach(function (a) { if (a.id === "spring") a.cancel(); });
+    if (el._slot) {
+      leaveGap(el._slot); el._slot = null;
+    } else if (el.parentElement !== flightEl) {
+      leaveGap(el);
+    }
+    if (el.parentElement !== flightEl) flightEl.appendChild(el);
+    el.style.left = r.left + "px"; el.style.top = r.top + "px"; el.style.width = r.width + "px"; el.style.transform = "";
+    return r;
+  }
+  function placeSlot(el, b, index, height, dragging) {
+    var list = cardsIn(b);
+    var before = measure(list);
+    var slot = el._slot || document.createElement("div");
+    slot.className = "slot" + (dragging ? " drag" : "");
+    slot.style.height = height + "px";
+    b.insertBefore(slot, list.filter(function (x) { return x !== slot; })[index] || null);
+    el._slot = slot;
+    counts(true);
+    flip(before);
+    return slot;
+  }
+  function land(el, from) {
+    var slot = el._slot;
+    var to = slot.getBoundingClientRect();
+    if (!to.width && !reduce.matches) {
+      // the target column is on another tab: the card flies into that tab
+      var tab = tabsEl.querySelector('[data-col="' + slot.closest(".col").dataset.col + '"]').getBoundingClientRect();
+      var tx = tab.left + tab.width / 2 - (from.left + from.width / 2), ty = tab.top + tab.height / 2 - (from.top + from.height / 2);
+      el.style.left = from.left + "px"; el.style.top = from.top + "px";
+      var away = play(el, [{ transform: "none", opacity: 1 }, { transform: "translate(" + tx + "px," + ty + "px) scale(0.2)", opacity: 0 }], "exit");
+      var settle = function () {
+        if (el._slot !== slot || !slot.isConnected) return;
+        slot.replaceWith(el); el._slot = null;
+        el.style.left = el.style.top = el.style.width = el.style.transform = "";
+        el.classList.remove("lifted");
+        counts(false);
+      };
+      if (away) away.onfinish = settle; else settle();
+      return;
+    }
+    var done = function () {
+      if (el._slot !== slot || !slot.isConnected) return;
+      slot.replaceWith(el); el._slot = null;
+      el.style.left = el.style.top = el.style.width = el.style.transform = "";
+      el.classList.remove("lifted");
+      counts(false);
+    };
+    if (reduce.matches) { done(); play(el, [], "move", { fade: true }); return; }
+    el.style.left = to.left + "px"; el.style.top = to.top + "px";
+    var anim = play(el, [{ transform: "translate(" + (from.left - to.left) + "px," + (from.top - to.top) + "px)" }, { transform: "none" }], "move");
+    if (anim) anim.onfinish = done; else done();
+  }
+  function moveTo(el, colId, index) {
+    var c = data(el);
+    if (!c) return;
+    c.col = colId;
+    paintCard(el, c);
+    var b = body(colId);
+    b.scrollTop = 0;
+    var from = liftOut(el);
+    placeSlot(el, b, index, from.height, false);
+    land(el, from);
+    // keep the card's place in the data list in step with the column order
+    cards.splice(cards.indexOf(c), 1);
+    var firstInCol = cards.findIndex(function (x) { return x.col === colId; });
+    cards.splice(firstInCol < 0 ? cards.length : firstInCol + index, 0, c);
+  }
+
+  // Move buttons act on press: the card may be mid-flight, and a press and release on a moving
+  // card can land on two different elements, which would swallow a click.
+  boardEl.addEventListener("click", function (e) { handleClick(e); });
+  flightEl.addEventListener("click", function (e) { handleClick(e); });
+  boardEl.addEventListener("pointerdown", function (e) { handlePress(e); });
+  flightEl.addEventListener("pointerdown", function (e) { handlePress(e); });
+  function handlePress(e) {
+    var btn = e.target.closest(".fwd, .back");
+    if (!btn || e.button !== 0) return;
+    e.preventDefault();
+    moveBy(btn);
+  }
+  function handleClick(e) {
+    var btn = e.target.closest(".icon-btn");
+    if (!btn) return;
+    if (btn.classList.contains("add")) { startAdd(btn.closest(".col").dataset.col); return; }
+    if (e.detail === 0) moveBy(btn); // keyboard: Enter or Space on a move button
+  }
+  function moveBy(btn) {
+    var el = btn.closest(".card");
+    var c = el && data(el);
+    if (!c) return;
+    var ci = colIndex(c.col) + (btn.classList.contains("fwd") ? 1 : -1);
+    if (ci < 0 || ci >= COLS.length) return;
+    moveTo(el, COLS[ci].id, 0);
+    var next = el.querySelector(btn.classList.contains("fwd") ? ".fwd" : ".back");
+    if (next && !next.hidden) next.focus({ preventScroll: true }); else el.focus({ preventScroll: true });
+  }
+
+  /* ---------- Drag ---------- */
+  var drag = null;
+  function onDown(e) {
+    var el = e.target.closest(".card");
+    if (!el || e.button !== 0 || e.target.closest("button, textarea") || el.classList.contains("skel")) return;
+    drag = { el: el, x: e.clientX, y: e.clientY, id: e.pointerId, started: false };
+  }
+  boardEl.addEventListener("pointerdown", onDown);
+  flightEl.addEventListener("pointerdown", onDown);
+  window.addEventListener("pointermove", function (e) {
+    if (!drag || e.pointerId !== drag.id) return;
+    var dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    if (!drag.started) {
+      if (Math.hypot(dx, dy) < 5) return;
+      drag.started = true;
+      var el = drag.el, from;
+      if (el.parentElement === flightEl) {
+        from = liftOut(el); // grabbed mid-flight: it keeps its slot target, then follows the pointer
+        placeSlot(el, body(data(el).col), 0, from.height, true);
+      } else {
+        from = el.getBoundingClientRect();
+        el.getAnimations().forEach(function (a) { if (a.id === "spring") a.cancel(); });
+        var slot = document.createElement("div");
+        slot.className = "slot drag"; slot.style.height = from.height + "px";
+        el.parentElement.insertBefore(slot, el); el._slot = slot;
+        flightEl.appendChild(el);
+        el.style.left = from.left + "px"; el.style.top = from.top + "px"; el.style.width = from.width + "px";
+      }
+      drag.ox = drag.x - from.left; drag.oy = drag.y - from.top; drag.h = from.height;
+      el.classList.add("lifted");
+      play(el, [{ scale: "1" }, { scale: "1.02" }], "tap");
+      el.style.scale = "1.02";
+    }
+    drag.el.style.left = (e.clientX - drag.ox) + "px";
+    drag.el.style.top = (e.clientY - drag.oy) + "px";
+    reslot(e.clientX, e.clientY);
+  });
+  function reslot(x, y) {
+    var target = null;
+    boardEl.querySelectorAll(".col").forEach(function (col) {
+      var r = col.getBoundingClientRect();
+      if (x >= r.left && x <= r.right) target = col;
+    });
+    if (!target) return;
+    boardEl.querySelectorAll(".col-body.over").forEach(function (b) { if (b !== target.querySelector(".col-body")) b.classList.remove("over"); });
+    var b = target.querySelector(".col-body");
+    b.classList.add("over");
+    var others = Array.prototype.slice.call(b.querySelectorAll(".card"));
+    var index = others.length;
+    for (var i = 0; i < others.length; i++) {
+      var r = others[i].getBoundingClientRect();
+      if (y < r.top + r.height / 2) { index = i; break; }
+    }
+    var slot = drag.el._slot;
+    var cur = slot && slot.parentElement === b ? Array.prototype.slice.call(b.querySelectorAll(".card, .slot")).filter(function (x) { return x.classList.contains("card") || x === slot; }).indexOf(slot) : -1;
+    if (cur === index) return;
+    if (slot && slot.parentElement !== b) {
+      leaveGap(slot); counts(true);
+    }
+    placeSlot(drag.el, b, index, drag.h, true);
+  }
+  function endDrag(e) {
+    if (!drag || e.pointerId !== drag.id) return;
+    var d = drag; drag = null;
+    if (!d.started) return;
+    boardEl.querySelectorAll(".col-body.over").forEach(function (b) { b.classList.remove("over"); });
+    var slot = d.el._slot;
+    var colId = slot.closest(".col").dataset.col;
+    var c = data(d.el);
+    c.col = colId;
+    paintCard(d.el, c);
+    var from = d.el.getBoundingClientRect();
+    d.el.style.scale = "";
+    slot.classList.remove("drag");
+    land(d.el, from);
+    var idx = Array.prototype.slice.call(slot.parentElement.querySelectorAll(".card, .slot")).indexOf(slot);
+    cards.splice(cards.indexOf(c), 1);
+    var firstInCol = cards.findIndex(function (x) { return x.col === colId; });
+    cards.splice(firstInCol < 0 ? cards.length : firstInCol + idx, 0, c);
+  }
+  window.addEventListener("pointerup", endDrag);
+  window.addEventListener("pointercancel", endDrag);
+
+  /* ---------- Add and rename ---------- */
+  function editor(value, done) {
+    var ta = document.createElement("textarea");
+    ta.className = "edit"; ta.value = value; ta.maxLength = 200; ta.rows = 2; ta.setAttribute("aria-label", "Card title");
+    var finished = false;
+    function finish(save) { if (finished) return; finished = true; done(save ? ta.value.trim() : null); }
+    ta.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); finish(true); }
+      if (e.key === "Escape") { e.preventDefault(); finish(false); }
+    });
+    ta.addEventListener("blur", function () { finish(true); });
+    return ta;
+  }
+  function startAdd(colId) {
+    if (loading) return;
+    var b = body(colId);
+    if (b.querySelector(".card.new")) { b.querySelector(".card.new textarea").focus(); return; }
+    b.scrollTop = 0;
+    var before = measure(cardsIn(b));
+    var shell = document.createElement("article");
+    shell.className = "card mine new";
+    var ta = editor("", function (title) {
+      if (!title) {
+        leaveGap(shell); counts(false);
+        return;
+      }
+      var c = card(colId, title, me().id, null);
+      c.id = "n" + Date.now();
+      var firstInCol = cards.findIndex(function (x) { return x.col === colId; });
+      cards.splice(firstInCol < 0 ? cards.length : firstInCol, 0, c);
+      var el = makeCard(c);
+      shell.replaceWith(el);
+      counts(true);
+      play(el, [{ opacity: 0.6 }, { opacity: 1 }], "enter");
+    });
+    shell.appendChild(ta);
+    b.insertBefore(shell, b.firstChild);
+    counts(false);
+    flip(before);
+    play(shell, [{ transform: "scale(0.96)", opacity: 0 }, { transform: "none", opacity: 1 }], "enter", { fade: true });
+    ta.focus();
+  }
+  boardEl.addEventListener("dblclick", function (e) {
+    var t = e.target.closest(".card .t");
+    if (!t) return;
+    var el = t.closest(".card"), c = data(el);
+    if (!c) return;
+    var ta = editor(c.title, function (title) {
+      if (title) c.title = title;
+      var div = document.createElement("div"); div.className = "t"; div.textContent = c.title;
+      ta.replaceWith(div);
+      play(div, [{ opacity: 0.4 }, { opacity: 1 }], "enter");
+    });
+    t.replaceWith(ta);
+    ta.focus(); ta.select();
+  });
+  boardEl.addEventListener("keydown", function (e) {
+    var el = e.target.classList && e.target.classList.contains("card") ? e.target : null;
+    if (!el || !data(el)) return;
+    if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+      var btn = el.querySelector(e.key === "ArrowRight" ? ".fwd" : ".back");
+      if (!btn.hidden) { e.preventDefault(); btn.click(); el.focus({ preventScroll: true }); }
+    }
+  });
+
+  /* ---------- Name tooltip for avatars ---------- */
+  var ft = document.getElementById("floattip");
+  // Avatar names, and the move-button tips on cards: fixed, under the target, so they never cover a card title
+  // and are never clipped by a scrolling column.
+  function showTip(target, text) {
+    ft.textContent = text;
+    var r = target.getBoundingClientRect();
+    ft.style.left = Math.min(innerWidth - 8 - ft.offsetWidth, Math.max(8, r.left + r.width / 2 - ft.offsetWidth / 2)) + "px";
+    var below = r.bottom + 6;
+    ft.style.top = (below + ft.offsetHeight > innerHeight - 8 ? r.top - 6 - ft.offsetHeight : below) + "px";
+    ft.classList.add("show");
+  }
+  document.addEventListener("pointerover", function (e) {
+    var t = e.target.closest && e.target.closest(".avatar, .card .icon-btn");
+    if (!t) { ft.classList.remove("show"); return; }
+    showTip(t, t.classList.contains("avatar") ? t.dataset.name : t.getAttribute("aria-label"));
+  });
+  document.addEventListener("focusin", function (e) {
+    var b = e.target.closest && e.target.closest(".card .icon-btn");
+    if (b && b.matches(":focus-visible")) showTip(b, b.getAttribute("aria-label")); else ft.classList.remove("show");
+  });
+  document.addEventListener("focusout", function () { ft.classList.remove("show"); });
+  document.addEventListener("pointerdown", function () { ft.classList.remove("show"); }, true);
+
+  /* ---------- Data toggle (dev chrome) ---------- */
+  var segButtons = document.querySelectorAll(".chrome [data-set]");
+  segButtons.forEach(function (b) {
+    b.setAttribute("aria-pressed", String(b.dataset.set === setName));
+    b.addEventListener("click", function () {
+      setName = b.dataset.set;
+      var p = new URLSearchParams(location.search);
+      if (setName === "demo") p.delete("data"); else p.set("data", setName);
+      history.replaceState(null, "", location.pathname + (p.toString() ? "?" + p : ""));
+      segButtons.forEach(function (o) { o.setAttribute("aria-pressed", String(o === b)); });
+      load(setName); render();
+    });
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>

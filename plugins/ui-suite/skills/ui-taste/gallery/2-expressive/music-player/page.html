@@ -1,0 +1,834 @@
+<!doctype html>
+<html lang="en" data-rung="2" data-look="loud" data-motion="sleek">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Player</title>
+<script>
+  (function () {
+    var p = new URLSearchParams(location.search), t = p.get("theme");
+    if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
+    if (p.get("font") === "system") document.documentElement.dataset.font = "system";
+  })();
+</script>
+<link rel="preconnect" href="https://api.fontshare.com">
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@400,500,700,800&display=swap">
+<style>
+  /* ---------- Tokens: colour (draw: post red, mustard) ---------- */
+  :root {
+    --p-bg: #e2dccf; --p-surface: #d7d0c1; --p-ink: #2a1110; --p-muted: #6b524c; --p-accent: #4a6f84; --p-accent-ink: #ffffff;
+
+    --bg: var(--p-bg);
+    --surface: var(--p-surface);
+    --ink: var(--p-ink);
+    --muted: var(--p-muted);
+    --line: color-mix(in srgb, var(--p-ink) 12%, var(--p-bg));
+    --hover: color-mix(in srgb, var(--p-ink) 6%, var(--p-bg));
+    --accent: var(--p-accent);
+    --accent-ink: var(--p-accent-ink);
+    --play-bg: var(--p-ink);
+    --play-ink: var(--p-bg);
+    --tip-bg: var(--p-ink);
+    --tip-ink: var(--p-bg);
+    --chapter-ink: var(--p-ink);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: var(--p-ink);
+      --surface: color-mix(in srgb, var(--p-bg) 9%, var(--p-ink));
+      --ink: var(--p-bg);
+      --muted: color-mix(in srgb, var(--p-bg) 66%, var(--p-ink));
+      --line: color-mix(in srgb, var(--p-bg) 14%, var(--p-ink));
+      --hover: color-mix(in srgb, var(--p-bg) 6%, var(--p-ink));
+      --play-bg: var(--p-bg);
+      --play-ink: var(--p-ink);
+      --tip-bg: var(--p-bg);
+      --tip-ink: var(--p-ink);
+      --chapter-ink: color-mix(in srgb, var(--p-bg) 12%, var(--p-ink));
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: var(--p-ink);
+    --surface: color-mix(in srgb, var(--p-bg) 9%, var(--p-ink));
+    --ink: var(--p-bg);
+    --muted: color-mix(in srgb, var(--p-bg) 66%, var(--p-ink));
+    --line: color-mix(in srgb, var(--p-bg) 14%, var(--p-ink));
+    --hover: color-mix(in srgb, var(--p-bg) 6%, var(--p-ink));
+    --play-bg: var(--p-bg);
+    --play-ink: var(--p-ink);
+    --tip-bg: var(--p-bg);
+    --tip-ink: var(--p-ink);
+    --chapter-ink: color-mix(in srgb, var(--p-bg) 12%, var(--p-ink));
+    color-scheme: dark;
+  }
+
+  /* ---------- Tokens: type, space, radius, motion ---------- */
+  :root {
+    --font: "Cabinet Grotesk", system-ui, sans-serif;
+    --t-hero: 64px; --t-h2: 24px; --t-body: 14px; --t-meta: 13px; --t-lead: 18px;
+    --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 40px;
+    --r-cover: 10px; --r-panel: 16px; --r-row: 8px; --r-btn: 8px;
+    --cover: clamp(280px, min(56vh, calc(58vw - 380px)), 520px); --cover-sm: 80px;
+    --bar-h: 84px;
+    /* sleek feel; JS writes the spring curves */
+    --tap: 180ms; --tap-touch: ease-out; --fade: 150ms; --chapter: 450ms; --chapter-ease: ease-out;
+  }
+  :root[data-font="system"] { --font: system-ui, sans-serif; }
+
+  * { box-sizing: border-box; }
+  html { background: var(--bg); color: var(--ink); height: 100%; }
+  body { margin: 0; height: 100%; font: 500 var(--t-body)/1.4 var(--font); background: var(--bg); overflow: hidden; }
+  button { font: inherit; color: inherit; }
+  h1, h2, p, ol { margin: 0; }
+
+  .app {
+    display: grid;
+    grid-template-columns: minmax(0, 58fr) minmax(0, 42fr);
+    grid-template-rows: minmax(0, 1fr) var(--bar-h);
+    height: 100vh; height: 100dvh;
+  }
+
+  /* ---------- Now playing: a colour chapter per song ---------- */
+  .hero {
+    position: relative; display: flex; flex-direction: column; justify-content: flex-end; justify-content: safe center; gap: var(--s5);
+    margin: var(--s4) 0 0 var(--s4); padding: var(--s6);
+    border-radius: var(--r-panel); min-height: 0; overflow: hidden;
+    background: var(--ch-bg, var(--p-accent)); color: var(--ch-ink, #fff);
+    transition: background-color var(--chapter) var(--chapter-ease), color var(--chapter) var(--chapter-ease);
+  }
+  .deck { position: relative; display: flex; align-items: flex-end; gap: var(--s4); min-height: var(--cover); }
+  .cover {
+    position: relative; flex: none; width: var(--cover-sm); height: var(--cover-sm);
+    padding: 0; border: 0; border-radius: var(--r-cover); cursor: pointer;
+    background: transparent;
+    transform-origin: 0 100%;
+    transition: filter var(--fade) ease-out;
+  }
+  .cover svg.art { display: block; width: 100%; height: 100%; }
+  .cover:hover { filter: brightness(1.06); }
+  .cover:focus-visible { outline: 3px solid var(--ch-ink, #fff); outline-offset: 3px; }
+  .cover.cur { width: var(--cover); height: var(--cover); cursor: default; }
+
+  .cover.cur:hover { filter: none; }
+  .cover .tip { bottom: calc(100% + 8px); }
+  .cover:hover .tip, .cover:focus-visible .tip { visibility: visible; opacity: 1; transition: opacity var(--fade) ease-out 300ms, visibility 0s; }
+  .cover.cur:hover .tip { visibility: hidden; opacity: 0; }
+  .cover.leaving { position: absolute; bottom: 0; pointer-events: none; }
+  .cover .now {
+    position: absolute; left: 12px; bottom: 12px; display: none;
+    width: 32px; height: 32px; border-radius: 16px; align-items: center; justify-content: center;
+    background: var(--p-accent); color: #fff;
+  }
+  .cover.cur .now { display: inline-flex; }
+  .cover .now svg { width: 16px; height: 16px; }
+  /* a hairline in the panel's ink, so a cover keeps its edge when its ground matches the panel */
+  .art-wrap { outline: 1.5px solid color-mix(in srgb, currentColor 30%, transparent); outline-offset: -1.5px; }
+  .art-wrap { width: 100%; height: 100%; border-radius: var(--r-cover); overflow: hidden; transform-origin: 50% 100%; transition: transform var(--tap) var(--tap-touch); }
+
+  .song { min-width: 0; }
+  :lang(vi) { font-family: system-ui, sans-serif; }
+  .song h1 { font-size: var(--t-hero); font-weight: 800; line-height: 1.02; letter-spacing: -0.02em; overflow-wrap: anywhere; }
+  .song h1[data-size="m"] { font-size: 48px; }
+  .song h1[data-size="s"] { font-size: 40px; }
+  .song h1[data-size="xs"] { font-size: 32px; line-height: 1.1; }
+  .song .by { margin-top: var(--s3); font-size: var(--t-lead); font-weight: 700; overflow-wrap: anywhere; }
+  .song .from { margin-top: var(--s1); font-size: var(--t-body); opacity: 0.85; overflow-wrap: anywhere; }
+
+  /* ---------- Queue ---------- */
+  .queue { display: flex; flex-direction: column; min-width: 0; min-height: 0; padding: var(--s4) var(--s4) 0 var(--s5); }
+  .queue-head { padding: calc(var(--s6) - var(--s4)) var(--s3) var(--s3); }
+  .queue-head h2 { font-size: var(--t-h2); font-weight: 800; letter-spacing: -0.01em; }
+  .queue-head p { color: var(--muted); font-size: var(--t-meta); margin-top: 2px; }
+  .list-scroll { position: relative; flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-bottom: var(--s4); }
+  .hl { position: absolute; left: 0; right: 0; top: 0; height: 0; border-radius: var(--r-row); background: var(--accent); pointer-events: none; }
+  .tracks { position: relative; list-style: none; padding: 0; }
+  .track { border-radius: var(--r-row); }
+  .track button {
+    display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; align-items: center; column-gap: var(--s3);
+    width: 100%; min-height: 52px; padding: 0 var(--s3);
+    border: 0; border-radius: var(--r-row); background: transparent; text-align: left; cursor: pointer;
+    transition: background-color var(--fade) ease-out, color var(--fade) ease-out, transform var(--tap) var(--tap-touch);
+  }
+  .track button:hover { background: var(--hover); }
+  .track button:active { transform: scale(0.97); }
+  .track button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .num { color: var(--muted); font-size: var(--t-meta); font-variant-numeric: tabular-nums; text-align: right; }
+  .t-main { display: flex; flex-direction: column; min-width: 0; }
+  /* the row's vertical padding lives on its text, so any visible part of a row shows its title */
+  .t-title { padding-top: var(--s2); font-weight: 700; overflow-wrap: anywhere; }
+  .t-artist { padding-bottom: var(--s2); color: var(--muted); font-size: var(--t-meta); overflow-wrap: anywhere; }
+  .t-artist[hidden] + *, .t-title:last-child { padding-bottom: var(--s2); }
+  .dur { color: var(--muted); font-size: var(--t-meta); font-variant-numeric: tabular-nums; }
+  .eq { display: none; width: 18px; height: 18px; justify-self: end; }
+  .track.playing button, .track.playing button:hover { background: transparent; color: var(--accent-ink); }
+  .track.playing.lit button, .track.playing.lit button:hover { background: var(--accent); }
+  .track.playing .t-title { font-weight: 800; }
+  .track.playing .t-artist, .track.playing .dur { color: var(--accent-ink); }
+  .track.playing .num { display: none; }
+  .track.playing .eq { display: block; }
+  .track.played .t-title { color: var(--muted); font-weight: 500; }
+
+  /* ---------- Bar ---------- */
+  .bar {
+    grid-column: 1 / -1; display: flex; align-items: center; gap: var(--s5);
+    padding: 0 var(--s5); background: var(--bg);
+  }
+  .controls { display: flex; align-items: center; gap: var(--s2); flex: none; }
+  .icon-btn {
+    display: inline-flex; align-items: center; justify-content: center; position: relative;
+    width: 36px; height: 36px; padding: 0; border: 0; border-radius: var(--r-btn);
+    background: transparent; color: var(--ink); cursor: pointer;
+    transition: transform var(--tap) var(--tap-touch), background-color var(--fade) ease-out, color var(--fade) ease-out;
+  }
+  .icon-btn:hover { background: var(--hover); }
+  .icon-btn:active { transform: scale(0.97); }
+  .icon-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .icon-btn svg { width: 20px; height: 20px; }
+  .icon-btn.toggle { color: var(--muted); }
+  .icon-btn.toggle[aria-pressed="true"] { color: var(--accent); }
+  .icon-btn.toggle .pip { position: absolute; bottom: 3px; left: 50%; width: 4px; height: 4px; margin-left: -2px; border-radius: 2px; background: var(--accent); opacity: 0; }
+  .icon-btn.toggle[aria-pressed="true"] .pip { opacity: 1; }
+  .play { width: 52px; height: 52px; border-radius: 26px; background: var(--play-bg); color: var(--play-ink); }
+  .play:hover { background: var(--play-bg); }
+  .play svg { width: 22px; height: 22px; }
+  .play .ic { display: inline-flex; }
+  .tipwrap { position: relative; display: inline-flex; }
+  .tip {
+    position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); z-index: 20;
+    padding: 4px 8px; border-radius: 6px; white-space: nowrap;
+    background: var(--tip-bg); color: var(--tip-ink); font-size: var(--t-meta); font-weight: 500;
+    visibility: hidden; opacity: 0; pointer-events: none;
+    transition: opacity var(--fade) ease-out, visibility 0s linear var(--fade);
+  }
+  .tipwrap:hover .tip, .tipwrap:has(:focus-visible) .tip { visibility: visible; opacity: 1; transition: opacity var(--fade) ease-out 300ms, visibility 0s; }
+
+  .progress { display: flex; align-items: center; gap: var(--s3); flex: 1; min-width: 0; }
+  .time { color: var(--muted); font-size: var(--t-meta); font-variant-numeric: tabular-nums; min-width: 40px; }
+  .time.total { text-align: right; }
+  .track-bar { position: relative; flex: 1; height: 24px; cursor: pointer; touch-action: none; outline: none; }
+  .track-bar .rail { position: absolute; left: 0; right: 0; top: 10px; height: 4px; border-radius: 2px; background: var(--line); }
+  .track-bar .fill { position: absolute; left: 0; top: 10px; height: 4px; width: 100%; border-radius: 2px; background: var(--ink); transform-origin: 0 50%; transform: scaleX(0); }
+  .track-bar .thumb { position: absolute; top: 5px; left: 0; width: 14px; height: 14px; margin-left: -7px; border-radius: 7px; background: var(--ink); transform: scale(0.75); transition: transform var(--tap) var(--tap-touch); }
+  .track-bar:hover .thumb, .track-bar:focus-visible .thumb, .track-bar.drag .thumb { transform: scale(1); }
+  .track-bar:focus-visible .rail { outline: 2px solid var(--accent); outline-offset: 4px; }
+  .track-bar.ticking .fill { transition: transform 1s linear; }
+  .track-bar.ticking .thumb { transition: left 1s linear, transform var(--tap) var(--tap-touch); }
+
+  .made-up { color: var(--muted); }
+
+  /* ---------- Data toggle (break-ui chrome, not part of the design) ---------- */
+  .data-toggle {
+    position: fixed; left: 32px; top: 32px; z-index: 30;
+    display: flex; gap: 8px; padding: 4px; border-radius: 10px;
+    background: #e4e4e7; font: 400 13px/1 system-ui, -apple-system, sans-serif; color: #18181b;
+  }
+  .data-toggle button { white-space: nowrap; height: 28px; padding: 0 10px; border: 0; border-radius: 7px; background: transparent; font: inherit; color: #3f3f46; cursor: pointer; }
+  .data-toggle button[aria-pressed="true"] { background: #ffffff; color: #18181b; }
+
+  /* ---------- Narrow ---------- */
+  @media (max-width: 1100px) {
+    :root { --cover: 300px; --cover-sm: 64px; --t-hero: 48px; }
+    .song h1[data-size="m"] { font-size: 40px; }
+    .song h1[data-size="s"] { font-size: 32px; }
+    .song h1[data-size="xs"] { font-size: 24px; }
+  }
+  @media (max-width: 767px) {
+    :root { --cover: 196px; --cover-sm: 56px; --t-hero: 32px; --bar-h: 112px; }
+    .app { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) var(--bar-h); }
+    .hero { margin: var(--s3) var(--s3) 0; padding: 56px var(--s4) var(--s4); gap: var(--s4); }
+    .song h1[data-size="m"], .song h1[data-size="s"] { font-size: 24px; }
+    .song h1[data-size="xs"] { font-size: 24px; line-height: 1.1; }
+    .song .by { font-size: var(--t-body); margin-top: var(--s2); }
+    .cover.prev { display: none; }
+    .deck { gap: var(--s3); }
+    .queue { padding: var(--s2) var(--s3) 0; }
+    .queue-head { padding: var(--s3) var(--s2) var(--s2); }
+    .bar { flex-direction: column-reverse; justify-content: center; gap: var(--s2); padding: var(--s2) var(--s4) var(--s3); }
+    .progress { width: 100%; flex: none; }
+    .data-toggle { position: absolute; left: 24px; top: 20px; }
+    /* on a phone the song panel and the queue scroll together inside the frame; the bar stays */
+    .app { display: block; overflow-y: auto; overscroll-behavior: contain; }
+    .list-scroll { overflow: visible; }
+    .bar { position: sticky; bottom: 0; height: var(--bar-h); z-index: 5; border-top: 1px solid var(--line); }
+  }
+  @media (max-width: 380px) {
+    .cover.n2 { display: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .icon-btn:active, .track button:active { transform: none; }
+    .art-wrap, .track-bar .thumb { transition: none; }
+  }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <section class="hero" id="hero" aria-label="Now playing">
+    <div class="deck" id="deck"></div>
+    <div class="song" id="song">
+      <h1 id="title"></h1>
+      <p class="by" id="artist"></p>
+      <p class="from" id="album"></p>
+    </div>
+  </section>
+
+  <section class="queue" aria-label="Queue">
+    <div class="queue-head">
+      <h2 id="list-name"></h2>
+      <p><span id="list-meta"></span> <span class="made-up">(a made-up example)</span></p>
+    </div>
+    <div class="list-scroll" id="list-scroll">
+      <div class="hl" id="hl"></div>
+      <ol class="tracks" id="tracks"></ol>
+    </div>
+  </section>
+
+  <footer class="bar" aria-label="Player">
+    <div class="controls">
+      <span class="tipwrap">
+        <button class="icon-btn toggle" id="shuffle" type="button" aria-label="Shuffle" aria-pressed="false" aria-describedby="tip-shuffle">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h2.5c2 0 3 1 4.5 4s2.5 4 4.5 4H17M14.5 11.5 17 14l-2.5 2.5M3 14h2.5c1.2 0 2-.4 2.8-1.3M11.7 7.3C12.5 6.4 13.3 6 14.5 6H17M14.5 3.5 17 6l-2.5 2.5"/></svg>
+          <span class="pip"></span>
+        </button>
+        <span class="tip" role="tooltip" id="tip-shuffle">Shuffle</span>
+      </span>
+      <span class="tipwrap">
+        <button class="icon-btn" id="prev" type="button" aria-label="Previous" aria-describedby="tip-prev">
+          <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M5 4h2v12H5zM16 4.8v10.4a.6.6 0 0 1-.9.5L8 10.5a.6.6 0 0 1 0-1l7.1-5.2a.6.6 0 0 1 .9.5z"/></svg>
+        </button>
+        <span class="tip" role="tooltip" id="tip-prev">Previous</span>
+      </span>
+      <span class="tipwrap">
+        <button class="icon-btn play" id="play" type="button" aria-label="Play" aria-describedby="tip-play">
+          <span class="ic" id="play-ic"></span>
+        </button>
+        <span class="tip" role="tooltip" id="tip-play">Play</span>
+      </span>
+      <span class="tipwrap">
+        <button class="icon-btn" id="next" type="button" aria-label="Next" aria-describedby="tip-next">
+          <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M13 4h2v12h-2zM4 4.8v10.4a.6.6 0 0 0 .9.5L12 10.5a.6.6 0 0 0 0-1L4.9 4.3a.6.6 0 0 0-.9.5z"/></svg>
+        </button>
+        <span class="tip" role="tooltip" id="tip-next">Next</span>
+      </span>
+      <span class="tipwrap">
+        <button class="icon-btn toggle" id="repeat" type="button" aria-label="Repeat" aria-pressed="false" aria-describedby="tip-repeat">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V8a2.5 2.5 0 0 1 2.5-2.5H16M13.5 3 16 5.5 13.5 8M16 11v1a2.5 2.5 0 0 1-2.5 2.5H4M6.5 17 4 14.5 6.5 12"/></svg>
+          <span class="pip"></span>
+        </button>
+        <span class="tip" role="tooltip" id="tip-repeat">Repeat</span>
+      </span>
+    </div>
+    <div class="progress">
+      <span class="time" id="elapsed" data-ui-number>0:00</span>
+      <div class="track-bar" id="seek" role="slider" tabindex="0" aria-label="Position in song" aria-valuemin="0">
+        <div class="rail"></div><div class="fill" id="fill"></div><div class="thumb" id="thumb"></div>
+      </div>
+      <span class="time total" id="total" data-ui-number>0:00</span>
+    </div>
+  </footer>
+</div>
+
+<div class="data-toggle" data-ui-chrome role="group" aria-label="Data set">
+  <button type="button" data-set="demo">Demo data</button>
+  <button type="button" data-set="worst">Worst case</button>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var root = document.documentElement;
+  var reduceQuery = matchMedia("(prefers-reduced-motion: reduce)");
+  function reduced() { return reduceQuery.matches; }
+  function $(id) { return document.getElementById(id); }
+
+  /* ---------- Feel: sleek, from motion-kit defaults.js ----------
+     tap 0.1/0.05 (amount 0.97), enter 0.25/0.05, exit 0.15/0, move 0.25/0.05,
+     attention 0.2/0.05 (amount 1.08), celebrate 0.35/0.05, stagger 0.025,
+     reduced fade 0.15. Motion's spring mapping from (visualDuration, bounce),
+     run for 1.8 x the visual duration as a CSS linear() curve. Bounce only
+     answers a touch: a song that ends on its own moves with bounce 0. */
+  var FEEL = { tap: [0.1, 0.05], enter: [0.25, 0.05], exit: [0.15, 0], move: [0.25, 0.05], attention: [0.2, 0.05], celebrate: [0.35, 0.05] };
+  var ATTENTION_AMOUNT = 1.08, STAGGER = 25, FADE = 150;
+  var curves = {};
+  function curve(v, b) {
+    var key = v + "/" + b;
+    if (curves[key]) return curves[key];
+    var w0 = (2 * Math.PI) / (1.2 * v), z = Math.max(1 - b, 0.05), T = 1.8 * v, n = 40, pts = [];
+    for (var i = 0; i <= n; i++) {
+      var t = (T * i) / n, x;
+      if (z < 1) { var wd = w0 * Math.sqrt(1 - z * z); x = Math.exp(-z * w0 * t) * (Math.cos(wd * t) + ((z * w0) / wd) * Math.sin(wd * t)); }
+      else { x = Math.exp(-w0 * t) * (1 + w0 * t); }
+      pts.push(i === n ? "1" : (1 - x).toFixed(4));
+    }
+    return (curves[key] = "linear(" + pts.join(", ") + ")");
+  }
+  function spring(kind, touch) {
+    var f = FEEL[kind];
+    return { duration: Math.round(1800 * f[0]), easing: curve(f[0], touch ? f[1] : 0) };
+  }
+  root.style.setProperty("--tap", Math.round(1800 * FEEL.tap[0]) + "ms");
+  root.style.setProperty("--tap-touch", curve(FEEL.tap[0], FEEL.tap[1]));
+  root.style.setProperty("--chapter", Math.round(1800 * FEEL.celebrate[0]) + "ms");
+  root.style.setProperty("--chapter-ease", curve(FEEL.celebrate[0], 0));
+  function stop(el) { el.getAnimations().forEach(function (a) { a.cancel(); }); }
+  function fadeIn(el) { el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE, easing: "ease-out" }); }
+
+  /* ---------- Covers: drawn from the palette, one motif per album ---------- */
+  var P = { bg: "#e2dccf", surface: "#d7d0c1", ink: "#2a1110", muted: "#6b524c", accent: "#4a6f84", white: "#ffffff" };
+  var MOTIFS = {
+    sun: function (a, b, c) { return '<rect width="100" height="100" fill="' + a + '"/><circle cx="50" cy="62" r="30" fill="' + b + '"/><rect y="62" width="100" height="38" fill="' + c + '"/><rect y="70" width="100" height="3" fill="' + a + '"/><rect y="80" width="100" height="5" fill="' + a + '"/>'; },
+    stripes: function (a, b, c) { var s = '<rect width="100" height="100" fill="' + a + '"/>'; for (var i = 0; i < 6; i++) s += '<rect x="' + (i * 18 - 4) + '" y="0" width="9" height="100" fill="' + (i % 2 ? c : b) + '" transform="skewX(-14)"/>'; return s; },
+    dots: function (a, b, c) { var s = '<rect width="100" height="100" fill="' + a + '"/>'; for (var y = 0; y < 5; y++) for (var x = 0; x < 5; x++) s += '<circle cx="' + (14 + x * 18) + '" cy="' + (14 + y * 18) + '" r="' + (3 + ((x + y) % 3) * 2) + '" fill="' + ((x * y) % 3 ? b : c) + '"/>'; return s; },
+    half: function (a, b, c) { return '<rect width="100" height="100" fill="' + a + '"/><path d="M0 100A50 50 0 0 1 100 100z" fill="' + b + '"/><path d="M30 0h40v34a20 20 0 0 1-40 0z" fill="' + c + '"/>'; },
+    grid: function (a, b, c) { return '<rect width="100" height="100" fill="' + a + '"/><rect x="10" y="10" width="38" height="38" fill="' + b + '"/><rect x="52" y="52" width="38" height="38" fill="' + b + '"/><rect x="52" y="10" width="38" height="38" rx="19" fill="' + c + '"/><rect x="10" y="52" width="38" height="38" rx="19" fill="' + c + '"/>'; },
+    wave: function (a, b, c) { var s = '<rect width="100" height="100" fill="' + a + '"/>'; for (var i = 0; i < 5; i++) s += '<path d="M-5 ' + (30 + i * 12) + ' Q 20 ' + (18 + i * 12) + ' 45 ' + (30 + i * 12) + ' T 105 ' + (30 + i * 12) + '" fill="none" stroke="' + (i % 2 ? c : b) + '" stroke-width="5"/>'; return s; },
+    ring: function (a, b, c) { return '<rect width="100" height="100" fill="' + a + '"/><circle cx="50" cy="50" r="34" fill="none" stroke="' + b + '" stroke-width="14"/><circle cx="50" cy="50" r="9" fill="' + c + '"/>'; }
+  };
+  function art(album) {
+    return '<svg class="art" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice" aria-hidden="true">' + MOTIFS[album.motif].apply(null, album.colors.map(function (k) { return P[k]; })) + "</svg>";
+  }
+  // a colour chapter per album: the panel takes the album's ground
+  var CHAPTER_INK = { accent: "#ffffff", muted: "#ffffff", ink: "#e2dccf", bg: "#2a1110", surface: "#2a1110" };
+
+  /* ---------- Data (a made-up example) ---------- */
+  var ALBUMS = {
+    lanterns: { name: "Harbor Lights", year: 2024, motif: "sun", colors: ["accent", "bg", "ink"], chapter: "ink" },
+    arcade: { name: "Night Ferry", year: 2022, motif: "stripes", colors: ["ink", "accent", "bg"], chapter: "accent" },
+    salt: { name: "Coastline Studies", year: 2025, motif: "wave", colors: ["muted", "bg", "accent"], chapter: "ink" },
+    copper: { name: "Red Clay Country", year: 2021, motif: "half", colors: ["surface", "accent", "ink"], chapter: "muted" },
+    bloom: { name: "April Rooms", year: 2023, motif: "dots", colors: ["accent", "ink", "bg"], chapter: "muted" },
+    bus: { name: "Night Shift Radio", year: 2020, motif: "grid", colors: ["bg", "muted", "accent"], chapter: "accent" },
+    glass: { name: "Mirror Hall", year: 2025, motif: "ring", colors: ["ink", "bg", "accent"], chapter: "muted" }
+  };
+  var DEMO = {
+    name: "Sunday cleaning",
+    start: 2, at: 72,
+    songs: [
+      ["Paper Lanterns", "Marisol Vega", "lanterns", 222],
+      ["Northbound", "The Quiet Arcade", "arcade", 245],
+      ["Salt in the Air", "Juno Hale", "salt", 198],
+      ["Copper Sky", "Okonkwo and the Tides", "copper", 301],
+      ["Slow Bloom", "Linnea Varga", "bloom", 177],
+      ["Late Bus Home", "Theo Marchetti", "bus", 213],
+      ["Glasshouse", "Ada Moreau", "glass", 252],
+      ["Fever Dream Parade", "Big Lake Orchestra", "copper", 380],
+      ["Small Hours", "Kaito Mori", "bloom", 185],
+      ["Weather Report", "Nell Ashby", "salt", 229],
+      ["Riverbend", "The Quiet Arcade", "arcade", 270],
+      ["Gold Teeth", "Pia Lund", "lanterns", 161]
+    ]
+  };
+  var WORST = {
+    name: "Everything I liked in 2019, 2020, 2021 and most of 2022 (do not delete) 🎧",
+    start: 0, at: 3700,
+    songs: [
+      ["Piano Concerto No. 2 in C minor, Op. 18: II. Adagio sostenuto (Live at the Philharmonie Berlin, 2019 Remaster)", "Sergei Rachmaninoff, Yuja Wang, Berliner Philharmoniker, Kirill Petrenko", "glass", 3757],
+      ["Ok", "Jo", "bloom", 4],
+      ["夜に駆ける", "YOASOBI", "salt", 261],
+      ["Lâm Bích Thủy Tiên và những ngày mưa", "Nguyễn Thị Ánh Tuyết", "copper", 240],
+      ["قلبي يحبك", "عبد الرحمن محمد", "arcade", 312],
+      ["Untitled", "", "bus", 199],
+      ["🔥🔥🔥", "Lil Wiśniewska-Kowalczyk feat. Bartholomew Fitzgerald-Montgomery III", "lanterns", 9599]
+    ]
+  };
+  for (var k = 0; k < 233; k++) {
+    var al = Object.keys(ALBUMS)[k % 7];
+    WORST.songs.push(["Track " + (k + 8) + ", a very ordinary song", ["Marisol Vega", "The Quiet Arcade", "Juno Hale"][k % 3], al, 150 + (k * 37) % 240]);
+  }
+
+  var worst = new URLSearchParams(location.search).get("data") === "worst";
+  var data = worst ? WORST : DEMO;
+  var songs = data.songs.map(function (s, i) { return { id: "s" + i, n: i + 1, title: s[0], artist: s[1], album: ALBUMS[s[2]], len: s[3] }; });
+
+  /* ---------- State ---------- */
+  var state = { order: songs.map(function (s, i) { return i; }), cur: data.start, at: Math.min(data.at, songs[data.start].len), playing: false, shuffle: false, repeat: false };
+  var tick = null;
+  function song() { return songs[state.order[state.cur]]; }
+
+  /* ---------- Formatting ---------- */
+  function mmss(sec) {
+    sec = Math.max(0, Math.floor(sec));
+    var h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+    return (h ? h + ":" + String(m).padStart(2, "0") : m) + ":" + String(s).padStart(2, "0");
+  }
+  function plural(n, one, many) { return n + " " + (n === 1 ? one : many); }
+  function totalLen() {
+    var t = songs.reduce(function (a, s) { return a + s.len; }, 0), h = Math.floor(t / 3600), m = Math.round((t % 3600) / 60);
+    return h ? plural(h, "hr", "hr") + " " + m + " min" : m + " min";
+  }
+  function sizeFor(t) { var n = t.length; return n > 70 ? "xs" : n > 40 ? "s" : n > 22 ? "m" : ""; }
+
+  /* ---------- Icons ---------- */
+  var IC_PLAY = '<svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M6 3.9v12.2a.7.7 0 0 0 1.1.6l9.4-6.1a.7.7 0 0 0 0-1.2L7.1 3.3a.7.7 0 0 0-1.1.6z"/></svg>';
+  var IC_PAUSE = '<svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><rect x="5" y="3.5" width="3.6" height="13" rx="1"/><rect x="11.4" y="3.5" width="3.6" height="13" rx="1"/></svg>';
+  var IC_EQ = '<svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><rect x="3" y="8" width="3" height="9" rx="1"/><rect x="8.5" y="3" width="3" height="14" rx="1"/><rect x="14" y="6" width="3" height="11" rx="1"/></svg>';
+
+  /* ---------- Queue list ---------- */
+  var tracksEl = $("tracks"), hl = $("hl"), listScroll = $("list-scroll");
+  var rowEls = {};
+  function buildRow(s) {
+    var li = document.createElement("li");
+    li.className = "track";
+    li.dataset.id = s.id;
+    li.innerHTML = '<button type="button"><span class="num"></span><span class="eq">' + IC_EQ + '</span><span class="t-main"><span class="t-title" dir="auto"></span><span class="t-artist" dir="auto"></span></span><span class="dur"></span></button>';
+    li.querySelector(".t-title").textContent = s.title;
+    var a = li.querySelector(".t-artist");
+    a.textContent = s.artist;
+    if (!s.artist) a.remove();
+    li.querySelector(".dur").textContent = mmss(s.len);
+    li.querySelector("button").addEventListener("click", function () {
+      var pos = state.order.indexOf(songs.indexOf(s));
+      if (pos === state.cur) { togglePlay(true); return; }
+      go(pos, true, true);
+    });
+    rowEls[s.id] = li;
+    return li;
+  }
+  function renderList(how) {
+    var before = {};
+    if (how !== "none") Object.keys(rowEls).forEach(function (id) { before[id] = rowEls[id].getBoundingClientRect().top; });
+    var hlBefore = hl.getBoundingClientRect().top, had = document.activeElement;
+    state.order.forEach(function (idx, pos) {
+      var s = songs[idx], li = rowEls[s.id] || buildRow(s);
+      li.querySelector(".num").textContent = pos + 1;
+      var on = pos === state.cur;
+      li.classList.toggle("playing", on);
+      li.classList.toggle("played", pos < state.cur);
+      if (on) li.setAttribute("data-ui-need", ""); else li.removeAttribute("data-ui-need");
+      li.querySelector("button").setAttribute("aria-current", on ? "true" : "false");
+      // move a row only when it is out of place, so focus and hover stay put
+      if (tracksEl.children[pos] !== li) tracksEl.insertBefore(li, tracksEl.children[pos] || null);
+    });
+    if (had && had !== document.activeElement && had.isConnected && tracksEl.contains(had)) had.focus({ preventScroll: true });
+    if (how !== "none") {
+      state.order.forEach(function (idx) {
+        var li = rowEls[songs[idx].id], dy = before[li.dataset.id] - li.getBoundingClientRect().top;
+        if (Math.abs(dy) < 0.5) return;
+        stop(li);
+        if (reduced()) fadeIn(li);
+        else li.animate([{ transform: "translateY(" + dy + "px)" }, { transform: "none" }], spring("move", how === "touch"));
+      });
+    }
+    placeHl(how, hlBefore);
+  }
+  // The playing row's colour is one block that moves from row to row.
+  // Once the block lands, the row owns its colour, so the row reads on its own.
+  function placeHl(how, fromTop) {
+    var li = rowEls[song().id];
+    Object.keys(rowEls).forEach(function (id) { rowEls[id].classList.remove("lit"); });
+    stop(hl);
+    var y = li.offsetTop + tracksEl.offsetTop;
+    hl.style.height = li.offsetHeight + "px";
+    hl.style.transform = "translateY(" + y + "px)";
+    var settle = function () { li.classList.add("lit"); };
+    if (how === "none") { settle(); return; }
+    var dy = fromTop - hl.getBoundingClientRect().top;
+    if (Math.abs(dy) < 0.5 || reduced()) { settle(); return; }
+    var a = hl.animate([{ transform: "translateY(" + (y + dy) + "px)" }, { transform: "translateY(" + y + "px)" }], spring("move", how === "touch"));
+    a.onfinish = settle;
+  }
+
+  /* ---------- Deck: the song before, the song now, two up next ---------- */
+  var deck = $("deck");
+  var coverEls = {};
+  function buildCover(s) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "cover";
+    b.dataset.id = s.id;
+    b.innerHTML = '<div class="art-wrap">' + art(s.album) + '</div><span class="now">' + IC_EQ + '</span><span class="tip" role="tooltip" id="tip-' + s.id + '"></span>';
+    b.setAttribute("aria-describedby", "tip-" + s.id);
+    b.querySelector(".tip").textContent = s.title;
+    b.addEventListener("click", function () {
+      var pos = state.order.indexOf(songs.indexOf(s));
+      if (pos !== state.cur && pos >= 0) go(pos, true, true);
+    });
+    coverEls[s.id] = b;
+    return b;
+  }
+  function renderDeck(how) {
+    var want = [];
+    var slots = [["prev", state.cur - 1], ["cur", state.cur], ["n1", state.cur + 1], ["n2", state.cur + 2]];
+    slots.forEach(function (sl) {
+      var pos = sl[1];
+      if (state.repeat && songs.length > 3) pos = (pos + songs.length) % songs.length;
+      if (pos < 0 || pos >= state.order.length) return;
+      want.push({ s: songs[state.order[pos]], slot: sl[0] });
+    });
+    var before = {};
+    Object.keys(coverEls).forEach(function (id) { before[id] = coverEls[id].getBoundingClientRect(); });
+    var keep = {};
+    want.forEach(function (w) { keep[w.s.id] = true; });
+    // covers that leave fade out where they stand
+    Object.keys(coverEls).forEach(function (id) {
+      if (keep[id]) return;
+      var el = coverEls[id];
+      delete coverEls[id];
+      if (how === "none" || el.classList.contains("leaving")) { el.remove(); return; }
+      var r = before[id], d = deck.getBoundingClientRect();
+      stop(el);
+      el.classList.add("leaving");
+      el.style.left = (r.left - d.left) + "px";
+      el.style.width = r.width + "px";
+      el.style.height = r.height + "px";
+      el.tabIndex = -1;
+      var out = el.animate([{ opacity: 1, transform: "scale(1)" }, { opacity: 0, transform: "scale(0.9)" }], reduced() ? { duration: FADE } : spring("exit", false));
+      out.onfinish = function () { el.remove(); };
+    });
+    want.forEach(function (w) {
+      var el = coverEls[w.s.id] || buildCover(w.s);
+      el.className = "cover " + w.slot;
+      el.setAttribute("aria-label", (w.slot === "cur" ? "Now playing: " : "Play ") + w.s.title);
+      if (w.slot === "cur") { el.setAttribute("data-ui-need", ""); el.tabIndex = -1; } else { el.removeAttribute("data-ui-need"); el.tabIndex = 0; }
+      var at = Array.prototype.indexOf.call(deck.children, el), i = want.indexOf(w);
+      if (at !== i) deck.insertBefore(el, deck.children[i] || null);
+    });
+    Array.prototype.slice.call(deck.querySelectorAll(".cover.leaving")).forEach(function (el) { deck.appendChild(el); });
+    if (how === "none") return;
+    want.forEach(function (w, i) {
+      var el = coverEls[w.s.id], r0 = before[w.s.id], r1 = el.getBoundingClientRect();
+      stop(el);
+      if (!r1.width) return;
+      if (!r0 || !r0.width) {
+        if (reduced()) fadeIn(el);
+        else el.animate([{ opacity: 0, transform: "translateX(24px) scale(0.9)" }, { opacity: 1, transform: "none" }], Object.assign(spring("enter", how === "touch"), { delay: i * STAGGER, fill: "backwards" }));
+        return;
+      }
+      if (reduced()) return;
+      var dx = r0.left - r1.left, dy = r0.bottom - r1.bottom, sx = r0.width / r1.width, sy = r0.height / r1.height;
+      if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5 && Math.abs(sx - 1) < 0.01) return;
+      el.animate([{ transform: "translate(" + dx + "px," + dy + "px) scale(" + sx + "," + sy + ")" }, { transform: "none" }], spring("move", how === "touch"));
+    });
+    breathe(false);
+  }
+
+  // Paused, the cover sits back a little; playing, it comes forward.
+  function breathe(animate, touch) {
+    var cur = coverEls[song().id];
+    if (!cur) return;
+    var wrap = cur.querySelector(".art-wrap");
+    Object.keys(coverEls).forEach(function (id) { if (id !== song().id) coverEls[id].querySelector(".art-wrap").style.transform = ""; });
+    var to = state.playing ? "none" : "scale(0.94)";
+    if (!animate || reduced()) { wrap.style.transition = "none"; wrap.style.transform = to; wrap.offsetWidth; wrap.style.transition = ""; return; }
+    wrap.style.transform = to;
+  }
+
+  /* ---------- Now playing text ---------- */
+  function renderSong(how) {
+    var s = song(), hero = $("hero");
+    var ch = s.album.chapter;
+    hero.style.setProperty("--ch-bg", ch === "ink" ? "var(--chapter-ink)" : P[ch]);
+    hero.style.setProperty("--ch-ink", CHAPTER_INK[ch]);
+    var t = $("title");
+    t.textContent = s.title;
+    t.dir = "auto";
+    t.dataset.size = sizeFor(s.title);
+    $("artist").textContent = s.artist || "Unknown artist";
+    $("artist").dir = "auto";
+    $("album").textContent = s.album.name + " · " + s.album.year;
+    $("total").textContent = mmss(s.len);
+    $("seek").setAttribute("aria-valuemax", s.len);
+    document.title = s.title;
+    if (how === "none") return;
+    var box = $("song");
+    stop(box);
+    if (reduced()) fadeIn(box);
+    else box.animate([{ opacity: 0, transform: "translateY(16px)" }, { opacity: 1, transform: "none" }], spring("enter", how === "touch"));
+  }
+
+  /* ---------- Progress ---------- */
+  var seek = $("seek"), fill = $("fill"), thumb = $("thumb");
+  function paintTime(animate) {
+    var s = song(), f = s.len ? Math.min(1, state.at / s.len) : 0;
+    seek.classList.toggle("ticking", animate === "tick" && !reduced());
+    fill.style.transform = "scaleX(" + f + ")";
+    thumb.style.left = (f * 100) + "%";
+    $("elapsed").textContent = mmss(state.at);
+    seek.setAttribute("aria-valuenow", Math.floor(state.at));
+    seek.setAttribute("aria-valuetext", mmss(state.at) + " of " + mmss(s.len));
+  }
+  function startTick() {
+    clearInterval(tick);
+    tick = setInterval(function () {
+      state.at += 1;
+      if (state.at >= song().len) { ended(); return; }
+      paintTime("tick");
+    }, 1000);
+  }
+  function ended() {
+    var last = state.cur >= state.order.length - 1;
+    if (last && !state.repeat) { state.at = song().len; setPlaying(false, false); paintTime(); return; }
+    go(last ? 0 : state.cur + 1, false, true);
+  }
+
+  function setPlaying(on, touch) {
+    state.playing = on;
+    $("play").setAttribute("aria-label", on ? "Pause" : "Play");
+    $("tip-play").textContent = on ? "Pause" : "Play";
+    var ic = $("play-ic");
+    ic.innerHTML = on ? IC_PAUSE : IC_PLAY;
+    if (touch !== undefined) {
+      stop(ic);
+      if (reduced()) fadeIn(ic);
+      else ic.animate([{ transform: "scale(0.6) rotate(-20deg)", opacity: 0.2 }, { transform: "none", opacity: 1 }], spring("attention", touch));
+    }
+    if (on) startTick(); else { clearInterval(tick); tick = null; }
+    breathe(touch !== undefined, touch);
+  }
+  function togglePlay(touch) {
+    if (!state.playing && state.at >= song().len) state.at = 0;
+    setPlaying(!state.playing, touch);
+    paintTime();
+  }
+
+  // Move to another song in the queue.
+  function go(pos, touch, play) {
+    if (pos < 0 || pos >= state.order.length) return;
+    state.cur = pos;
+    state.at = 0;
+    var how = touch ? "touch" : "quiet";
+    renderDeck(how);
+    renderSong(how);
+    renderList(how);
+    paintTime();
+    if (play) setPlaying(true, touch);
+    else breathe(false);
+    if (!listScrolls()) return;
+    var li = rowEls[song().id];
+    var r = li.getBoundingClientRect(), box = listScroll.getBoundingClientRect();
+    if (r.top < box.top || r.bottom > box.bottom) li.scrollIntoView({ block: "nearest", behavior: reduced() ? "auto" : "smooth" });
+  }
+
+  function listScrolls() { return getComputedStyle(listScroll).overflowY === "auto"; }
+
+  /* ---------- Controls ---------- */
+  $("play").addEventListener("click", function () { togglePlay(true); });
+  $("next").addEventListener("click", function () {
+    if (state.cur < state.order.length - 1) go(state.cur + 1, true, state.playing);
+    else if (state.repeat) go(0, true, state.playing);
+  });
+  $("prev").addEventListener("click", function () {
+    if (state.at > 3 || state.cur === 0) { state.at = 0; paintTime(); pulse($("fill")); return; }
+    go(state.cur - 1, true, state.playing);
+  });
+  function pulse(el) {
+    if (reduced()) return;
+    el.animate([{ opacity: 0.4 }, { opacity: 1 }], spring("attention", true));
+  }
+  function toggleBtn(btn, on) {
+    btn.setAttribute("aria-pressed", on ? "true" : "false");
+    var pip = btn.querySelector(".pip");
+    stop(pip);
+    if (reduced()) return;
+    pip.animate(on ? [{ transform: "scale(0)" }, { transform: "scale(1)" }] : [{ transform: "scale(1)", opacity: 1 }, { transform: "scale(0)", opacity: 0 }], spring(on ? "enter" : "exit", on));
+  }
+  var ORIGINAL = state.order.slice();
+  $("shuffle").addEventListener("click", function () {
+    state.shuffle = !state.shuffle;
+    toggleBtn(this, state.shuffle);
+    var curIdx = state.order[state.cur];
+    var head = state.order.slice(0, state.cur + 1);
+    var rest = state.shuffle ? state.order.slice(state.cur + 1) : ORIGINAL.filter(function (i) { return head.indexOf(i) < 0; });
+    if (state.shuffle) {
+      var seed = 7;
+      for (var i = rest.length - 1; i > 0; i--) { seed = (seed * 9301 + 49297) % 233280; var j = Math.floor((seed / 233280) * (i + 1)); var t = rest[i]; rest[i] = rest[j]; rest[j] = t; }
+    }
+    state.order = head.concat(rest);
+    state.cur = state.order.indexOf(curIdx);
+    renderList("touch");
+    renderDeck("touch");
+  });
+  $("repeat").addEventListener("click", function () {
+    state.repeat = !state.repeat;
+    toggleBtn(this, state.repeat);
+    renderDeck("touch");
+  });
+
+  // seek: press anywhere on the bar, drag, or use the arrow keys
+  function seekTo(clientX) {
+    var r = seek.getBoundingClientRect();
+    var f = Math.min(1, Math.max(0, (clientX - r.left) / r.width));
+    state.at = Math.round(f * song().len);
+    paintTime();
+  }
+  seek.addEventListener("pointerdown", function (e) {
+    seek.setPointerCapture(e.pointerId);
+    seek.classList.add("drag");
+    seekTo(e.clientX);
+  });
+  seek.addEventListener("pointermove", function (e) { if (seek.classList.contains("drag")) seekTo(e.clientX); });
+  function release() { seek.classList.remove("drag"); if (state.playing) startTick(); }
+  seek.addEventListener("pointerup", release);
+  seek.addEventListener("pointercancel", release);
+  seek.addEventListener("keydown", function (e) {
+    var step = e.key === "ArrowRight" ? 5 : e.key === "ArrowLeft" ? -5 : 0;
+    if (!step) return;
+    e.preventDefault();
+    state.at = Math.min(song().len, Math.max(0, state.at + step));
+    paintTime();
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === " " && e.target === document.body) { e.preventDefault(); togglePlay(true); }
+  });
+
+  /* ---------- Data toggle (chrome) ---------- */
+  document.querySelectorAll(".data-toggle button").forEach(function (b) {
+    var on = (b.dataset.set === "worst") === worst;
+    b.setAttribute("aria-pressed", on ? "true" : "false");
+    b.addEventListener("click", function () {
+      if (on) return;
+      var p = new URLSearchParams(location.search);
+      if (b.dataset.set === "worst") p.set("data", "worst"); else p.delete("data");
+      var q = p.toString();
+      location.href = location.pathname + (q ? "?" + q : "");
+    });
+  });
+
+  /* ---------- First paint: paused, so nothing moves until a press ---------- */
+  $("list-name").textContent = data.name;
+  $("list-name").dir = "auto";
+  $("list-meta").textContent = plural(songs.length, "song", "songs") + ", " + totalLen();
+  renderSong("none");
+  renderDeck("none");
+  renderList("none");
+  setPlaying(false);
+  paintTime();
+  addEventListener("resize", function () { placeHl("none"); });
+  // rows change height when the web font or a fallback face lands; the block follows the playing row
+  if (window.ResizeObserver) new ResizeObserver(function () { placeHl("none"); }).observe(tracksEl);
+  if (document.fonts) document.fonts.ready.then(function () { placeHl("none"); });
+  if (listScrolls()) listScroll.scrollTop = Math.max(0, rowEls[song().id].offsetTop - 120);
+
+  // for drive.mjs checks
+  window.__player = {
+    now: function () { return { title: song().title, pos: state.cur, playing: state.playing, at: state.at }; },
+    deck: function () { return Array.prototype.map.call(deck.querySelectorAll(".cover:not(.leaving)"), function (c) { return c.className.replace("cover ", "") + ":" + c.dataset.id; }); }
+  };
+})();
+</script>
+<script>
+  // mark text that is Vietnamese, so :lang(vi) can give it a face that stacks its marks
+  (function () {
+    var VI = /[ăâđêôơưĂÂĐÊÔƠƯẠ-ỹ]/;
+    function mark(root) {
+      if (!root || root.nodeType !== 1) return;
+      var els = root.matches('[dir="auto"]') ? [root] : [];
+      root.querySelectorAll('[dir="auto"]').forEach(function (e) { els.push(e); });
+      els.forEach(function (e) {
+        var want = VI.test(e.textContent);
+        if (want && e.lang !== "vi") e.lang = "vi"; else if (!want && e.lang === "vi") e.removeAttribute("lang");
+      });
+    }
+    mark(document.body);
+    new MutationObserver(function (list) {
+      list.forEach(function (m) {
+        var t = m.target.nodeType === 1 ? m.target : m.target.parentElement;
+        if (t) mark(t.closest('[dir="auto"]') || t);
+      });
+    }).observe(document.body, { childList: true, subtree: true, characterData: true });
+  })();
+</script>
+</body>
+</html>

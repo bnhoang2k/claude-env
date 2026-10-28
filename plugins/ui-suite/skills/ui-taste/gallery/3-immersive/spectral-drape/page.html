@@ -1,0 +1,442 @@
+<!doctype html>
+<html lang="en" data-rung="3" data-look="bold" data-motion="calm">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spectral Drape</title>
+<style>
+  :root {
+    color-scheme: dark;
+    /* surface */
+    --bg: #07060d;
+    --panel: #12101e;
+    --panel-edge: rgba(255, 255, 255, 0.09);
+    /* text */
+    --ink: #ece9f6;
+    --ink-2: #a9a3c2;
+    --ink-3: #8a84a6;
+    /* accent */
+    --accent: #8f78ff;
+    --track: rgba(255, 255, 255, 0.12);
+    /* shape */
+    --r-panel: 10px;
+    --r-ctl: 6px;
+    --gap: 8px;
+    --font: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  input, button { font: inherit; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font: 13px/1.4 var(--font); overflow: hidden; }
+  canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: crosshair; }
+
+  .overlay { position: fixed; left: 0; right: 0; top: 30%; text-align: center; pointer-events: none; padding: 0 16px; transition: opacity .3s; }
+  .overlay h1 { margin: 0; font-size: clamp(36px, 7vw, 84px); font-weight: 300; letter-spacing: -0.03em; line-height: 1; text-shadow: 0 2px 30px rgba(7, 6, 13, 0.9); }
+  .overlay p { margin: 14px 0 0; font-size: clamp(14px, 1.6vw, 17px); color: var(--ink-2); text-shadow: 0 1px 16px rgba(7, 6, 13, 0.95); }
+  .overlay[hidden] { display: none; }
+
+  .panel { position: fixed; left: 16px; bottom: 16px; width: 264px;
+    background: var(--panel); border: 1px solid var(--panel-edge); border-radius: var(--r-panel);
+    padding: 10px 12px 12px; }
+  .panel.closed .rows { display: none; }
+  .head { display: flex; align-items: center; justify-content: space-between; gap: var(--gap); }
+  .head b { font-weight: 600; font-size: 13px; }
+  .row { display: grid; grid-template-columns: 74px minmax(0, 1fr) 34px; align-items: center; gap: var(--gap); min-height: 28px; }
+  .row label { color: var(--ink-2); }
+  .row output { font: 12px var(--mono); color: var(--ink-3); text-align: right; font-variant-numeric: tabular-nums; }
+  .rows { display: grid; gap: 2px; margin-top: 8px; max-height: calc(100vh - 92px); overflow-y: auto; }
+  .sep { height: 1px; background: var(--panel-edge); margin: 6px 0; }
+
+  input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 28px; background: transparent; margin: 0; cursor: pointer; }
+  input[type=range]::-webkit-slider-runnable-track { height: 3px; border-radius: 3px; background: linear-gradient(var(--accent), var(--accent)) 0/var(--fill, 50%) 100% no-repeat, var(--track); }
+  input[type=range]::-moz-range-track { height: 3px; border-radius: 3px; background: var(--track); }
+  input[type=range]::-moz-range-progress { height: 3px; border-radius: 3px; background: var(--accent); }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; margin-top: -5.5px; border-radius: 50%; background: var(--ink); border: 0; box-shadow: 0 1px 4px rgba(0,0,0,.5); }
+  input[type=range]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: var(--ink); border: 0; }
+
+  .swatches { display: flex; gap: 6px; }
+  .swatch { position: relative; width: 32px; height: 24px; border-radius: var(--r-ctl); border: 1px solid var(--panel-edge); cursor: pointer; }
+  .swatch input { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; padding: 0; opacity: 0; cursor: pointer; }
+
+  .btn { height: 32px; min-width: 32px; padding: 0 10px; border-radius: var(--r-ctl); border: 1px solid var(--panel-edge); background: rgba(255,255,255,0.06);
+    color: var(--ink); font: inherit; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+  .btn:hover { background: rgba(255,255,255,0.11); }
+  .btn:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .btn svg { width: 16px; height: 16px; }
+  .btns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+
+  .toggle { display: flex; align-items: center; justify-content: space-between; min-height: 28px; color: var(--ink-2); cursor: pointer; }
+  .toggle input { -webkit-appearance: none; appearance: none; width: 30px; height: 18px; border-radius: 9px; background: var(--track); position: relative; cursor: pointer; margin: 0; transition: background .15s; }
+  .toggle input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--ink); transition: transform .15s; }
+  .toggle input:checked { background: var(--accent); }
+  .toggle input:checked::after { transform: translateX(12px); }
+
+  .tip { position: relative; }
+  .tip [role=tooltip] { position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); white-space: nowrap; background: #1b1830; color: var(--ink);
+    border: 1px solid var(--panel-edge); border-radius: 6px; padding: 3px 7px; font-size: 12px; opacity: 0; pointer-events: none; transition: opacity .12s; }
+  .tip:hover [role=tooltip], .tip:focus-within [role=tooltip] { opacity: 1; }
+
+  .fallback { position: fixed; inset: 0; display: grid; place-items: center; color: var(--ink-2); }
+  @media (max-width: 520px) { .panel { left: 16px; right: 16px; width: auto; } .overlay { top: 18%; } }
+  @media (prefers-reduced-motion: reduce) { .overlay, .toggle input, .toggle input::after { transition: none; } }
+</style>
+</head>
+<body>
+<canvas id="c" aria-label="A drape of glowing dots folded in 3D"></canvas>
+
+<div class="overlay" id="overlay" hidden>
+  <h1>Spectral Drape</h1>
+  <p>A glowing drape of dots, folded in three dimensions.</p>
+</div>
+
+<div class="panel" id="panel">
+  <div class="head">
+    <b>Drape</b>
+    <div class="btns" style="margin:0">
+      <span class="tip"><button class="btn" id="pause" aria-label="Pause" aria-describedby="t-pause"><svg viewBox="0 0 16 16" fill="currentColor" id="pauseIcon"><rect x="4" y="3" width="3" height="10" rx="1"/><rect x="9" y="3" width="3" height="10" rx="1"/></svg></button><span role="tooltip" id="t-pause">Pause</span></span>
+      <span class="tip"><button class="btn" id="seed" aria-label="New folds" aria-describedby="t-seed"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 8a5 5 0 1 1-1.5-3.6"/><path d="M13 2.5v2.5h-2.5"/></svg></button><span role="tooltip" id="t-seed">New folds</span></span>
+      <span class="tip"><button class="btn" id="collapse" aria-label="Hide controls" aria-describedby="t-collapse" aria-expanded="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 6l4 4 4-4"/></svg></button><span role="tooltip" id="t-collapse">Hide controls</span></span>
+    </div>
+  </div>
+  <div class="rows">
+    <div class="row"><label>Colors</label><div class="swatches">
+      <span class="swatch" id="sw0"><input type="color" id="c0" value="#6a4bff" aria-label="Deep color"></span>
+      <span class="swatch" id="sw1"><input type="color" id="c1" value="#e4dbff" aria-label="Crest color"></span>
+      <span class="swatch" id="swb"><input type="color" id="cb" value="#07060d" aria-label="Background color"></span>
+    </div><span></span></div>
+    <div class="row"><label for="density">Density</label><input type="range" id="density" min="10" max="90" step="1" value="44"><output for="density" id="o-density">44k</output></div>
+    <div class="row"><label for="strands">Strands</label><input type="range" id="strands" min="1" max="6" step="1" value="5"><output for="strands" id="o-strands">5</output></div>
+    <div class="row"><label for="fold">Fold</label><input type="range" id="fold" min="0" max="1" step="0.01" value="0.85"><output for="fold" id="o-fold">0.85</output></div>
+    <div class="row"><label for="speed">Speed</label><input type="range" id="speed" min="0" max="2" step="0.01" value="0.6"><output for="speed" id="o-speed">0.60</output></div>
+    <div class="row"><label for="tilt">Tilt</label><input type="range" id="tilt" min="0" max="70" step="1" value="34"><output for="tilt" id="o-tilt">34°</output></div>
+    <div class="row"><label for="turn">Turn</label><input type="range" id="turn" min="-60" max="60" step="1" value="-12"><output for="turn" id="o-turn">-12°</output></div>
+    <div class="row"><label for="glow">Glow</label><input type="range" id="glow" min="0.3" max="2" step="0.01" value="1"><output for="glow" id="o-glow">1.00</output></div>
+    <div class="sep"></div>
+    <label class="toggle">Pointer pushes dots<input type="checkbox" id="interactive" checked></label>
+    <label class="toggle">Click ripples<input type="checkbox" id="ripples" checked></label>
+    <label class="toggle">Text on top<input type="checkbox" id="text"></label>
+  </div>
+</div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('c');
+  const gl = canvas.getContext('webgl2', { antialias: false, alpha: false, premultipliedAlpha: false });
+  if (!gl) { document.body.insertAdjacentHTML('beforeend', '<div class="fallback">This needs WebGL 2.</div>'); return; }
+
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)');
+  const $ = id => document.getElementById(id);
+
+  // ---------- state (the component's props) ----------
+  const P = {
+    colors: ['#6a4bff', '#e4dbff'], backgroundColor: '#07060d',
+    density: 44, strands: 5, fold: 0.85, speed: 0.6, tilt: 34, turn: -12, roll: 0, glow: 1,
+    interactive: true, clickRipples: true, seed: 7, paused: reduce.matches,
+  };
+
+  // look constants, tuned by measurement with __drape.stats()
+  const D = { size: 4.8, crestLo: -0.12, crestHi: 0.48, gain: 1.6 };   // body ~0.11 luminance, crests ~0.83, measured 2026-10-16
+
+  // ---------- shaders ----------
+  const VS = `#version 300 es
+  precision highp float;
+  in vec2 aGrid;                 // x,z in [-1,1] grid space
+  in float aJit;                 // per-dot random, 0..1
+  uniform mat4 uVP;
+  uniform float uT, uFold, uAspectGrid, uGlow, uDpr, uH, uAmp, uSize;
+  uniform vec2 uCrest;
+  uniform int uN;
+  uniform vec4 uS[6];            // dir.xy, freq, speed
+  uniform vec4 uS2[6];           // amp, phase, ridge mix, _
+  uniform vec3 uPtr;             // grid x, grid z, strength (0..1)
+  uniform vec4 uRip[4];          // x, z, age, amp
+  out vec3 vCol; out float vA;
+  uniform vec3 uC0, uC1;
+
+  float hgt(vec2 p) {
+    float y = 0.0;
+    for (int i = 0; i < 6; i++) {
+      if (i >= uN) break;
+      vec4 a = uS[i]; vec4 b = uS2[i];
+      float ph = dot(p, a.xy) * a.z + uT * a.w + b.y;
+      float s = sin(ph);
+      float ridge = 1.0 - sqrt(s * s + 0.06);     // soft crest, round valley: cloth folds, not paper creases
+      y += b.x * mix(s * 0.6, ridge * ridge - 0.45, b.z * uFold);
+    }
+    y += 0.10 * sin(p.x * 1.1 + uT * 0.13) * cos(p.y * 1.4 - uT * 0.11);  // slow sag of the whole cloth
+    for (int i = 0; i < 4; i++) {
+      vec4 r = uRip[i];
+      if (r.w <= 0.0) continue;
+      float d = length(p - r.xy) - r.z * 1.1;     // ring moving out at 1.1 units/s
+      y += r.w * exp(-d * d * 28.0) * cos(d * 26.0) * exp(-r.z * 1.25);
+    }
+    return y;
+  }
+
+  void main() {
+    vec2 p = aGrid * vec2(uAspectGrid, 1.0);
+    // the pointer pushes dots aside along the surface; height is read at the pushed spot so dots slide over the folds
+    vec2 dp = p - uPtr.xy;
+    float dl = length(dp);
+    float push = uPtr.z * 0.07 * exp(-dl * dl * 14.0);
+    p += (dl > 1e-4 ? dp / dl : vec2(0.0)) * push;
+
+    float y = hgt(p) * uH;
+    float e = 0.012;
+    float hx = (hgt(p + vec2(e, 0.0)) - hgt(p - vec2(e, 0.0))) * uH / (2.0 * e);
+    float hz = (hgt(p + vec2(0.0, e)) - hgt(p - vec2(0.0, e))) * uH / (2.0 * e);
+    vec3 n = normalize(vec3(-hx, 1.0, -hz));
+    vec3 L = normalize(vec3(-0.45, 0.80, 0.40));
+    float lam = max(dot(n, L), 0.0);
+    float yn = clamp(y / uAmp, -1.0, 1.0);          // fold height, -1 (trough) to 1 (crest)
+    float crest = smoothstep(uCrest.x, uCrest.y, yn);       // the highlight rides the tops of the folds
+    float shade = 0.30 + 0.70 * lam;                // slopes facing away darken, which gives the folds their form
+    float b = shade * (0.55 + 2.2 * crest * crest);
+
+    vec4 clip = uVP * vec4(p.x, y, p.y, 1.0);
+    gl_Position = clip;
+    float depth = clip.w;
+    gl_PointSize = clamp((uSize + 1.6 * crest + aJit * 0.6) * uDpr * 2.6 / depth, 1.0, 14.0 * uDpr);
+    vCol = mix(uC0, uC1, pow(crest, 1.6)) * b * uGlow;
+    vA = clamp(1.7 / depth, 0.25, 1.0);           // far dots fade, which reads as depth
+  }`;
+
+  const FS = `#version 300 es
+  precision mediump float;
+  in vec3 vCol; in float vA;
+  uniform float uLightBg;
+  out vec4 o;
+  void main() {
+    vec2 q = gl_PointCoord - 0.5;
+    float d = dot(q, q) * 4.0;
+    float a = exp(-d * 3.2) * vA;                  // soft round dot with a glow tail
+    if (a < 0.01) discard;
+    o = uLightBg > 0.5 ? vec4(vCol * 0.9, a) : vec4(vCol * a, 1.0);
+  }`;
+
+  function sh(type, src) {
+    const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+    return s;
+  }
+  const prog = gl.createProgram();
+  gl.attachShader(prog, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, FS));
+  gl.linkProgram(prog);
+  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+  gl.useProgram(prog);
+  const U = {};
+  for (const n of ['uVP','uT','uFold','uAspectGrid','uGlow','uDpr','uH','uN','uS','uS2','uPtr','uRip','uC0','uC1','uLightBg','uAmp','uSize','uCrest'])
+    U[n] = gl.getUniformLocation(prog, n);
+
+  // ---------- grid ----------
+  const vao = gl.createVertexArray(); gl.bindVertexArray(vao);
+  const buf = gl.createBuffer();
+  let count = 0;
+  const GRID_ASPECT = 1.7;
+  function buildGrid() {
+    const total = P.density * 1000;
+    const rows = Math.round(Math.sqrt(total / GRID_ASPECT));
+    const cols = Math.round(total / rows);
+    const data = new Float32Array(cols * rows * 3);
+    const rnd = mulberry(P.seed * 977 + 13);
+    let k = 0;
+    for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) {
+      data[k++] = (i / (cols - 1)) * 2 - 1;
+      data[k++] = (j / (rows - 1)) * 2 - 1;
+      data[k++] = rnd();
+    }
+    count = cols * rows;
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+    const aG = gl.getAttribLocation(prog, 'aGrid'), aJ = gl.getAttribLocation(prog, 'aJit');
+    gl.enableVertexAttribArray(aG); gl.vertexAttribPointer(aG, 2, gl.FLOAT, false, 12, 0);
+    gl.enableVertexAttribArray(aJ); gl.vertexAttribPointer(aJ, 1, gl.FLOAT, false, 12, 8);
+    $('o-density').textContent = Math.round(count / 1000) + 'k';
+  }
+
+  // ---------- strands (seeded) ----------
+  function mulberry(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  const S = new Float32Array(24), S2 = new Float32Array(24);
+  function buildStrands() {
+    const r = mulberry(P.seed);
+    const base = r() * Math.PI;
+    for (let i = 0; i < 6; i++) {
+      const ang = base + (i * 0.9) + (r() - 0.5) * 0.7;      // strands roughly fan out, so folds cross softly
+      const f = 1.4 + r() * 1.6 + i * 0.3;
+      S[i*4] = Math.cos(ang); S[i*4+1] = Math.sin(ang); S[i*4+2] = f; S[i*4+3] = (0.25 + r() * 0.35) * (r() < 0.5 ? -1 : 1);
+      S2[i*4] = 0.46 / (1 + i * 0.6); S2[i*4+1] = r() * 6.283; S2[i*4+2] = 0.5 + r() * 0.5; S2[i*4+3] = 0;
+    }
+  }
+
+  // ---------- matrices ----------
+  const M = {
+    mul(a, b) { const o = new Float32Array(16); for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) { let s = 0; for (let k = 0; k < 4; k++) s += a[k*4+j] * b[i*4+k]; o[i*4+j] = s; } return o; },
+    persp(fov, asp, n, f) { const t = 1 / Math.tan(fov / 2), o = new Float32Array(16); o[0] = t / asp; o[5] = t; o[10] = (f + n) / (n - f); o[11] = -1; o[14] = 2 * f * n / (n - f); return o; },
+    look(e, c, up) {
+      const z = norm(sub(e, c)), x = norm(cross(up, z)), y = cross(z, x);
+      return new Float32Array([x[0],y[0],z[0],0, x[1],y[1],z[1],0, x[2],y[2],z[2],0, -dot(x,e),-dot(y,e),-dot(z,e),1]);
+    },
+    inv(m) {
+      const o = new Float32Array(16), a = m;
+      const b00=a[0]*a[5]-a[1]*a[4], b01=a[0]*a[6]-a[2]*a[4], b02=a[0]*a[7]-a[3]*a[4], b03=a[1]*a[6]-a[2]*a[5], b04=a[1]*a[7]-a[3]*a[5], b05=a[2]*a[7]-a[3]*a[6];
+      const b06=a[8]*a[13]-a[9]*a[12], b07=a[8]*a[14]-a[10]*a[12], b08=a[8]*a[15]-a[11]*a[12], b09=a[9]*a[14]-a[10]*a[13], b10=a[9]*a[15]-a[11]*a[13], b11=a[10]*a[15]-a[11]*a[14];
+      const d = 1 / (b00*b11-b01*b10+b02*b09+b03*b08-b04*b07+b05*b06);
+      o[0]=(a[5]*b11-a[6]*b10+a[7]*b09)*d; o[1]=(a[2]*b10-a[1]*b11-a[3]*b09)*d; o[2]=(a[13]*b05-a[14]*b04+a[15]*b03)*d; o[3]=(a[10]*b04-a[9]*b05-a[11]*b03)*d;
+      o[4]=(a[6]*b08-a[4]*b11-a[7]*b07)*d; o[5]=(a[0]*b11-a[2]*b08+a[3]*b07)*d; o[6]=(a[14]*b02-a[12]*b05-a[15]*b01)*d; o[7]=(a[8]*b05-a[10]*b02+a[11]*b01)*d;
+      o[8]=(a[4]*b10-a[5]*b08+a[7]*b06)*d; o[9]=(a[1]*b08-a[0]*b10-a[3]*b06)*d; o[10]=(a[12]*b04-a[13]*b02+a[15]*b00)*d; o[11]=(a[9]*b02-a[8]*b04-a[11]*b00)*d;
+      o[12]=(a[5]*b07-a[4]*b09-a[6]*b06)*d; o[13]=(a[0]*b09-a[1]*b07+a[2]*b06)*d; o[14]=(a[13]*b01-a[12]*b03-a[14]*b00)*d; o[15]=(a[8]*b03-a[9]*b01+a[10]*b00)*d;
+      return o;
+    },
+  };
+  const sub = (a, b) => [a[0]-b[0], a[1]-b[1], a[2]-b[2]];
+  const dot = (a, b) => a[0]*b[0] + a[1]*b[1] + a[2]*b[2];
+  const cross = (a, b) => [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]];
+  const norm = a => { const l = Math.hypot(...a) || 1; return [a[0]/l, a[1]/l, a[2]/l]; };
+  const xf = (m, v) => { const o = [0,0,0,0]; for (let i = 0; i < 4; i++) o[i] = m[i]*v[0] + m[4+i]*v[1] + m[8+i]*v[2] + m[12+i]*v[3]; return o; };
+
+  // ---------- size ----------
+  let W = 0, H = 0, dpr = 1;
+  function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = Math.floor(innerWidth * dpr); H = Math.floor(innerHeight * dpr);
+    canvas.width = W; canvas.height = H; gl.viewport(0, 0, W, H);
+    requestFrame();
+  }
+
+  // ---------- pointer, eased so nothing jumps ----------
+  const ptr = { nx: 0, ny: 0, tx: 0, ty: 0, inside: false, s: 0, gx: 0, gz: 9 };
+  canvas.addEventListener('pointermove', e => { ptr.tx = e.clientX / innerWidth * 2 - 1; ptr.ty = -(e.clientY / innerHeight * 2 - 1); ptr.inside = true; requestFrame(); });
+  canvas.addEventListener('pointerleave', () => { ptr.inside = false; requestFrame(); });
+  const rips = [];
+  canvas.addEventListener('pointerdown', e => {
+    if (!P.clickRipples || reduce.matches) return;
+    const g = toGrid(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight * 2 - 1));
+    if (!g) return;
+    rips.push({ x: g[0], z: g[1], born: clock, amp: 0.09 });
+    if (rips.length > 4) rips.shift();
+    requestFrame();
+  });
+
+  let VP = null, IVP = null;
+  function toGrid(nx, ny) {                       // ray from the camera through the pointer, hit at the cloth's rest height
+    if (!IVP) return null;
+    const a = xf(IVP, [nx, ny, -1, 1]), b = xf(IVP, [nx, ny, 1, 1]);
+    const p0 = [a[0]/a[3], a[1]/a[3], a[2]/a[3]], p1 = [b[0]/b[3], b[1]/b[3], b[2]/b[3]];
+    const dy = p1[1] - p0[1]; if (Math.abs(dy) < 1e-6) return null;
+    const t = -p0[1] / dy; if (t < 0) return null;
+    return [p0[0] + (p1[0]-p0[0]) * t, p0[2] + (p1[2]-p0[2]) * t];
+  }
+
+  // ---------- frame ----------
+  let clock = 0, last = 0, raf = 0;
+  const hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16) / 255);
+  function requestFrame() { if (!raf) raf = requestAnimationFrame(frame); }
+  function frame(now) {
+    raf = 0;
+    const dt = last ? Math.min((now - last) / 1000, 0.05) : 0; last = now;
+    const moving = !P.paused;
+    if (moving) clock += dt * P.speed;
+
+    // ease the pointer: the view leans toward it, and push strength fades in and out
+    const k = 1 - Math.exp(-dt * 4);
+    ptr.nx += (ptr.tx - ptr.nx) * k; ptr.ny += (ptr.ty - ptr.ny) * k;
+    const live = P.interactive && !reduce.matches;   // reduce-motion: no lean, no push
+    const want = live && ptr.inside ? 1 : 0;
+    ptr.s += (want - ptr.s) * (1 - Math.exp(-dt * 5));
+
+    const asp = W / H;
+    const tilt = (P.tilt + (live ? ptr.ny * 4 : 0)) * Math.PI / 180;
+    const turn = (P.turn + (live ? ptr.nx * 6 : 0)) * Math.PI / 180;
+    const dist = asp < 0.8 ? 3.9 : 2.75;
+    const eye = [Math.sin(turn) * Math.cos(tilt) * dist, Math.sin(tilt) * dist, Math.cos(turn) * Math.cos(tilt) * dist];
+    const up = [Math.sin(P.roll * Math.PI / 180), Math.cos(P.roll * Math.PI / 180), 0];
+    VP = M.mul(M.persp(42 * Math.PI / 180, asp, 0.05, 40), M.look(eye, [0, -0.08, 0], up));
+    IVP = M.inv(VP);
+
+    const g = toGrid(ptr.nx, ptr.ny);
+    if (g) { ptr.gx = g[0]; ptr.gz = g[1]; }
+
+    const bg = hex(P.backgroundColor);
+    const lightBg = (0.2126 * bg[0] + 0.7152 * bg[1] + 0.0722 * bg[2]) > 0.5;
+    gl.clearColor(bg[0], bg[1], bg[2], 1); gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.enable(gl.BLEND);
+    if (lightBg) gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); else gl.blendFunc(gl.ONE, gl.ONE);  // additive glow on dark
+
+    gl.uniformMatrix4fv(U.uVP, false, VP);
+    gl.uniform1f(U.uT, clock); gl.uniform1f(U.uFold, P.fold); gl.uniform1f(U.uAspectGrid, GRID_ASPECT);
+    gl.uniform1f(U.uGlow, (lightBg ? 1.1 : D.gain) * P.glow); gl.uniform1f(U.uDpr, dpr); gl.uniform1f(U.uH, 1);
+    let amp = 0.06; for (let i = 0; i < P.strands; i++) amp += S2[i*4] * 0.55; gl.uniform1f(U.uAmp, amp); gl.uniform1f(U.uSize, D.size); gl.uniform2f(U.uCrest, D.crestLo, D.crestHi);
+    gl.uniform1i(U.uN, P.strands); gl.uniform4fv(U.uS, S); gl.uniform4fv(U.uS2, S2);
+    gl.uniform3f(U.uPtr, ptr.gx, ptr.gz, ptr.s);
+    const R = new Float32Array(16);
+    for (let i = rips.length - 1; i >= 0; i--) if (clock - rips[i].born > 4) rips.splice(i, 1);
+    rips.forEach((r, i) => { R[i*4] = r.x; R[i*4+1] = r.z; R[i*4+2] = Math.max(clock - r.born, 0); R[i*4+3] = r.amp; });
+    gl.uniform4fv(U.uRip, R);
+    const c0 = hex(P.colors[0]), c1 = hex(P.colors[1]);
+    gl.uniform3f(U.uC0, ...c0); gl.uniform3f(U.uC1, ...c1);
+    gl.uniform1f(U.uLightBg, lightBg ? 1 : 0);
+    gl.drawArrays(gl.POINTS, 0, count);
+    if (probe) { const f = probe; probe = null; f(readStats()); }
+
+    // keep drawing while anything still moves: the drift, the pointer easing in or out, a live ripple
+    const settling = Math.abs(ptr.tx - ptr.nx) + Math.abs(ptr.ty - ptr.ny) > 1e-3 || Math.abs(want - ptr.s) > 1e-3;
+    if (moving || settling) requestFrame(); else last = 0;
+  }
+
+  // ---------- controls ----------
+  function setFill(el) { el.style.setProperty('--fill', ((el.value - el.min) / (el.max - el.min) * 100) + '%'); }
+  const fmt = { strands: v => v, fold: v => (+v).toFixed(2), speed: v => (+v).toFixed(2), tilt: v => v + '°', turn: v => v + '°', glow: v => (+v).toFixed(2) };
+  for (const id of ['density', 'strands', 'fold', 'speed', 'tilt', 'turn', 'glow']) {
+    const el = $(id); setFill(el);
+    el.addEventListener('input', () => {
+      P[id] = +el.value; setFill(el);
+      if (id === 'density') buildGrid(); else $('o-' + id).textContent = fmt[id](el.value);
+      requestFrame();
+    });
+  }
+  function paintSwatches() { $('sw0').style.background = P.colors[0]; $('sw1').style.background = P.colors[1]; $('swb').style.background = P.backgroundColor; document.documentElement.style.setProperty('--bg', P.backgroundColor); }
+  $('c0').addEventListener('input', e => { P.colors[0] = e.target.value; paintSwatches(); requestFrame(); });
+  $('c1').addEventListener('input', e => { P.colors[1] = e.target.value; paintSwatches(); requestFrame(); });
+  $('cb').addEventListener('input', e => { P.backgroundColor = e.target.value; paintSwatches(); requestFrame(); });
+  $('interactive').addEventListener('change', e => { P.interactive = e.target.checked; requestFrame(); });
+  $('ripples').addEventListener('change', e => { P.clickRipples = e.target.checked; });
+  $('text').addEventListener('change', e => { $('overlay').hidden = !e.target.checked; });
+  const PLAY = '<path d="M5 3.5v9l7.5-4.5z"/>', PAUSE = '<rect x="4" y="3" width="3" height="10" rx="1"/><rect x="9" y="3" width="3" height="10" rx="1"/>';
+  function paintPause() { $('pauseIcon').innerHTML = P.paused ? PLAY : PAUSE; $('t-pause').textContent = P.paused ? 'Play' : 'Pause'; $('pause').setAttribute('aria-label', P.paused ? 'Play' : 'Pause'); }
+  $('pause').addEventListener('click', () => { P.paused = !P.paused; paintPause(); requestFrame(); });
+  $('seed').addEventListener('click', () => { P.seed = (P.seed * 16807 + 11) % 2147483647; buildStrands(); requestFrame(); });
+  $('collapse').addEventListener('click', () => {
+    const closed = $('panel').classList.toggle('closed');
+    $('collapse').setAttribute('aria-expanded', String(!closed));
+    $('t-collapse').textContent = closed ? 'Show controls' : 'Hide controls';
+    $('collapse').setAttribute('aria-label', closed ? 'Show controls' : 'Hide controls');
+    $('collapse').querySelector('svg').style.transform = closed ? 'rotate(180deg)' : '';
+  });
+  reduce.addEventListener('change', () => { P.paused = reduce.matches; paintPause(); requestFrame(); });
+  document.addEventListener('visibilitychange', () => { last = 0; if (!document.hidden) requestFrame(); });
+
+  // reduce-motion keeps a still drape with the folds at a set moment, so the look survives without the drift
+  if (reduce.matches) clock = 3.2;
+
+  addEventListener('resize', resize);
+  paintSwatches(); paintPause(); buildStrands(); buildGrid(); resize();
+  // dev probe: brightness of the drawn frame, so tuning is measured instead of judged from screenshots
+  let probe = null;
+  function readStats() {
+    const px = new Uint8Array(W * H * 4); gl.readPixels(0, 0, W, H, gl.RGBA, gl.UNSIGNED_BYTE, px);
+    const bg = hex(P.backgroundColor).map(v => v * 255), L = [], C = [];
+    for (let i = 0; i < px.length; i += 4 * 7) {
+      const r = px[i], g = px[i+1], b = px[i+2];
+      if (Math.abs(r - bg[0]) + Math.abs(g - bg[1]) + Math.abs(b - bg[2]) < 6) continue;
+      L.push((0.2126 * r + 0.7152 * g + 0.0722 * b) / 255); C.push([r, g, b]);
+    }
+    const idx = L.map((v, i) => i).sort((a, b) => L[a] - L[b]);
+    const pct = q => +(L[idx[Math.floor(q * (idx.length - 1))]] || 0).toFixed(3);
+    const mean = (a, b) => { const s = [0,0,0]; const part = idx.slice(Math.floor(a * idx.length), Math.floor(b * idx.length)); part.forEach(i => { s[0]+=C[i][0]; s[1]+=C[i][1]; s[2]+=C[i][2]; }); return s.map(v => Math.round(v / (part.length || 1))); };
+    return { covered: +(L.length / (W * H / 7)).toFixed(3), p10: pct(.1), p50: pct(.5), p90: pct(.9), p99: pct(.99), bodyRGB: mean(.4, .6), crestRGB: mean(.97, 1) };
+  }
+  window.__drape = { P, D, frames: () => clock, stats: () => { let out; probe = v => out = v; frame(performance.now()); return out; }, step: s => { clock += s; return clock; } };
+})();
+</script>
+</body>
+</html>

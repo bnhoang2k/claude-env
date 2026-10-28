@@ -1,0 +1,1012 @@
+<!doctype html>
+<html lang="en" data-rung="2" data-look="quiet" data-motion="whimsical">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chats</title>
+<script>
+  (function () {
+    var t = new URLSearchParams(location.search).get("theme");
+    if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
+    if (new URLSearchParams(location.search).get("font") === "system") document.documentElement.dataset.font = "system";
+  })();
+</script>
+<link rel="preconnect" href="https://api.fontshare.com">
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=clash-grotesk@400,500,600&display=swap">
+<style>
+  /* ---------- Tokens: colour (draw: warm black, gold) ---------- */
+  :root {
+    --bg: #f4f2ee;
+    --surface: #e9e6e0;
+    --mine: #dfdad2;
+    --ink: #1c1814;
+    --muted: #6b645c;
+    --line: #e0dcd4;
+    --hover: #ebe8e2;
+    --accent: #c9a45a;
+    --accent-ink: #0c0a08;
+    --accent-text: #7f6126;
+    --tip-bg: #1c1814;
+    --tip-ink: #f4f2ee;
+    --shadow: 0 6px 20px rgba(28, 24, 20, 0.12);
+    --sel-bg: #e9e6e0;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0c0a08;
+      --surface: #181512;
+      --mine: #26211b;
+      --ink: #ffffff;
+      --muted: #8f8a84;
+      --line: #221e19;
+      --hover: #141210;
+      --accent: #c9a45a;
+      --accent-ink: #0c0a08;
+      --accent-text: #c9a45a;
+      --tip-bg: #2c2620;
+      --tip-ink: #ffffff;
+      --shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+      --sel-bg: #27221c;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0c0a08;
+    --surface: #181512;
+    --mine: #26211b;
+    --ink: #ffffff;
+    --muted: #8f8a84;
+    --line: #221e19;
+    --hover: #141210;
+    --accent: #c9a45a;
+    --accent-ink: #0c0a08;
+    --accent-text: #c9a45a;
+    --tip-bg: #2c2620;
+    --tip-ink: #ffffff;
+    --shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+    --sel-bg: #27221c;
+    color-scheme: dark;
+  }
+
+  /* ---------- Tokens: type, space, radius, motion ---------- */
+  :root {
+    --font: "Clash Grotesk", system-ui, sans-serif;
+    --t-title: 24px;
+    --t-head: 18px;
+    --t-body: 14px;
+    --t-meta: 13px;
+    --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px;
+    --r-row: 10px;
+    --r-bubble: 16px;
+    --r-btn: 8px;
+    --row-pad: 10px;
+    /* whimsical feel; JS writes the spring curves */
+    --tap: 270ms; --tap-touch: ease-out; --fade: 150ms;
+  }
+
+  /* ?font=system swaps the draw's face for the lint policy's system face, to lint everything else */
+  :root[data-font="system"] { --font: system-ui, sans-serif; }
+
+  * { box-sizing: border-box; }
+  html { background: var(--bg); color: var(--ink); height: 100%; }
+  body { margin: 0; height: 100%; font: 400 var(--t-body)/1.4 var(--font); background: var(--bg); overflow: hidden; }
+  button, input, textarea { font: inherit; color: inherit; }
+  h1, h2, p { margin: 0; }
+
+  .app {
+    display: grid;
+    grid-template-columns: clamp(280px, 26%, 420px) minmax(0, 1fr);
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  /* ---------- List pane ---------- */
+  .list-pane { display: flex; flex-direction: column; min-width: 0; min-height: 0; border-right: 1px solid var(--line); }
+  .list-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s2); padding: var(--s4) var(--s4) var(--s2); }
+  .list-head h1 { font-size: var(--t-title); font-weight: 600; letter-spacing: 0.01em; }
+  .search { position: relative; margin: 0 var(--s4) var(--s2); }
+  .search svg { position: absolute; left: 10px; top: 50%; width: 16px; height: 16px; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+  .search input {
+    width: 100%; height: 36px; padding: 0 var(--s3) 0 34px;
+    border: 1px solid transparent; border-radius: var(--r-btn);
+    background: var(--surface); font-size: var(--t-body); outline: none;
+    -webkit-appearance: none; appearance: none;
+    transition: border-color var(--fade) ease-out;
+  }
+  .search input::placeholder { color: var(--muted); opacity: 1; }
+  .search input:focus-visible { border-color: var(--accent); }
+  .search input::-webkit-search-cancel-button { -webkit-appearance: none; }
+
+  .list-scroll { position: relative; flex: 1; min-height: 0; overflow-y: auto; padding: var(--s1) var(--s2) 72px; overscroll-behavior: contain; }
+  /* the list fades over its last 48 px, so a row cut by the pane edge reads as more below */
+  .list-scroll { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 48px), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 48px), transparent); }
+  .sel { position: absolute; left: var(--s2); right: var(--s2); top: 0; height: 0; border-radius: var(--r-row); background: var(--sel-bg); opacity: 0; pointer-events: none; }
+  .list { position: relative; list-style: none; margin: 0; padding: 0; }
+  .row { position: relative; border-radius: var(--r-row); }
+  .row[hidden] { display: none; }
+  .row-main {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: var(--s3); row-gap: 2px;
+    width: 100%; min-height: 56px; padding: var(--row-pad) var(--s3);
+    border: 0; border-radius: var(--r-row); background: transparent; text-align: left; cursor: pointer;
+    transition: background-color var(--fade) ease-out, transform var(--tap) var(--tap-touch);
+  }
+  .row:hover .row-main { background: var(--hover); }
+  .row.is-open:hover .row-main { background: transparent; }
+  .row-main:active { transform: scale(0.98); }
+  .row-main:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .name { font-weight: 400; overflow-wrap: anywhere; min-width: 0; }
+  .time { color: var(--muted); font-size: var(--t-meta); white-space: nowrap; align-self: start; padding-top: 1px; transition: opacity var(--fade) ease-out; }
+  .preview { color: var(--muted); font-size: var(--t-meta); overflow-wrap: anywhere; min-width: 0; }
+  /* The slot keeps the badge's height, so a badge leaving never shrinks its row and snaps the rows below. */
+  .badge-slot { display: flex; align-items: center; justify-content: flex-end; min-width: 20px; min-height: 22px; }
+  .badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 22px; height: 22px; padding: 0 7px; border-radius: 11px;
+    background: var(--accent); color: var(--accent-ink);
+    font-size: var(--t-meta); font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1;
+  }
+  .row.unread .name { font-weight: 600; }
+  .row.unread .preview { color: var(--ink); }
+
+  .icon-btn.row-act {
+    position: absolute; right: 10px; top: 8px; width: 24px; height: 24px;
+    opacity: 0; pointer-events: none;
+    transition: opacity var(--fade) ease-out, transform var(--tap) var(--tap-touch);
+  }
+  .row:hover .row-act, .row-act:focus-visible { opacity: 1; pointer-events: auto; }
+  .row-act:focus-visible { outline-offset: -2px; }
+  .row:hover .time, .row:focus-within .time { opacity: 0; }
+
+  .empty { padding: var(--s4) var(--s3); color: var(--muted); font-size: var(--t-meta); }
+  .made-up { padding: var(--s3) var(--s3) 0; color: var(--muted); font-size: var(--t-meta); }
+
+  /* ---------- Icon buttons and tooltips ---------- */
+  .icon-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px; padding: 0; border: 0; border-radius: var(--r-btn);
+    background: transparent; color: var(--muted); cursor: pointer;
+  }
+  .icon-btn:hover { background: var(--surface); color: var(--ink); }
+  .icon-btn:active { transform: scale(0.95); }
+  .icon-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .icon-btn svg { width: 18px; height: 18px; }
+  .tipwrap { position: relative; display: inline-flex; }
+  .tip {
+    position: absolute; top: calc(100% + 6px); right: 0; z-index: 20;
+    padding: 4px 8px; border-radius: 6px; white-space: nowrap;
+    background: var(--tip-bg); color: var(--tip-ink); font-size: var(--t-meta);
+    visibility: hidden; opacity: 0; pointer-events: none;
+    transition: opacity var(--fade) ease-out, visibility 0s linear var(--fade);
+  }
+  .tipwrap:hover .tip, .tipwrap:has(:focus-visible) .tip, .row-act:hover + .tip, .row-act:focus-visible + .tip {
+    visibility: visible; opacity: 1; transition: opacity var(--fade) ease-out 300ms, visibility 0s;
+  }
+  .row .tip { top: 6px; right: 40px; }
+
+  /* ---------- Reading pane ---------- */
+  .thread-pane { display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--bg); }
+  .thread-head { display: flex; align-items: center; gap: var(--s3); min-height: 64px; padding: var(--s3) var(--s5); border-bottom: 1px solid var(--line); }
+  .thread-head .back { display: none; }
+  .who { min-width: 0; }
+  .who h2 { font-size: var(--t-head); font-weight: 600; overflow-wrap: anywhere; line-height: 1.25; }
+  .who p { color: var(--muted); font-size: var(--t-meta); min-height: 1lh; }
+  .thread-scroll { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column-reverse; overscroll-behavior: contain; }
+  .thread { display: flex; flex-direction: column; padding: var(--s4) var(--s5) var(--s2); }
+
+  /* the day label pins to the top of the thread while its messages scroll, so every time reads with its day */
+  .day { position: sticky; top: 0; z-index: 1; align-self: center; min-width: 220px; margin: var(--s4) 0 var(--s2); padding: var(--s1) var(--s3); text-align: center; background: var(--bg); color: var(--muted); font-size: var(--t-meta); }
+  /* Clash Grotesk does not stack Vietnamese marks; text in Vietnamese uses the system face */
+  :lang(vi) { font-family: system-ui, sans-serif; }
+  .new-line { display: flex; align-items: center; gap: var(--s2); margin: var(--s3) 0 var(--s1); color: var(--accent-text); font-size: var(--t-meta); font-weight: 500; }
+  .new-line::after { content: ""; flex: 1; height: 1px; background: var(--accent); opacity: 0.5; }
+
+  .msg { display: flex; flex-direction: column; align-items: flex-start; max-width: min(64%, 620px); margin-top: 2px; }
+  .msg.first { margin-top: var(--s3); }
+  .msg.me { align-self: flex-end; align-items: flex-end; }
+  .sender { color: var(--muted); font-size: var(--t-meta); margin: 0 var(--s3) 2px; overflow-wrap: anywhere; }
+  .bubble {
+    padding: 8px 12px; border-radius: var(--r-bubble); background: var(--surface);
+    overflow-wrap: anywhere; white-space: pre-wrap; max-width: 100%;
+  }
+  .msg.me .bubble { background: var(--mine); }
+  .msg .stamp { color: var(--muted); font-size: var(--t-meta); margin: 2px var(--s3) 0; }
+  .bubble.emoji { background: transparent; padding: 0 4px; font-size: 32px; line-height: 1.2; }
+
+  .typing .bubble { display: inline-flex; gap: 4px; align-items: center; height: 36px; padding: 0 14px; }
+  .typing .dot { width: 6px; height: 6px; border-radius: 3px; background: var(--muted); animation: dot 1.1s ease-in-out infinite; }
+  .typing .dot:nth-child(2) { animation-delay: 0.15s; }
+  .typing .dot:nth-child(3) { animation-delay: 0.3s; }
+  @keyframes dot { 0%, 60%, 100% { transform: translateY(0); opacity: 0.5; } 30% { transform: translateY(-4px); opacity: 1; } }
+
+  .compose { display: flex; align-items: flex-end; gap: var(--s2); padding: var(--s3) var(--s5) var(--s4); }
+  .compose textarea {
+    flex: 1; min-width: 0; min-height: 40px; max-height: 140px; resize: none;
+    padding: 9px 14px; border: 1px solid transparent; border-radius: 20px;
+    background: var(--surface); font-size: var(--t-body); line-height: 1.4; outline: none; caret-color: var(--accent);
+    -webkit-appearance: none; appearance: none;
+    transition: border-color var(--fade) ease-out;
+  }
+  .compose textarea::placeholder { color: var(--muted); opacity: 1; }
+  .compose textarea:focus-visible { border-color: var(--accent); }
+  .send {
+    width: 40px; height: 40px; border-radius: 20px; background: var(--accent); color: var(--accent-ink);
+    transition: transform var(--tap) var(--tap-touch), opacity var(--fade) ease-out;
+  }
+  .send:hover { background: var(--accent); color: var(--accent-ink); }
+  .send:disabled { opacity: 0.4; cursor: default; }
+  .send:disabled:active { transform: none; }
+  .compose .tip { top: auto; bottom: calc(100% + 6px); }
+
+  /* ---------- Data toggle (break-ui chrome, not part of the design) ---------- */
+  .data-toggle {
+    position: fixed; left: 16px; bottom: 16px; z-index: 30;
+    display: flex; gap: 8px; padding: 4px; border-radius: 10px;
+    background: #e4e4e7; font: 400 13px/1 system-ui, -apple-system, sans-serif; color: #18181b;
+  }
+  .data-toggle button { white-space: nowrap; height: 28px; padding: 0 10px; border: 0; border-radius: 7px; background: transparent; font: inherit; color: #3f3f46; cursor: pointer; }
+  .data-toggle button[aria-pressed="true"] { background: #ffffff; color: #18181b; }
+
+  /* ---------- Phone: one pane at a time ---------- */
+  @media (max-width: 767px) {
+    .app { grid-template-columns: minmax(0, 1fr); position: relative; }
+    .list-pane { border-right: 0; }
+    .thread-pane { position: absolute; inset: 0; z-index: 10; visibility: hidden; }
+    .app.thread-open .thread-pane { visibility: visible; }
+    .thread-head { padding: var(--s2) var(--s3); min-height: 56px; }
+    .thread-head .back { display: inline-flex; }
+    .thread { padding: var(--s3) var(--s3) var(--s2); }
+    .compose { padding: var(--s2) var(--s3) var(--s3); }
+    .msg { max-width: 82%; }
+    .sel { display: none; }
+    .data-toggle { left: 50%; transform: translateX(-50%); }
+    .app.thread-open ~ .data-toggle { display: none; }
+    .row-act { display: none; }
+    .row:hover .time, .row:focus-within .time { opacity: 1; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .typing .dot { animation: none; opacity: 0.8; }
+    .row-main:active, .icon-btn:active { transform: none; }
+  }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <aside class="list-pane" data-ui-pane="list" aria-label="Chats">
+    <div class="list-head">
+      <h1>Chats</h1>
+    </div>
+    <div class="search">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="9" r="5.5"/><path d="m13.2 13.2 3.3 3.3"/></svg>
+      <input id="search" type="search" placeholder="Search" aria-label="Search chats" autocomplete="off">
+    </div>
+    <div class="list-scroll" id="list-scroll">
+      <div class="sel" id="sel"></div>
+      <ul class="list" id="list"></ul>
+      <p class="empty" id="empty" hidden></p>
+      <p class="made-up">(a made-up example)</p>
+    </div>
+  </aside>
+
+  <main class="thread-pane" id="thread-pane" data-ui-pane="reading">
+    <header class="thread-head">
+      <span class="tipwrap back">
+        <button class="icon-btn" id="back" type="button" aria-label="Back to chats" aria-describedby="tip-back">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.5 4.5 7 10l5.5 5.5"/></svg>
+        </button>
+        <span class="tip" role="tooltip" id="tip-back" style="left:0;right:auto">Chats</span>
+      </span>
+      <div class="who">
+        <h2 id="who-name" dir="auto"></h2>
+        <p id="who-meta"></p>
+      </div>
+    </header>
+    <div class="thread-scroll" id="thread-scroll">
+      <div class="thread" id="thread" aria-live="polite" data-ui-ragged></div>
+    </div>
+    <form class="compose" id="compose" autocomplete="off">
+      <textarea id="input" rows="1" placeholder="Message" aria-label="Message"></textarea>
+      <span class="tipwrap">
+        <button class="icon-btn send" id="send" type="submit" aria-label="Send" aria-describedby="tip-send" disabled>
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 15.5v-11M5.5 9 10 4.5 14.5 9"/></svg>
+        </button>
+        <span class="tip" role="tooltip" id="tip-send">Send</span>
+      </span>
+    </form>
+  </main>
+</div>
+
+<div class="data-toggle" data-ui-chrome role="group" aria-label="Data set">
+  <button type="button" data-set="demo">Demo data</button>
+  <button type="button" data-set="worst">Worst case</button>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var root = document.documentElement;
+  var reduceQuery = matchMedia("(prefers-reduced-motion: reduce)");
+  var phoneQuery = matchMedia("(max-width: 767px)");
+  function reduced() { return reduceQuery.matches; }
+  function $(id) { return document.getElementById(id); }
+
+  /* ---------- Feel: whimsical, from motion-kit defaults.js ----------
+     tap 0.15/0.35 (amount 0.95), enter 0.48/0.35, exit 0.29/0, move 0.48/0.35,
+     attention 0.38/0.35 (amount 1.1), stagger 0.065, reduced fade 0.15.
+     The spring is Motion's mapping from (visualDuration, bounce); the curve runs
+     for 1.8 x the visual duration as a CSS linear() easing. Bounce only answers a
+     touch: a move no touch started gets bounce 0. */
+  var FEEL = { tap: [0.15, 0.35], enter: [0.48, 0.35], exit: [0.29, 0], move: [0.48, 0.35], attention: [0.38, 0.35] };
+  var ATTENTION_AMOUNT = 1.1, STAGGER = 65, FADE = 150;
+  var curves = {}, points = {};
+  function springPoints(v, b) {
+    var key = v + "/" + b;
+    if (points[key]) return points[key];
+    var w0 = (2 * Math.PI) / (1.2 * v), z = Math.max(1 - b, 0.05), T = 1.8 * v, n = 48, pts = [];
+    for (var i = 0; i <= n; i++) {
+      var t = (T * i) / n, x;
+      if (z < 1) { var wd = w0 * Math.sqrt(1 - z * z); x = Math.exp(-z * w0 * t) * (Math.cos(wd * t) + ((z * w0) / wd) * Math.sin(wd * t)); }
+      else { x = Math.exp(-w0 * t) * (1 + w0 * t); }
+      pts.push(i === n ? 1 : +(1 - x).toFixed(4));
+    }
+    return (points[key] = pts);
+  }
+  function curve(v, b) {
+    var key = v + "/" + b;
+    return curves[key] || (curves[key] = "linear(" + springPoints(v, b).join(", ") + ")");
+  }
+  function spring(kind, touch) {
+    var f = FEEL[kind];
+    return { duration: Math.round(1800 * f[0]), easing: curve(f[0], touch ? f[1] : 0) };
+  }
+  // When a box growing by `gap` px on this spring is within 1 px of its final
+  // size for good, in ms. Text that waits for its box starts showing here.
+  function settledAt(kind, touch, gap) {
+    var f = FEEL[kind], pts = springPoints(f[0], touch ? f[1] : 0), n = pts.length - 1;
+    for (var i = n; i >= 0; i--) if ((1 - pts[i]) * gap > 1) return Math.round((1800 * f[0] * Math.min(i + 1, n)) / n);
+    return 0;
+  }
+  root.style.setProperty("--tap", Math.round(1800 * FEEL.tap[0]) + "ms");
+  root.style.setProperty("--tap-touch", curve(FEEL.tap[0], FEEL.tap[1]));
+
+  function stop(el) { el.getAnimations().forEach(function (a) { a.cancel(); }); }
+  function fadeIn(el) { el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE, easing: "ease-out" }); }
+
+  /* ---------- Data (a made-up example) ---------- */
+  var MIN = 60000, now = Date.now();
+  function ago(m) { return now - m * MIN; }
+  var DEMO = [
+    { id: "hike", name: "Saturday hike", people: ["Maya", "Kofi", "Rin", "Dev"], unread: 4, msgs: [
+      ["Kofi", "Trailhead at 8 still the plan?", 190], ["me", "Yes, I can drive two people", 182],
+      ["Maya", "Saving me a seat?", 40], ["Rin", "Forecast says sun until 2", 12], ["Dev", "I found the good thermos", 6],
+      ["Maya", "I'll bring the good trail mix", 2] ],
+      replies: [["Maya", "Perfect, see you at 8"], ["Kofi", "Bring a warm layer, it gets windy at the top"]] },
+    { id: "leo", name: "Leo Park", unread: 1, msgs: [
+      ["me", "That show was so good", 1500], ["Leo", "Right?? The last episode though", 1490],
+      ["Leo", "Are you still up for ramen tonight?", 14] ],
+      replies: [["Leo", "Yesss. 7:30 at the usual place?"], ["Leo", "I'll grab a table"]] },
+    { id: "book", name: "Book club", people: ["Priya", "Sam", "Hana", "Jules", "Theo"], unread: 12, msgs: [
+      ["Sam", "Who picked this book", 300], ["Hana", "Guilty", 296], ["Jules", "No regrets so far", 280],
+      ["Theo", "I am only on chapter 4", 250], ["Sam", "No spoilers please", 245], ["Hana", "Promise", 240],
+      ["Priya", "Chapter 9 was wild", 70], ["Jules", "WAIT", 68], ["Priya", "Sorry, sorry", 67],
+      ["Theo", "Muting until Sunday", 66], ["Hana", "Snacks at mine this time?", 64], ["Sam", "I'll bring dumplings", 63],
+      ["Priya", "Chapter 9 was wild though", 62] ],
+      replies: [["Hana", "Sunday at 4 then"], ["Priya", "Bring the book, we're reading the last page out loud"]] },
+    { id: "climb", name: "Climbing crew", people: ["Ana", "Ben", "Zoe"], unread: 0, msgs: [
+      ["Ben", "Gym tonight or tomorrow?", 1520], ["Ana", "Tomorrow, my forearms are done", 1515],
+      ["me", "Tomorrow works for me", 1500], ["Zoe", "Same. 6pm?", 1497],
+      ["Ana", "They reset the overhang wall", 95], ["Ben", "The purple one is mean", 90],
+      ["me", "I fell off the last move four times", 88], ["Zoe", "That move is a lie", 86],
+      ["Ana", "Try it with the heel hook on the left", 60], ["me", "Ooh. Will try tonight", 52],
+      ["Ben", "Anyone have spare chalk?", 30], ["me", "I have a whole bag, I'll bring it", 26] ],
+      replies: [["Ana", "Legend. See you there"], ["Zoe", "Saving you the good bench"], ["Ben", "Thank you, my hands thank you"]] },
+    { id: "ines", name: "Ines", unread: 0, msgs: [
+      ["Ines", "Look at this cat I met", 200], ["me", "Haha yes, send me the photo", 190] ],
+      replies: [["Ines", "Sending it now, he is very round"]] },
+    { id: "roomies", name: "Roommates", people: ["Tomás", "Lena"], unread: 0, msgs: [
+      ["Lena", "We are out of dish soap", 1450], ["me", "I'll grab dish soap", 1440] ],
+      replies: [["Tomás", "And paper towels please"]] },
+    { id: "sam", name: "Sam Okafor", unread: 0, msgs: [
+      ["Sam", "Happy birthday!!", 2900], ["me", "Thank you!", 2880] ],
+      replies: [["Sam", "Drinks this weekend to celebrate?"]] },
+    { id: "dad", name: "Dad", unread: 0, msgs: [
+      ["Dad", "Call me when you get a minute", 4400], ["me", "Calling after work", 4390] ],
+      replies: [["Dad", "Sounds good, love you"]] },
+    { id: "nora", name: "Nora", unread: 0, msgs: [
+      ["me", "Did you get home ok?", 8700], ["Nora", "Yep, thanks for the lift", 8690] ],
+      replies: [["Nora", "Next time dinner is on me"]] },
+    { id: "film", name: "Film night", people: ["Ivy", "Max", "Omar"], unread: 0, msgs: [
+      ["Ivy", "Next pick is Max's", 12000], ["Max", "Something with subtitles, be ready", 11990] ],
+      replies: [["Omar", "I'll bring popcorn"]] }
+  ];
+
+  var LONG_GROUP = "Wiśniewska-Kowalczyk family reunion planning committee 2026 🎉";
+  var LONG_TEXT = "Okay so here is the full plan for the weekend, because I know half of you will not read the doc: we meet at the station at 9, the train is 9:40, the cabin key is in the lockbox and the code is the year grandma was born. Aunt Bożena is bringing pierogi for forty, so nobody else needs to bring dinner on Friday. Saturday is the lake, Sunday is the photo, and if anyone is late for the photo again we are photoshopping you in from 2019.";
+  var URL_TEXT = "https://drive.example.com/folders/1aB2cD3eF4gH5iJ6kL7mN8oP9qR0sTuVwXyZ/reunion-photos-final-FINAL-v12-do-not-delete";
+  var WORST = [
+    { id: "w1", name: LONG_GROUP, people: ["Aleksandra Wiśniewska-Kowalczyk", "Jo", "Bartholomew Fitzgerald-Montgomery III", "Nguyễn Thị Ánh Tuyết", "Hyun-woo"], unread: 1284, msgs: [
+      ["Aleksandra Wiśniewska-Kowalczyk", LONG_TEXT, 400], ["Jo", "k", 390], ["Bartholomew Fitzgerald-Montgomery III", URL_TEXT, 300],
+      ["Nguyễn Thị Ánh Tuyết", "🔥🔥🔥", 20], ["Jo", "Packing list:\n- swimsuit\n- <b>warm</b> socks & a hat", 15], ["me", "Ok", 10], ["Hyun-woo", "다들 금요일에 봐요! 기차 시간 다시 알려주세요", 1] ],
+      replies: [["Jo", "ok"], ["Aleksandra Wiśniewska-Kowalczyk", LONG_TEXT]] },
+    { id: "w2", name: "Jo", unread: 1, msgs: [["Jo", "k", 3]], replies: [["Jo", "?"]] },
+    { id: "w3", name: "Bartholomew Fitzgerald-Montgomery III", unread: 99, msgs: [["Bartholomew Fitzgerald-Montgomery III", URL_TEXT, 25]], replies: [["Bartholomew Fitzgerald-Montgomery III", URL_TEXT]] },
+    { id: "w4", name: "محمد العتيبي", unread: 0, msgs: [["محمد العتيبي", "أراك غدا في المحطة إن شاء الله", 50], ["me", "See you there", 49]], replies: [["محمد العتيبي", "تمام"]] },
+    { id: "w5", name: "Nguyễn Thị Ánh Tuyết", unread: 0, msgs: [], replies: [["Nguyễn Thị Ánh Tuyết", "Chào bạn!"]] },
+    { id: "w6", name: "李小龍", unread: 0, msgs: [["李小龍", "🔥🔥🔥", 1600]], replies: [["李小龍", "👍"], ["李小龍", "好的"]] },
+    { id: "w7", name: "Old thread nobody answered", people: ["Pat", "Chris"], unread: 0, msgs: [["Pat", "Anyone still here?", 60 * 24 * 400]], replies: [["Chris", "Still here"]] }
+  ];
+  var FIRST = ["Alex", "Jordan", "Sam", "Riley", "Casey", "Morgan", "Taylor", "Jamie", "Avery", "Quinn", "Rowan", "Sasha"];
+  var LAST = ["Nakamura", "Oyelaran-Whitfield", "Lindqvist", "Ferreira da Silva", "O'Connell", "Petrović", "Achterberg", "Mbeki"];
+  for (var k = 0; k < 110; k++) {
+    var nm = FIRST[k % FIRST.length] + " " + LAST[(k * 5) % LAST.length];
+    WORST.push({ id: "f" + k, name: nm, unread: k % 9 === 0 ? (k % 2 ? 2 : 1) : 0,
+      msgs: [[nm, k % 4 === 0 ? "Sounds good" : "Can you send me the address again? I lost it somewhere in the thread", 600 + k * 97]],
+      replies: [[nm, "Thanks!"]] });
+  }
+
+  var worst = new URLSearchParams(location.search).get("data") === "worst";
+  var convos = (worst ? WORST : DEMO).map(function (c) {
+    return {
+      id: c.id, name: c.name, people: c.people || null, unread: c.unread, replies: c.replies, replyAt: 0,
+      msgs: c.msgs.map(function (m) { return { who: m[0], text: m[1], t: ago(m[2]) }; }),
+      timer: null, typing: false
+    };
+  });
+  function byId(id) { for (var i = 0; i < convos.length; i++) if (convos[i].id === id) return convos[i]; return null; }
+  function last(c) { return c.msgs[c.msgs.length - 1]; }
+  function lastT(c) { var m = last(c); return m ? m.t : 0; }
+
+  /* ---------- Formatting ---------- */
+  var fmtNum = new Intl.NumberFormat("en-US");
+  function sameDay(a, b) { return a.toDateString() === b.toDateString(); }
+  function dayLabel(t) {
+    var d = new Date(t), n = new Date(), y = new Date(); y.setDate(n.getDate() - 1);
+    if (sameDay(d, n)) return "Today";
+    if (sameDay(d, y)) return "Yesterday";
+    var opts = { weekday: "long", month: "long", day: "numeric" };
+    if (d.getFullYear() !== n.getFullYear()) opts.year = "numeric";
+    return d.toLocaleDateString("en-US", opts);
+  }
+  function clock(t) { return new Date(t).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }); }
+  function stamp(t) {
+    if (!t) return "";
+    var d = new Date(t), n = new Date(), y = new Date(); y.setDate(n.getDate() - 1);
+    if (sameDay(d, n)) return clock(t);
+    if (sameDay(d, y)) return "Yesterday";
+    if (n - d < 6 * 864e5) return d.toLocaleDateString("en-US", { weekday: "short" });
+    var o = { month: "short", day: "numeric" };
+    if (d.getFullYear() !== n.getFullYear()) o.year = "numeric";
+    return d.toLocaleDateString("en-US", o);
+  }
+  function firstName(n) { return n.split(" ")[0]; }
+  function excerpt(s, max) {
+    s = s.replace(/\s+/g, " ").trim();
+    if (s.length <= max) return s;
+    var cut = s.slice(0, max), sp = cut.lastIndexOf(" ");
+    return (sp > max * 0.6 ? cut.slice(0, sp) : cut).replace(/[,.;:!?]+$/, "") + "…";
+  }
+  function previewOf(c) {
+    var m = last(c);
+    if (!m) return "No messages";
+    var who = m.who === "me" ? "You: " : c.people ? firstName(m.who) + ": " : "";
+    return who + excerpt(m.text, 64);
+  }
+  function badgeText(n) { return n > 999 ? "999+" : String(n); }
+  function metaOf(c) {
+    if (!c.people) return "";
+    var n = c.people.length + 1;
+    return n + " people";
+  }
+  function emojiOnly(s) { return /^(\p{Extended_Pictographic}|️|‍|\s)+$/u.test(s); }
+
+  /* ---------- State ---------- */
+  var state = { open: null, query: "" };
+  var listEl = $("list"), listScroll = $("list-scroll"), selEl = $("sel"), emptyEl = $("empty");
+  var threadEl = $("thread"), threadScroll = $("thread-scroll"), app = $("app");
+  var rowEls = {};
+  var tipSeq = 0;
+
+  var ICON_UNREAD = '<svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><circle cx="10" cy="10" r="4.5"/></svg>';
+  var ICON_READ = '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="10" cy="10" r="4.5"/></svg>';
+
+  function buildRow(c) {
+    var li = document.createElement("li");
+    li.className = "row";
+    li.dataset.id = c.id;
+    var tipId = "tip-row-" + (++tipSeq);
+    li.innerHTML =
+      '<button class="row-main" type="button">' +
+        '<span class="name" dir="auto"></span><span class="time"></span>' +
+        '<span class="preview" dir="auto"></span><span class="badge-slot"></span>' +
+      '</button>' +
+      '<button class="icon-btn row-act" type="button" aria-describedby="' + tipId + '"></button>' +
+      '<span class="tip" role="tooltip" id="' + tipId + '"></span>';
+    li.querySelector(".row-main").addEventListener("click", function () { openConvo(c.id, true); });
+    li.querySelector(".row-act").addEventListener("click", function (e) { e.stopPropagation(); toggleRead(c.id); });
+    li._unread = -1;
+    rowEls[c.id] = li;
+    return li;
+  }
+
+  // how: "none" (first paint), "touch" (a press started it), "quiet" (no press)
+  function paintRow(c, how) {
+    var li = rowEls[c.id] || buildRow(c);
+    li.querySelector(".name").textContent = c.name;
+    var time = li.querySelector(".time");
+    time.textContent = stamp(lastT(c));
+    time.title = lastT(c) ? new Date(lastT(c)).toLocaleString("en-US") : "";
+    li.querySelector(".preview").textContent = previewOf(c);
+    var act = li.querySelector(".row-act");
+    var label = c.unread > 0 ? "Mark as read" : "Mark as unread";
+    act.setAttribute("aria-label", label);
+    act.innerHTML = c.unread > 0 ? ICON_READ : ICON_UNREAD;
+    li.querySelector(".tip").textContent = label;
+    li.classList.toggle("unread", c.unread > 0);
+    li.classList.toggle("is-open", state.open === c.id && !phoneQuery.matches);
+    if (c.unread > 0) li.setAttribute("data-ui-need", ""); else li.removeAttribute("data-ui-need");
+
+    var slot = li.querySelector(".badge-slot");
+    var badge = slot.querySelector(".badge:not(.leaving)");
+    var prev = li._unread;
+    if (c.unread > 0) {
+      if (!badge) {
+        badge = document.createElement("span");
+        badge.className = "badge";
+        badge.setAttribute("data-ui-number", "");
+        slot.appendChild(badge);
+        if (how !== "none") {
+          if (reduced()) fadeIn(badge);
+          else badge.animate([{ transform: "scale(0.3)", opacity: 0 }, { transform: "scale(1)", opacity: 1 }], spring("enter", how === "touch"));
+        }
+      } else if (prev !== c.unread && how !== "none") {
+        stop(badge);
+        if (reduced()) fadeIn(badge);
+        else badge.animate([{ transform: "scale(1)" }, { transform: "scale(" + ATTENTION_AMOUNT + ")", offset: 0.35 }, { transform: "scale(1)" }], spring("attention", how === "touch"));
+      }
+      badge.textContent = badgeText(c.unread);
+      badge.title = fmtNum.format(c.unread) + " unread";
+      badge.setAttribute("aria-label", fmtNum.format(c.unread) + " unread");
+    } else if (badge) {
+      if (how === "none") badge.remove();
+      else {
+        badge.classList.add("leaving");
+        stop(badge);
+        var exit = badge.animate([{ transform: "scale(1)", opacity: 1 }, { transform: "scale(0.3)", opacity: 0 }], reduced() ? { duration: FADE, easing: "ease-out" } : spring("exit", false));
+        exit.onfinish = function () { badge.remove(); };
+      }
+    }
+    li._unread = c.unread;
+    return li;
+  }
+
+  function match(c) {
+    if (!state.query) return true;
+    var q = state.query.toLowerCase();
+    return c.name.toLowerCase().indexOf(q) >= 0 || (c.people || []).some(function (p) { return p.toLowerCase().indexOf(q) >= 0; });
+  }
+  function ordered() {
+    return convos.slice().sort(function (a, b) {
+      var ua = a.unread > 0 ? 1 : 0, ub = b.unread > 0 ? 1 : 0;
+      return ub - ua || lastT(b) - lastT(a);
+    });
+  }
+
+  // Re-render the list. Rows keep their elements; each row springs from where it is on screen now.
+  function renderList(how) {
+    var before = {};
+    Object.keys(rowEls).forEach(function (id) {
+      var el = rowEls[id];
+      if (!el.hidden && el.isConnected) before[id] = el.getBoundingClientRect().top;
+    });
+    var selBefore = selEl.getBoundingClientRect().top;
+    var shown = 0, had = document.activeElement;
+    ordered().forEach(function (c, i) {
+      var li = paintRow(c, how);
+      li.hidden = !match(c);
+      if (!li.hidden) shown++;
+      // move a row only when it is out of place, so focus and hover stay put
+      if (listEl.children[i] !== li) listEl.insertBefore(li, listEl.children[i] || null);
+    });
+    if (had && had !== document.activeElement && had.isConnected && listEl.contains(had)) had.focus({ preventScroll: true });
+    emptyEl.hidden = shown > 0;
+    if (!shown) emptyEl.textContent = "No chats match “" + state.query + "”";
+    if (how === "none") { placeSel(false); return; }
+    var i = 0;
+    ordered().forEach(function (c) {
+      var li = rowEls[c.id];
+      if (li.hidden) return;
+      var top = li.getBoundingClientRect().top;
+      if (before[c.id] == null) {
+        stop(li);
+        if (reduced()) fadeIn(li);
+        else li.animate([{ opacity: 0, transform: "scale(0.96)" }, { opacity: 1, transform: "none" }],
+          Object.assign(spring("enter", how === "touch"), { delay: Math.min(i++, 6) * STAGGER, fill: "backwards" }));
+        return;
+      }
+      var dy = before[c.id] - top;
+      if (Math.abs(dy) < 0.5) return;
+      stop(li);
+      if (reduced()) fadeIn(li);
+      else li.animate([{ transform: "translateY(" + dy + "px)" }, { transform: "none" }], spring("move", how === "touch"));
+    });
+    placeSel(true, selBefore, how === "touch");
+  }
+
+  // The selection highlight is one object that springs from row to row.
+  function placeSel(animate, fromTop, touch) {
+    var li = state.open && rowEls[state.open];
+    if (!li || li.hidden || phoneQuery.matches) { selEl.style.opacity = "0"; return; }
+    var wasShown = selEl.style.opacity === "1";
+    selEl.style.opacity = "1";
+    stop(selEl);
+    selEl.style.height = li.offsetHeight + "px";
+    selEl.style.transform = "translateY(" + (li.offsetTop + listEl.offsetTop) + "px)";
+    if (!animate) return;
+    var dy = fromTop - selEl.getBoundingClientRect().top;
+    if (!wasShown) { fadeIn(selEl); return; }
+    if (Math.abs(dy) < 0.5) return;
+    if (reduced()) { fadeIn(selEl); return; }
+    selEl.animate([{ transform: "translateY(" + (li.offsetTop + listEl.offsetTop + dy) + "px)" }, { transform: "translateY(" + (li.offsetTop + listEl.offsetTop) + "px)" }], spring("move", touch));
+  }
+
+  /* ---------- Thread ---------- */
+  function msgEl(c, m, prev) {
+    var div = document.createElement("div");
+    var mine = m.who === "me";
+    var first = !prev || prev.who !== m.who || m.t - prev.t > 5 * MIN;
+    div.className = "msg" + (mine ? " me" : "") + (first ? " first" : "");
+    if (first && !mine && c.people) {
+      var s = document.createElement("span");
+      s.className = "sender";
+      s.dir = "auto";
+      s.textContent = m.who;
+      div.appendChild(s);
+    }
+    var b = document.createElement("div");
+    b.dir = "auto";
+    b.className = "bubble" + (emojiOnly(m.text) && m.text.length <= 12 ? " emoji" : "");
+    b.textContent = m.text;
+    b.title = clock(m.t);
+    div.appendChild(b);
+    // set lang now, not after insert, so a size measured right away is the real one
+    if (window.markLang) window.markLang(div);
+    return div;
+  }
+  function stampEl(t) {
+    var s = document.createElement("span");
+    s.className = "stamp";
+    s.textContent = clock(t);
+    return s;
+  }
+  // the time sits under the last bubble before a pause of 20 minutes or more
+  function restamp() {
+    var kids = threadEl.querySelectorAll(".msg:not(.typing)");
+    kids.forEach(function (el, i) {
+      var old = el.querySelector(".stamp");
+      var next = kids[i + 1];
+      var ends = !next || next._t - el._t >= 20 * MIN;
+      if (ends && !old) el.appendChild(stampEl(el._t));
+      if (!ends && old) old.remove();
+    });
+  }
+  // restamp() for a live change: a message that gives up its time closes the
+  // gap on the spring, so the thread above it never snaps.
+  function restampSoft(feel) {
+    var had = [];
+    threadEl.querySelectorAll(".msg:not(.typing)").forEach(function (el) {
+      if (el.querySelector(".stamp")) had.push([el, el.offsetHeight]);
+    });
+    restamp();
+    if (reduced()) return;
+    had.forEach(function (p) {
+      var el = p[0];
+      if (!el.querySelector(".stamp")) el.animate([{ height: p[1] + "px" }, { height: el.offsetHeight + "px" }], feel);
+    });
+  }
+  // A time waits for its box like words do: it shows once its slot is open.
+  function stampIn(el, delay) {
+    var s = el.querySelector(".stamp");
+    if (s) s.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE, delay: delay, easing: "ease-out", fill: "backwards" });
+  }
+  function renderThread(c, how) {
+    $("who-name").textContent = c.name;
+    $("who-meta").textContent = metaOf(c);
+    // A one-to-one chat has no member line; it keeps the line's space so the name holds its place.
+    $("who-meta").style.visibility = c.people ? "" : "hidden";
+    threadEl.textContent = "";
+    var newFrom = c.unread > 0 ? c.msgs.length - c.unread : -1;
+    var day = "";
+    c.msgs.forEach(function (m, i) {
+      var label = dayLabel(m.t);
+      if (label !== day) {
+        day = label;
+        var d = document.createElement("div");
+        d.className = "day";
+        d.textContent = label;
+        threadEl.appendChild(d);
+      }
+      if (i === newFrom && newFrom > 0) {
+        var n = document.createElement("div");
+        n.className = "new-line";
+        n.textContent = "New";
+        threadEl.appendChild(n);
+      }
+      var el = msgEl(c, m, i && dayLabel(c.msgs[i - 1].t) === label ? c.msgs[i - 1] : null);
+      el._t = m.t;
+      threadEl.appendChild(el);
+    });
+    if (c.typing) threadEl.appendChild(typingEl(c));
+    restamp();
+    threadScroll.scrollTop = 0;
+    if (how !== "none") {
+      stop(threadEl);
+      if (reduced()) fadeIn(threadEl);
+      else threadEl.animate([{ opacity: 0, transform: "translateY(12px)" }, { opacity: 1, transform: "none" }], spring("enter", how === "touch"));
+    }
+  }
+  function typingEl(c) {
+    var div = document.createElement("div");
+    div.className = "msg typing first";
+    var who = c.replies[c.replyAt % c.replies.length][0];
+    if (c.people) {
+      var s = document.createElement("span");
+      s.className = "sender";
+      s.textContent = who;
+      div.appendChild(s);
+    }
+    var b = document.createElement("div");
+    b.className = "bubble";
+    b.setAttribute("aria-label", firstName(who) + " is typing");
+    b.innerHTML = '<span class="dot"></span><span class="dot"></span><span class="dot"></span>';
+    div.appendChild(b);
+    return div;
+  }
+
+  // A new message grows into place: its slot opens and the bubble pops in.
+  function growIn(el, touch) {
+    var h = el.offsetHeight;
+    if (reduced()) { fadeIn(el); return; }
+    el.style.overflow = "visible";
+    var grow = el.animate([{ height: "0px", marginTop: "0px" }, { height: h + "px", marginTop: getComputedStyle(el).marginTop }], spring("enter", false));
+    var b = el.querySelector(".bubble");
+    b.style.transformOrigin = el.classList.contains("me") ? "100% 100%" : "0% 100%";
+    b.animate([{ transform: "translateY(10px) scale(0.85)", opacity: 0 }, { transform: "none", opacity: 1 }], spring("enter", touch));
+    stampIn(el, settledAt("enter", false, h));
+    grow.onfinish = grow.oncancel = function () { el.style.overflow = ""; };
+  }
+
+  // A new day line opens its slot on the same spring; its words wait for it.
+  function growDay(d) {
+    if (reduced()) { fadeIn(d); return; }
+    var cs = getComputedStyle(d), h = d.offsetHeight;
+    var shut = { height: "0px", marginTop: "0px", marginBottom: "0px", paddingTop: "0px", paddingBottom: "0px" };
+    var open = { height: h + "px", marginTop: cs.marginTop, marginBottom: cs.marginBottom, paddingTop: cs.paddingTop, paddingBottom: cs.paddingBottom };
+    d.animate([shut, open], spring("enter", false));
+    var gap = h + parseFloat(cs.marginTop) + parseFloat(cs.marginBottom);
+    d.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE, delay: settledAt("enter", false, gap), easing: "ease-out", fill: "backwards" });
+  }
+
+  function openConvo(id, touch) {
+    var c = byId(id);
+    if (!c) return;
+    var phone = phoneQuery.matches;
+    var same = state.open === id;
+    state.open = id;
+    if (!same || phone) renderThread(c, touch ? "touch" : "quiet");
+    var had = c.unread > 0;
+    c.unread = 0;
+    renderList(had || !same ? (touch ? "touch" : "quiet") : "none");
+    if (phone) showThreadPane(touch);
+    try { history.replaceState(null, "", urlWith({ chat: id })); } catch (e) {}
+  }
+
+  function toggleRead(id) {
+    var c = byId(id);
+    c.unread = c.unread > 0 ? 0 : 1;
+    renderList("touch");
+  }
+
+  function showThreadPane(touch) {
+    var pane = $("thread-pane");
+    app.classList.add("thread-open");
+    stop(pane);
+    if (reduced()) fadeIn(pane);
+    else pane.animate([{ transform: "translateX(100%)" }, { transform: "none" }], spring("enter", touch));
+    $("back").focus({ preventScroll: true });
+  }
+  function hideThreadPane() {
+    var pane = $("thread-pane");
+    var from = pane.getBoundingClientRect().left;
+    stop(pane);
+    var id = state.open;
+    var done = function () { app.classList.remove("thread-open"); };
+    if (reduced()) pane.animate([{ opacity: 1 }, { opacity: 0 }], { duration: FADE }).onfinish = done;
+    else pane.animate([{ transform: "translateX(" + from + "px)" }, { transform: "translateX(100%)" }], spring("exit", false)).onfinish = done;
+    var row = rowEls[id] && rowEls[id].querySelector(".row-main");
+    if (row) { row.focus({ preventScroll: true }); row.scrollIntoView({ block: "nearest" }); }
+  }
+  $("back").addEventListener("click", hideThreadPane);
+
+  /* ---------- Sending, and the reply it brings ---------- */
+  var input = $("input"), sendBtn = $("send");
+  function fit() {
+    input.style.height = "auto";
+    input.style.height = Math.min(input.scrollHeight + 2, 140) + "px";
+    sendBtn.disabled = !input.value.trim();
+  }
+  input.addEventListener("input", fit);
+  input.addEventListener("keydown", function (e) {
+    if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); $("compose").requestSubmit(); }
+  });
+  $("compose").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var text = input.value.trim();
+    if (!text || !state.open) return;
+    send(byId(state.open), text);
+    input.value = "";
+    fit();
+  });
+
+  function send(c, text) {
+    var prev = last(c);
+    var m = { who: "me", text: text, t: Date.now() };
+    c.msgs.push(m);
+    var el = msgEl(c, m, prev && dayLabel(prev.t) === dayLabel(m.t) ? prev : null);
+    el._t = m.t;
+    var d = null;
+    if (!prev || dayLabel(prev.t) !== "Today") {
+      d = document.createElement("div");
+      d.className = "day";
+      d.textContent = "Today";
+      threadEl.insertBefore(d, threadEl.querySelector(".typing"));
+    }
+    threadEl.insertBefore(el, threadEl.querySelector(".typing"));
+    restampSoft(spring("enter", false));
+    threadScroll.scrollTo({ top: 0, behavior: reduced() ? "auto" : "smooth" });
+    if (d) growDay(d);
+    growIn(el, true);
+    renderList("touch");
+    expectReply(c);
+  }
+
+  function expectReply(c) {
+    clearTimeout(c.timer);
+    c.timer = setTimeout(function () {
+      c.typing = true;
+      if (state.open === c.id && !threadEl.querySelector(".typing")) {
+        var t = typingEl(c);
+        threadEl.appendChild(t);
+        growIn(t, false);
+      }
+      c.timer = setTimeout(function () { land(c); }, 1400);
+    }, 600);
+  }
+
+  function land(c) {
+    c.timer = null;
+    c.typing = false;
+    var r = c.replies[c.replyAt % c.replies.length];
+    c.replyAt++;
+    var prev = last(c);
+    var m = { who: r[0], text: r[1], t: Date.now() };
+    c.msgs.push(m);
+    if (state.open === c.id && (!phoneQuery.matches || app.classList.contains("thread-open"))) {
+      var t = threadEl.querySelector(".typing");
+      var el = msgEl(c, m, prev);
+      el._t = m.t;
+      if (t) morph(t, el); else { threadEl.appendChild(el); restampSoft(spring("enter", false)); growIn(el, false); }
+    } else {
+      c.unread += 1;
+      var t2 = state.open === c.id && threadEl.querySelector(".typing");
+      if (t2) t2.remove();
+    }
+    renderList("quiet");
+  }
+
+  // The typing bubble becomes the reply: same object, new size. The words wait
+  // for the box: they fade in only once the bubble is big enough to hold them.
+  function morph(t, el) {
+    var bubble = t.querySelector(".bubble");
+    var r0 = bubble.getBoundingClientRect();
+    var h0 = t.offsetHeight;
+    var nb = el.querySelector(".bubble");
+    t.className = el.className;
+    bubble.className = nb.className;
+    bubble.removeAttribute("aria-label");
+    bubble.dir = nb.dir;
+    if (nb.lang) bubble.lang = nb.lang; else bubble.removeAttribute("lang");
+    bubble.textContent = nb.textContent;
+    bubble.title = nb.title;
+    t._t = el._t;
+    if (!el.querySelector(".sender")) { var s = t.querySelector(".sender"); if (s) s.remove(); }
+    var feel = spring("enter", false);
+    // The reply's time joins the target height, so the slot opens once, fully.
+    restampSoft(feel);
+    if (reduced()) { fadeIn(bubble); return; }
+    var r1 = bubble.getBoundingClientRect();
+    var h1 = t.offsetHeight;
+    var cs = getComputedStyle(bubble);
+    var inner = document.createElement("span");
+    inner.style.display = "block";
+    inner.style.width = (r1.width - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)) + "px";
+    inner.textContent = bubble.textContent;
+    bubble.textContent = "";
+    bubble.appendChild(inner);
+    t.animate([{ height: h0 + "px" }, { height: h1 + "px" }], feel);
+    var a = bubble.animate([{ width: r0.width + "px", height: r0.height + "px" }, { width: r1.width + "px", height: r1.height + "px" }], feel);
+    var gap = Math.max(r1.width - r0.width, r1.height - r0.height, h1 - h0, 0);
+    var at = settledAt("enter", false, gap);
+    var words = inner.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE, delay: at, easing: "ease-out", fill: "backwards" });
+    stampIn(t, at);
+    // Unwrap only when both are done, so the words never rewrap mid-motion.
+    var unwrap = function () { if (inner.parentNode === bubble) bubble.textContent = inner.textContent; };
+    Promise.all([a.finished, words.finished]).then(unwrap, unwrap);
+  }
+
+  /* ---------- Search ---------- */
+  $("search").addEventListener("input", function (e) {
+    state.query = e.target.value.trim();
+    renderList("touch");
+  });
+
+  /* ---------- Data toggle (chrome) ---------- */
+  function urlWith(extra) {
+    var p = new URLSearchParams(location.search);
+    Object.keys(extra).forEach(function (k) { if (extra[k] == null) p.delete(k); else p.set(k, extra[k]); });
+    var s = p.toString();
+    return location.pathname + (s ? "?" + s : "");
+  }
+  document.querySelectorAll(".data-toggle button").forEach(function (b) {
+    var on = (b.dataset.set === "worst") === worst;
+    b.setAttribute("aria-pressed", on ? "true" : "false");
+    b.addEventListener("click", function () {
+      if (on) return;
+      location.href = urlWith({ data: b.dataset.set === "worst" ? "worst" : null, chat: null });
+    });
+  });
+
+  /* ---------- First paint ---------- */
+  var asked = new URLSearchParams(location.search).get("chat");
+  var startOpen = byId(asked) ? asked : (worst ? "w1" : "climb");
+  state.open = startOpen;
+  renderList("none");
+  var first = byId(startOpen);
+  if (first.unread > 0 && !phoneQuery.matches) { renderThread(first, "none"); first.unread = 0; renderList("none"); }
+  else renderThread(first, "none");
+  phoneQuery.addEventListener("change", function () { app.classList.remove("thread-open"); renderList("none"); });
+  addEventListener("resize", function () { placeSel(false); });
+
+  // for drive.mjs checks
+  window.__chat = {
+    unread: function () { var o = {}; convos.forEach(function (c) { if (c.unread) o[c.id] = c.unread; }); return o; },
+    order: function () { return ordered().map(function (c) { return c.id; }); },
+    open: function () { return state.open; }
+  };
+})();
+</script>
+<script>
+  // mark text that is Vietnamese, so :lang(vi) can give it a face that stacks its marks
+  (function () {
+    var VI = /[ăâđêôơưĂÂĐÊÔƠƯẠ-ỹ]/;
+    function mark(root) {
+      if (!root || root.nodeType !== 1) return;
+      var els = root.matches('[dir="auto"]') ? [root] : [];
+      root.querySelectorAll('[dir="auto"]').forEach(function (e) { els.push(e); });
+      els.forEach(function (e) {
+        var want = VI.test(e.textContent);
+        if (want && e.lang !== "vi") e.lang = "vi"; else if (!want && e.lang === "vi") e.removeAttribute("lang");
+      });
+    }
+    window.markLang = mark;
+    mark(document.body);
+    new MutationObserver(function (list) {
+      list.forEach(function (m) {
+        var t = m.target.nodeType === 1 ? m.target : m.target.parentElement;
+        if (t) mark(t.closest('[dir="auto"]') || t);
+      });
+    }).observe(document.body, { childList: true, subtree: true, characterData: true });
+  })();
+</script>
+</body>
+</html>

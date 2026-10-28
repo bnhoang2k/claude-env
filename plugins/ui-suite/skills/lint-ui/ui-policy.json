@@ -1,0 +1,31 @@
+{
+  "fonts": ["system-ui", "-apple-system", "BlinkMacSystemFont", "SF Pro Text", "SF Pro Display"],
+  "fontSizes": [12, 13, 14, 16, 18, 20, 24, 32, 40, 48, 64],
+  "typeRules": [
+    { "selector": "h1", "sizes": [24, 32, 40, 48, 64] },
+    { "selector": "h2", "sizes": [18, 20, 24, 32] },
+    { "selector": "h3", "sizes": [14, 16, 18, 20, 24] },
+    { "selector": "button, [role=button]", "sizes": [12, 13, 14, 16] }
+  ],
+  "minControlSize": 24,
+  "controlSizeRules": [],
+  "minControlGap": 8,
+  "minControlInset": 8,
+  "controlContainers": ["[data-ui-container]"],
+  "minLayoutGap": 8,
+  "bannedCopy": [
+    "click to", "click here", "click on", "tap to", "tap here", "hover to", "hover over",
+    "double-click to", "drag to", "scroll to", "scroll down", "press enter to",
+    "use the button", "below to", "here you can", "this page shows",
+    "simply ", "seamlessly", "unlock your potential", "game-changing"
+  ],
+  "viewports": [{ "width": 390, "height": 844 }, { "width": 1440, "height": 900 }],
+  "colorSchemes": ["light", "dark"],
+  "exceptions": [
+    {
+      "selector": "[data-ui-embed], [data-ui-embed] *",
+      "rules": ["font-family", "font-size", "copy", "text-contrast", "content-clipping", "content-overflow", "tabular-numbers", "numeric-alignment", "layout-gap", "layout-alignment", "nested-radius", "control-size", "control-gap", "control-inset", "target-size", "icon-button-tooltip"],
+      "reason": "An embedded screen of another product (a facsimile, replica or live demo of that app). Its own design system sets its type, color, spacing and copy; accessibility and page-level rules still apply."
+    }
+  ]
+}

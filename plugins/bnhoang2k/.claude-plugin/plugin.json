@@ -1,0 +1,15 @@
+{
+  "name": "bnhoang2k",
+  "description": "Installs the whole claude-env set: ui-suite, motion, models, workflow and figures",
+  "version": "0.1.0",
+  "author": {
+    "name": "claude-env maintainers"
+  },
+  "dependencies": [
+    "ui-suite",
+    "motion",
+    "models",
+    "workflow",
+    "figures"
+  ]
+}

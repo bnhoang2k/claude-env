@@ -1,0 +1,1846 @@
+<!doctype html>
+<html lang="en" data-rung="2" data-look="quiet" data-motion="sleek">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Saffron Bay Rides</title>
+<script>
+  // Theme before first paint: ?theme=light|dark wins, else the system setting.
+  (function () {
+    var p = new URLSearchParams(location.search).get("theme");
+    var mq = window.matchMedia("(prefers-color-scheme: dark)");
+    var set = function () { document.documentElement.setAttribute("data-theme", p === "light" || p === "dark" ? p : (mq.matches ? "dark" : "light")); };
+    set();
+    if (p !== "light" && p !== "dark") mq.addEventListener("change", set);
+  })();
+</script>
+<link rel="preconnect" href="https://api.fontshare.com">
+<link rel="preconnect" href="https://cdn.fontshare.com" crossorigin>
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600&display=swap">
+<style>
+/* Tokens, grouped by function. Draw: General Sans / General Sans, palette Candy chapters. */
+:root {
+  /* type */
+  --face: "General Sans", system-ui, sans-serif;
+  --t-meta: 13px;
+  --t-ui: 14px;
+  --t-pane: 18px;
+  --t-title: 24px;
+  --t-figure: 24px;
+  /* space */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  /* shape */
+  --r-bar: 3px;
+  --r-control: 6px;
+  --r-group: 8px;
+  --r-region: 10px;
+  --control: 32px;
+  --dot: 6px;
+  /* chart */
+  --plot-h: 300px;
+  --tide-h: 150px;
+  --plot-head: 20px;
+  --xaxis-h: 28px;
+  --col-gap: 4px;
+  --side: 340px;
+  /* map */
+  --route-min: 0.75;
+  --route-max: 7;
+  /* motion: motion-kit feel "sleek" (dist/src/core/defaults.js). Rung 2 springs on every touch.
+     tap 0.1 s bounce 0.05 at 0.97; enter 0.25 s bounce 0.05; exit 0.15 s bounce 0; move 0.25 s bounce 0.05; stagger 0.025 s.
+     The spring curves (--sp-*-e) and their settle times (--sp-*-d) are written by the script from these numbers.
+     Rung 3 adds a lead: a link draws out of the station you picked, then fills the bars nearest the map first. */
+  --tap-d: 100ms;
+  --tap-amount: 0.97;
+  --enter-d: 250ms;
+  --exit-d: 150ms;
+  --move-d: 250ms;
+  --stagger: 25ms;
+  --lead-start: 120ms;
+  --reduced-fade: 150ms;
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+  --sp-tap-e: var(--ease-out);
+  --sp-tap-d: 100ms;
+  --sp-enter-e: var(--ease-out);
+  --sp-enter-d: 250ms;
+  --sp-move-e: var(--ease-out);
+  --sp-move-d: 250ms;
+}
+/* Light: the drawn palette as given. */
+:root[data-theme="light"] {
+  --bg: #ffd249;
+  --surface: #f5c63c;
+  --raised: #fff4cc;
+  --seg-on: #ffd249;
+  --ink: #0a0a0a;
+  --muted: #5e4a0a;
+  --accent: #f53fd6;
+  --accent-ink: #0a0a0a;
+  --line: rgba(10, 10, 10, 0.14);
+  --bar: rgba(94, 74, 10, 0.34);
+  --share: rgba(10, 10, 10, 0.62);
+  --route: rgba(94, 74, 10, 0.42);
+  --water: rgba(10, 10, 10, 0.06);
+  --band-hover: rgba(10, 10, 10, 0.06);
+  --band-select: rgba(10, 10, 10, 0.12);
+  --track: rgba(10, 10, 10, 0.09);
+  --shadow: 0 1px 2px rgba(60, 40, 0, 0.18), 0 4px 12px rgba(60, 40, 0, 0.12);
+  color-scheme: light;
+}
+/* Dark: the same family at night. Warm brown-black ground, cream ink,
+   the yellow kept as the bar tint, the pink kept as the one accent. */
+:root[data-theme="dark"] {
+  --bg: #16120a;
+  --surface: #211a0e;
+  --raised: #2e2515;
+  --seg-on: #3a2f1a;
+  --ink: #fff1c4;
+  --muted: #c9ad62;
+  --accent: #ff5ee0;
+  --accent-ink: #0a0a0a;
+  --line: rgba(255, 241, 196, 0.13);
+  --bar: rgba(255, 210, 73, 0.36);
+  --share: rgba(255, 241, 196, 0.78);
+  --route: rgba(255, 210, 73, 0.42);
+  --water: rgba(255, 241, 196, 0.05);
+  --band-hover: rgba(255, 241, 196, 0.06);
+  --band-select: rgba(255, 241, 196, 0.12);
+  --track: rgba(255, 241, 196, 0.08);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.35);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; }
+html { background: var(--bg); }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--face);
+  font-size: var(--t-ui);
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+  padding: var(--s-6);
+  min-height: 100vh;
+}
+button { font: inherit; color: inherit; }
+h1, h2, p { margin: 0; }
+.meta { color: var(--muted); font-size: var(--t-meta); }
+.num { font-variant-numeric: tabular-nums; }
+
+/* header */
+.top {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--s-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--s-5);
+}
+.title { min-width: 0; flex: 1 1 320px; }
+h1 { font-size: var(--t-title); font-weight: 600; line-height: 1.2; letter-spacing: -0.01em; overflow-wrap: anywhere; }
+.title .meta { margin-top: var(--s-1); overflow-wrap: anywhere; }
+
+/* segmented control: one selector style for the page */
+.seg {
+  position: relative;
+  display: inline-flex;
+  gap: var(--s-2);
+  padding: var(--s-1);
+  background: var(--track);
+  border-radius: var(--r-group);
+  flex: none;
+}
+.seg button {
+  height: var(--control);
+  padding: 0 var(--s-3);
+  border: 0;
+  border-radius: var(--r-control);
+  background: transparent;
+  color: var(--muted);
+  font-size: var(--t-ui);
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  position: relative;
+  z-index: 1;
+  transition: color var(--exit-d) var(--ease-out), transform var(--sp-tap-d) var(--sp-tap-e);
+}
+.seg-pill {
+  position: absolute;
+  top: var(--s-1);
+  left: 0;
+  height: var(--control);
+  width: 0;
+  border-radius: var(--r-control);
+  background: var(--seg-on);
+  transition: transform var(--sp-move-d) var(--sp-move-e), width var(--sp-move-d) var(--sp-move-e);
+}
+.seg button:hover { color: var(--ink); }
+.seg button[aria-checked="true"] { color: var(--ink); }
+button:active { transform: scale(var(--tap-amount)); transition-duration: var(--tap-d); transition-timing-function: var(--ease-out); }
+button:focus-visible, .plot:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+/* summary */
+.stats {
+  display: flex;
+  gap: var(--s-6);
+  flex-wrap: wrap;
+  margin-bottom: var(--s-5);
+}
+.stat { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.stat .label { color: var(--muted); font-size: var(--t-meta); }
+.stat .value { min-width: 4em; font-size: var(--t-figure); font-weight: 500; line-height: 1.2; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+
+/* regions: the hour charts, the map and the station list sit side by side,
+   so a touch in one lights the others in view */
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) var(--side);
+  grid-template-areas: "charts map list";
+  gap: var(--s-4);
+  align-items: stretch;
+}
+.pane {
+  background: var(--surface);
+  border-radius: var(--r-region);
+  padding: var(--s-4) var(--s-5) var(--s-5);
+  min-width: 0;
+}
+.chart-pane { grid-area: charts; }
+.map-pane { grid-area: map; display: flex; flex-direction: column; }
+.station-pane { grid-area: list; display: flex; flex-direction: column; }
+.pane-head {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  min-height: var(--control);
+  margin-bottom: var(--s-3);
+  flex-wrap: wrap;
+}
+h2 { font-size: var(--t-pane); font-weight: 500; line-height: 1.3; }
+.legend-row { display: inline-flex; flex-wrap: wrap; justify-content: flex-end; column-gap: var(--s-4); row-gap: var(--s-1); margin-left: auto; }
+.legend { display: inline-flex; align-items: center; gap: var(--s-2); color: var(--muted); font-size: var(--t-meta); white-space: nowrap; }
+.legend i { width: 10px; height: 10px; border-radius: 2px; background: var(--accent); flex: none; }
+.legend.share i { background: var(--share); }
+.legend.share { visibility: hidden; order: -1; }
+.legend.share.on { visibility: visible; }
+
+/* the two hour charts share one grid, so their columns and y axis line up */
+.chart {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: var(--s-3);
+}
+.yaxis { position: relative; height: var(--plot-h); color: var(--muted); font-size: var(--t-meta); font-variant-numeric: tabular-nums; text-align: right; }
+.yaxis .sizer { visibility: hidden; display: block; height: 0; overflow: hidden; }
+.yaxis .yarea { position: absolute; left: 0; right: 0; bottom: 0; top: var(--plot-head); }
+.yaxis .tick { position: absolute; right: 0; transform: translateY(50%); line-height: 1; white-space: nowrap; }
+.plot {
+  position: relative;
+  height: var(--plot-h);
+  cursor: pointer;
+  border-radius: var(--r-control);
+  touch-action: manipulation;
+}
+.area { position: absolute; left: 0; right: 0; bottom: 0; top: var(--plot-head); }
+.gline { position: absolute; left: 0; right: 0; height: 1px; background: var(--line); }
+.gline.base { background: var(--muted); opacity: 0.5; }
+.band {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  border-radius: var(--r-control);
+  pointer-events: none;
+  opacity: 0;
+  transition: transform var(--sp-move-d) var(--sp-move-e), width var(--sp-move-d) var(--sp-move-e), opacity var(--exit-d) var(--ease-out);
+}
+.band.on { opacity: 1; }
+.band.hover { background: var(--band-hover); }
+.band.select { background: var(--band-select); }
+.cols { position: absolute; inset: 0; display: flex; gap: var(--col-gap); }
+.col { position: relative; flex: 1 1 0; min-width: 0; display: flex; align-items: flex-end; }
+.bar {
+  position: relative;
+  width: 100%;
+  height: 0;
+  background: var(--bar);
+  border-radius: var(--r-bar) var(--r-bar) 0 0;
+  transition: height var(--sp-move-d) var(--sp-move-e), background-color var(--exit-d) var(--ease-out);
+}
+.col.busy .bar { background: var(--accent); }
+/* the selected station's part of each hour, filled from the base */
+.part {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 0;
+  background: var(--share);
+  border-radius: inherit;
+  transition: height var(--sp-move-d) var(--sp-move-e);
+  transition-delay: var(--lead, 0ms);
+}
+.dot {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 6px);
+  width: var(--dot);
+  height: var(--dot);
+  margin-left: calc(var(--dot) / -2);
+  border-radius: 50%;
+  background: var(--ink);
+  display: none;
+}
+.col.busy .dot { display: block; }
+.empty-msg { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-size: var(--t-ui); pointer-events: none; text-align: center; padding: var(--s-4); }
+.xaxis { grid-column: 2; position: relative; height: var(--xaxis-h); color: var(--muted); font-size: var(--t-meta); font-variant-numeric: tabular-nums; }
+.xaxis span { position: absolute; top: var(--s-2); transform: translateX(-50%); white-space: nowrap; line-height: 1; }
+.xaxis span.sel { color: var(--ink); font-weight: 600; }
+
+/* the day's story: bikes the centre gained since midnight, one column per hour under the trips */
+.tide-head { grid-column: 1 / -1; margin: var(--s-4) 0 var(--s-2); }
+.scope-key { display: inline-grid; margin-left: auto; white-space: nowrap; }
+/* both scopes share one cell, so a swap moves nothing */
+.scope-key > span { grid-area: 1 / 1; justify-self: end; display: inline-flex; align-items: center; gap: var(--s-2); }
+.scope-key > span.off { visibility: hidden; }
+.scope-key svg { width: 12px; height: 12px; flex: none; overflow: visible; }
+.tyaxis, .tplot { height: var(--tide-h); }
+.tplot { cursor: pointer; }
+.tarea { position: absolute; left: 0; right: 0; top: 20px; bottom: 20px; }
+.tarea .gline.zero { top: 50%; background: var(--muted); opacity: 0.5; }
+.tcol { position: relative; flex: 1 1 0; min-width: 0; }
+.tbar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 0;
+  background: var(--bar);
+  border-radius: var(--r-bar) var(--r-bar) 0 0;
+  transition: top var(--sp-move-d) var(--sp-move-e), height var(--sp-move-d) var(--sp-move-e);
+  transition-delay: var(--lead, 0ms);
+}
+.tbar.neg { border-radius: 0 0 var(--r-bar) var(--r-bar); }
+.tide-chart-sel .tbar { background: var(--share); }
+.peak {
+  position: absolute;
+  top: 0;
+  left: 0;
+  color: var(--ink);
+  font-size: var(--t-meta);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: none;
+  transition: transform var(--sp-move-d) var(--sp-move-e), opacity var(--exit-d) var(--ease-out);
+  transition-delay: var(--lead, 0ms);
+}
+.peak.off { opacity: 0; }
+
+.tip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--s-2) var(--s-3);
+  opacity: 0;
+  visibility: hidden;
+  scale: var(--tap-amount);
+  transform-origin: 50% 100%;
+  transition: transform var(--sp-move-d) var(--sp-move-e), opacity var(--exit-d) var(--ease-out), scale var(--exit-d) var(--ease-out), visibility 0s linear var(--exit-d);
+  background: var(--raised);
+  color: var(--ink);
+  border-radius: var(--r-control);
+  box-shadow: var(--shadow);
+  pointer-events: none;
+  white-space: nowrap;
+}
+.tip.on {
+  opacity: 1;
+  visibility: visible;
+  scale: 1;
+  transition: transform var(--sp-move-d) var(--sp-move-e), opacity var(--sp-enter-d) var(--sp-enter-e), scale var(--sp-enter-d) var(--sp-enter-e), visibility 0s;
+}
+.tip .t-time { color: var(--muted); font-size: var(--t-meta); }
+.tip .t-n { font-weight: 600; font-variant-numeric: tabular-nums; }
+.tip .t-share { font-size: var(--t-meta); font-variant-numeric: tabular-nums; }
+
+/* map: stations as points, routes as lines whose width is the trips on them */
+.map-pane .pane-head .meta { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.map-wrap {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 280px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-group);
+  overflow: hidden;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.map-wrap svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.water { fill: var(--water); stroke: none; }
+.coast { fill: none; stroke: var(--muted); stroke-opacity: 0.45; stroke-width: 1; }
+.ring { fill: none; stroke: var(--muted); stroke-width: 1.25; stroke-dasharray: 3 4; opacity: 0.7; transition: opacity var(--exit-d) var(--ease-out); }
+.map-wrap.centre-on .ring { opacity: 1; stroke: var(--ink); }
+.route {
+  fill: none;
+  stroke: var(--route);
+  stroke-linecap: round;
+  transition: stroke-width var(--sp-move-d) var(--sp-move-e), opacity var(--exit-d) var(--ease-out);
+}
+.route.hover { stroke: var(--ink); }
+.lit {
+  fill: none;
+  stroke: var(--share);
+  stroke-linecap: round;
+  transition: stroke-width var(--sp-move-d) var(--sp-move-e), opacity var(--exit-d) var(--ease-out), stroke-dashoffset var(--draw-d, 400ms) var(--ease-out);
+}
+.st {
+  fill: var(--surface);
+  stroke: var(--muted);
+  stroke-width: 1.5;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform var(--sp-move-d) var(--sp-move-e), fill var(--exit-d) var(--ease-out);
+}
+.st.hover { stroke: var(--ink); stroke-width: 2; }
+.st.sel { fill: var(--ink); stroke: var(--surface); stroke-width: 2; transform: scale(1.45); }
+body.loading .st { stroke: var(--track); }
+.map-tip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: min(240px, calc(100% - 16px));
+  padding: var(--s-2) var(--s-3);
+  background: var(--raised);
+  color: var(--ink);
+  border-radius: var(--r-control);
+  box-shadow: var(--shadow);
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  scale: var(--tap-amount);
+  transition: transform var(--sp-move-d) var(--sp-move-e), opacity var(--exit-d) var(--ease-out), scale var(--exit-d) var(--ease-out), visibility 0s linear var(--exit-d);
+}
+.map-tip.on {
+  opacity: 1;
+  visibility: visible;
+  scale: 1;
+  transition: transform var(--sp-move-d) var(--sp-move-e), opacity var(--sp-enter-d) var(--sp-enter-e), scale var(--sp-enter-d) var(--sp-enter-e), visibility 0s;
+}
+.map-tip .m-name { font-weight: 500; overflow-wrap: anywhere; text-wrap: pretty; }
+.map-tip .m-n { color: var(--muted); font-size: var(--t-meta); font-variant-numeric: tabular-nums; }
+.map-key {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--s-4);
+  row-gap: var(--s-1);
+  /* two lines held, so the map keeps its size when the route count line comes and goes */
+  min-height: 50px;
+  align-content: flex-start;
+  padding-top: var(--s-3);
+  color: var(--muted);
+  font-size: var(--t-meta);
+  font-variant-numeric: tabular-nums;
+}
+.map-key .k { display: inline-flex; align-items: center; gap: var(--s-2); white-space: nowrap; }
+.map-key svg { width: 22px; height: 12px; flex: none; }
+/* the numbers keep their width as they change, so the keys after them hold still */
+.map-key .kn { min-width: 3ch; }
+.map-key .kn-trips { min-width: 9ch; }
+.map-key[aria-hidden="true"] .k.w { visibility: hidden; }
+/* with no routes the key says so in place of the line widths, so no text sits on the map */
+.map-key.none .k.w { display: none; }
+
+/* stations */
+.station-pane .pane-head .meta { font-variant-numeric: tabular-nums; }
+.clear-wrap { position: relative; display: inline-flex; flex: none; margin-left: auto; }
+.clear-wrap[aria-hidden="true"] { visibility: hidden; }
+.icon-btn {
+  width: 24px;
+  height: 24px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-control);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background-color var(--tap-d) var(--ease-out), color var(--tap-d) var(--ease-out), transform var(--sp-tap-d) var(--sp-tap-e);
+}
+.icon-btn:hover { background: var(--band-hover); color: var(--ink); }
+.icon-btn svg { width: 14px; height: 14px; }
+.hint {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 3;
+  padding: var(--s-1) var(--s-2);
+  background: var(--raised);
+  color: var(--ink);
+  font-size: var(--t-meta);
+  border-radius: var(--r-control);
+  box-shadow: var(--shadow);
+  white-space: nowrap;
+  pointer-events: none;
+  display: none;
+}
+.icon-btn:hover + .hint, .icon-btn:focus-visible + .hint { display: block; }
+.stations {
+  list-style: none;
+  margin: 0 calc(var(--s-2) * -1);
+  padding: 0;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.stations li { margin: 0 var(--s-2); box-shadow: inset 0 -1px 0 var(--line); }
+.stations .row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px minmax(3ch, auto);
+  align-items: center;
+  column-gap: var(--s-3);
+  width: calc(100% + var(--s-2) * 2);
+  min-height: 36px;
+  margin: 0 calc(var(--s-2) * -1);
+  padding: var(--s-2);
+  border: 0;
+  border-radius: var(--r-control);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--exit-d) var(--ease-out), transform var(--sp-tap-d) var(--sp-tap-e);
+}
+.stations .row:hover, .stations li.hover .row { background: var(--band-hover); }
+.stations li.sel .row { background: var(--band-select); }
+.stations li.sel .name { font-weight: 600; }
+.stations li.sel .sbar { background: var(--share); }
+/* while rows sit below the fold, the bottom edge fades so no row ends at a hard cut */
+.stations.more { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 32px), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 32px), transparent); }
+.stations .name { min-width: 0; overflow-wrap: anywhere; text-align: left; text-wrap: pretty; }
+.stations .name.missing { color: var(--muted); font-style: italic; }
+.stations .count { font-variant-numeric: tabular-nums; color: var(--muted); text-align: right; }
+.stations .track { height: 4px; }
+.stations .sbar { display: block; height: 4px; border-radius: 2px; background: var(--bar); min-width: 2px; }
+.stations li.none { box-shadow: none; color: var(--muted); padding-top: var(--s-4); }
+body.ready .stations.fresh li {
+  animation: pop var(--sp-enter-d) var(--sp-enter-e) both;
+  animation-delay: calc(var(--i, 0) * var(--stagger));
+}
+@keyframes pop { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes fade { from { opacity: 0.35; } to { opacity: 1; } }
+
+/* loading: a still placeholder, nothing pulses */
+body.loading .value { color: transparent; background: var(--track); border-radius: var(--r-control); min-width: 72px; }
+body.loading .bar { background: var(--track); }
+body.loading .stations li .name, body.loading .stations li .count { color: transparent; background: var(--track); border-radius: 4px; }
+
+/* demo / worst toggle: test chrome, not part of the design */
+.chrome {
+  display: flex;
+  width: max-content;
+  max-width: 100%;
+  margin: var(--s-6) auto 0;
+  gap: 8px;
+  padding: 4px;
+  background: #e4e4e7;
+  border-radius: 8px;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+.chrome button {
+  height: 28px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #3f3f46;
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.chrome button[aria-checked="true"] { background: #ffffff; color: #18181b; }
+
+/* the hour charts are narrower than the page, so the x axis names every third hour */
+.xaxis span.minor3:not(.sel) { display: none; }
+.xaxis span.near { display: none; }
+/* below 1280 the list moves under the map, still beside the charts */
+@media (max-width: 1279px) {
+  :root { --side: 360px; --tide-h: 220px; }
+  .grid { grid-template-columns: minmax(0, 1fr) var(--side); grid-template-areas: "charts map" "charts list"; grid-template-rows: auto 1fr; }
+  .map-wrap { flex: none; aspect-ratio: 1; min-height: 0; }
+  .stations { min-height: 160px; }
+}
+@media (max-width: 900px) {
+  body { padding: var(--s-4); }
+  :root { --plot-h: 240px; --tide-h: 128px; --col-gap: 2px; }
+  .grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "charts charts" "map list"; grid-template-rows: auto; }
+  .seg { width: 100%; }
+  .seg button { flex: 1 1 0; padding: 0 var(--s-2); }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-4); }
+  .pane { padding: var(--s-3) var(--s-4) var(--s-4); }
+}
+@media (max-width: 600px) {
+  /* the busiest key keeps its place beside the title; the station key has its own line below */
+  .legend-row { flex-direction: column; align-items: flex-end; }
+  .chart-pane > .pane-head:first-child { align-items: baseline; }
+  .legend.share { order: 0; }
+  .grid { grid-template-columns: minmax(0, 1fr); grid-template-areas: "charts" "map" "list"; }
+  .stations { flex: none; min-height: 0; }
+  .stations.long { max-height: 480px; }
+}
+@media (max-width: 480px) {
+  .stations .row { grid-template-columns: minmax(0, 1fr) 40px minmax(3ch, auto); }
+  .xaxis span.minor:not(.sel) { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0s !important; transition-delay: 0s !important; animation-duration: 0s !important; }
+  button:active { transform: none; }
+  body.ready .stations.fresh li { animation: fade var(--reduced-fade) linear both !important; animation-delay: 0s !important; }
+  .band, .tip, .tip.on, .seg-pill, .map-tip, .map-tip.on, .peak { transition: opacity var(--reduced-fade) linear !important; scale: 1; }
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="title">
+    <h1 id="city">Saffron Bay Bike Share</h1>
+    <p class="meta" id="day">Tuesday 14 October, one day of trips (a made-up example)</p>
+  </div>
+  <div class="seg" role="radiogroup" aria-label="Riders" id="rider" data-ui-actions>
+    <span class="seg-pill" id="seg-pill" aria-hidden="true"></span>
+    <button type="button" role="radio" aria-checked="true" data-rider="all">All riders</button>
+    <button type="button" role="radio" aria-checked="false" data-rider="member">Members</button>
+    <button type="button" role="radio" aria-checked="false" data-rider="casual">Casual</button>
+  </div>
+</header>
+
+<section class="stats" aria-label="Day summary" data-ui-stack>
+  <div class="stat"><span class="label">Trips</span><span class="value" id="s-trips" data-ui-number></span></div>
+  <div class="stat"><span class="label">Busiest hour</span><span class="value" id="s-busiest" data-ui-number></span></div>
+  <div class="stat"><span class="label">Median ride</span><span class="value" id="s-median" data-ui-number></span></div>
+  <div class="stat"><span class="label">Stations used</span><span class="value" id="s-stations" data-ui-number></span></div>
+</section>
+
+<main class="grid">
+  <section class="pane chart-pane" aria-labelledby="chart-title">
+    <div class="pane-head">
+      <h2 id="chart-title">Trips per hour</h2>
+      <span class="legend-row">
+        <span class="legend" id="legend-busy"><i></i>Busiest hours</span>
+        <span class="legend share" id="legend-share"><i></i>At the selected station</span>
+      </span>
+    </div>
+    <div class="chart" id="chart">
+      <div class="yaxis" id="yaxis" aria-hidden="true"></div>
+      <div class="plot" id="plot" tabindex="0" role="slider" aria-label="Hour of the day" aria-valuemin="0" aria-valuemax="23">
+        <div class="area" id="area">
+          <div id="glines"></div>
+          <div class="band hover" id="band-hover"></div>
+          <div class="band select" id="band-select"></div>
+          <div class="cols" id="cols"></div>
+        </div>
+        <div class="empty-msg" id="empty" hidden></div>
+        <div class="tip" id="tip" aria-hidden="true"><span class="t-time" id="tip-time"></span><span class="t-n" id="tip-n"></span><span class="t-share" id="tip-share" hidden></span></div>
+      </div>
+      <div class="xaxis" id="xaxis" aria-hidden="true"></div>
+
+      <div class="pane-head tide-head">
+        <h2 id="tide-title">Bikes gained since midnight</h2>
+        <span class="meta scope-key" id="tide-scope"><span id="scope-centre"><svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="5" fill="none" stroke="var(--muted)" stroke-width="1.25" stroke-dasharray="3 3"/></svg>Centre</span><span id="scope-station" class="off"><svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="4.5" fill="var(--ink)"/></svg>Selected station</span></span>
+      </div>
+      <div class="yaxis tyaxis" id="tyaxis" aria-hidden="true"></div>
+      <div class="plot tplot" id="tplot" role="img" aria-labelledby="tide-title">
+        <div class="tarea" id="tarea">
+          <div class="gline zero"></div>
+          <div class="band hover" id="tband-hover"></div>
+          <div class="band select" id="tband-select"></div>
+          <div class="cols" id="tcols"></div>
+          <span class="peak off" id="peak-hi"></span>
+          <span class="peak off" id="peak-lo"></span>
+        </div>
+        <div class="tip" id="ttip" aria-hidden="true"><span class="t-time" id="ttip-time"></span><span class="t-n" id="ttip-n"></span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="pane map-pane" aria-labelledby="map-title">
+    <div class="pane-head">
+      <h2 id="map-title">Routes</h2>
+      <span class="meta" id="map-scope">All day</span>
+    </div>
+    <div class="map-wrap" id="map-wrap">
+      <svg id="map" role="img" aria-label="Map of the stations and the routes between them"></svg>
+      <div class="map-tip" id="map-tip" aria-hidden="true"><span class="m-name" id="map-tip-name" dir="auto"></span><span class="m-n" id="map-tip-n"></span></div>
+    </div>
+    <div class="map-key" id="map-key">
+      <span class="k"><svg viewBox="0 0 22 12" aria-hidden="true"><circle cx="11" cy="6" r="5" fill="none" stroke="var(--muted)" stroke-width="1.25" stroke-dasharray="3 3"/></svg>Centre</span>
+      <span class="k w"><svg viewBox="0 0 22 12" aria-hidden="true"><path id="key-min-line" d="M4 6h14" stroke="var(--route)" stroke-width="1" stroke-linecap="round"/></svg><span class="kn" id="key-min"></span></span>
+      <span class="k w"><svg viewBox="0 0 22 12" aria-hidden="true"><path d="M4 6h14" stroke="var(--route)" stroke-width="7" stroke-linecap="round"/></svg><span class="kn kn-trips" id="key-max"></span></span>
+      <span class="k w" id="key-cap" hidden></span>
+      <span class="k" id="map-empty" hidden></span>
+    </div>
+  </section>
+
+  <section class="pane station-pane" aria-labelledby="station-title">
+    <div class="pane-head">
+      <h2 id="station-title">Start stations</h2>
+      <span class="meta" id="station-scope">All day</span>
+      <span class="clear-wrap" id="all-day-wrap" aria-hidden="true">
+        <button type="button" class="icon-btn" id="all-day" aria-label="Show all day" aria-describedby="all-day-hint" tabindex="-1"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/></svg></button>
+        <span class="hint" role="tooltip" id="all-day-hint">Show all day</span>
+      </span>
+    </div>
+    <ol class="stations" id="stations"></ol>
+  </section>
+</main>
+
+<div class="chrome" data-ui-chrome role="radiogroup" aria-label="Data set">
+  <button type="button" role="radio" data-kind="demo" aria-checked="true">Demo data</button>
+  <button type="button" role="radio" data-kind="worst" aria-checked="false">Worst case</button>
+</div>
+
+<script>
+/* ============================================================
+   MOTION: motion-kit sleek numbers turned into CSS spring curves.
+   A spring with visualDuration d and bounce b: stiffness (2 pi / 1.2 d)^2,
+   damping ratio 1 - b, mass 1; sampled until it settles.
+   ============================================================ */
+const SLEEK = { stagger: 0.025, tap: { d: 0.1, bounce: 0.05 }, enter: { d: 0.25, bounce: 0.05 }, move: { d: 0.25, bounce: 0.05 } };
+function springCurve(d, bounce) {
+  const k = Math.pow((2 * Math.PI) / (d * 1.2), 2);
+  const c = 2 * Math.max(0.05, Math.min(1, 1 - bounce)) * Math.sqrt(k);
+  const dt = 1 / 600;
+  let x = 0, v = 0, t = 0;
+  const xs = [0];
+  while (t < 2) {
+    v += (k * (1 - x) - c * v) * dt;
+    x += v * dt;
+    t += dt;
+    xs.push(x);
+    if (Math.abs(1 - x) < 0.001 && Math.abs(v) < 0.02) break;
+  }
+  const n = 40;
+  const pts = [];
+  for (let i = 0; i <= n; i++) pts.push((i === n ? 1 : xs[Math.round((i / n) * (xs.length - 1))]).toFixed(4));
+  return { easing: "linear(" + pts.join(", ") + ")", ms: Math.round(t * 1000) };
+}
+for (const name of ["tap", "enter", "move"]) {
+  const sp = springCurve(SLEEK[name].d, SLEEK[name].bounce);
+  document.documentElement.style.setProperty("--sp-" + name + "-e", sp.easing);
+  document.documentElement.style.setProperty("--sp-" + name + "-d", sp.ms + "ms");
+}
+
+/* ============================================================
+   DATA: made-up trips. Pure; knows nothing about drawing.
+   A dataset is { city, day, stations: [{id, name, x, y}], trips: [{id, start, from, to, minutes, rider}] }
+   x and y place a station on a 100 by 100 city square (y runs down); start is minutes
+   after midnight; rider is "member", "casual" or missing.
+   ============================================================ */
+const Data = (() => {
+  function rng(seed) {
+    return function () {
+      seed = (seed + 0x6d2b79f5) | 0;
+      let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function pick(r, items, weight) {
+    let total = 0;
+    for (const it of items) total += weight(it);
+    let x = r() * total;
+    for (const it of items) { x -= weight(it); if (x <= 0) return it; }
+    return items[items.length - 1];
+  }
+
+  // The city: the bay pushes up into the middle from the south; the centre sits at its head.
+  const CITY = {
+    coast: [[0, 92], [18, 90], [32, 89], [40, 84], [39, 76], [43, 69], [51, 66], [59, 68], [63, 74], [61, 82], [68, 88], [84, 91], [100, 92]],
+    centre: { x: 50, y: 52, r: 15 },
+  };
+  function coastY(x) {
+    const c = CITY.coast;
+    if (x <= c[0][0]) return c[0][1];
+    for (let i = 1; i < c.length; i++) if (x <= c[i][0]) { const [x0, y0] = c[i - 1], [x1, y1] = c[i]; return y0 + ((x - x0) / (x1 - x0)) * (y1 - y0); }
+    return c[c.length - 1][1];
+  }
+
+  const STATIONS = [
+    { id: "lq", name: "Lantern Quay", kind: "work", x: 49, y: 60 },
+    { id: "fs", name: "Fig Street", kind: "home", x: 20, y: 30 },
+    { id: "om", name: "Old Mill", kind: "home", x: 10, y: 66 },
+    { id: "hs", name: "Harbor Steps", kind: "work", x: 61, y: 57 },
+    { id: "cp", name: "Copperline Park", kind: "fun", x: 80, y: 78 },
+    { id: "jm", name: "Juniper Market", kind: "fun", x: 69, y: 40 },
+    { id: "np", name: "North Pier", kind: "work", x: 32, y: 78 },
+    { id: "gr", name: "Glasshouse Row", kind: "work", x: 39, y: 48 },
+    { id: "tl", name: "Tannery Lane", kind: "home", x: 38, y: 16 },
+    { id: "ss", name: "Saffron Square", kind: "work", x: 53, y: 44 },
+    { id: "wb", name: "Weir Bridge", kind: "home", x: 62, y: 10 },
+    { id: "oh", name: "Orchard Hill", kind: "home", x: 90, y: 50 },
+    { id: "bg", name: "Botanic Gate", kind: "fun", x: 82, y: 22 },
+    { id: "ch", name: "Chandler Hall", kind: "fun", x: 22, y: 52 },
+  ];
+  const MEMBER = [2, 1, 1, 1, 2, 7, 20, 52, 74, 41, 23, 20, 25, 23, 21, 27, 46, 70, 52, 31, 20, 14, 8, 4];
+  const CASUAL = [3, 2, 1, 1, 1, 2, 4, 8, 12, 17, 25, 33, 41, 45, 47, 43, 37, 31, 26, 20, 14, 10, 7, 4];
+
+  function originWeight(hour) {
+    if (hour >= 6 && hour <= 10) return { home: 4, work: 1, fun: 0.6 };
+    if (hour >= 16 && hour <= 19) return { home: 1, work: 4, fun: 1.4 };
+    if (hour >= 11 && hour <= 15) return { home: 1, work: 1.6, fun: 3 };
+    return { home: 1, work: 1, fun: 2 };
+  }
+
+  function demo() {
+    const r = rng(20261014);
+    const trips = [];
+    let id = 1;
+    for (let hour = 0; hour < 24; hour++) {
+      const w = originWeight(hour);
+      for (const [rider, profile, scale] of [["member", MEMBER, 2], ["casual", CASUAL, 1.2]]) {
+        const n = Math.round(profile[hour] * scale * (0.85 + 0.3 * r()));
+        for (let k = 0; k < n; k++) {
+          const from = pick(r, STATIONS, (s) => w[s.kind]);
+          const to = pick(r, STATIONS, (s) => (s.id === from.id ? 0 : 1 / w[s.kind]));
+          const minutes = rider === "member" ? 6 + Math.floor(r() * 16) : 12 + Math.floor(r() * 38);
+          trips.push({ id: id++, start: hour * 60 + Math.floor(r() * 60), from: from.id, to: to.id, minutes, rider });
+        }
+      }
+    }
+    return { city: "Saffron Bay Bike Share", day: "Tuesday 14 October, one day of trips (a made-up example)", stations: STATIONS.map(({ id, name, x, y }) => ({ id, name, x, y })), trips };
+  }
+
+  // The worst realistic day: long, unbreakable, right-to-left, CJK, emoji, one-letter,
+  // missing and duplicate station names; markup in a name; 300 stations packed into the
+  // centre; a tie for the busiest hour at five-digit counts; an hour with exactly 1 trip;
+  // most hours empty; trips with no rider type, an unknown station, a round trip to the
+  // same dock, and a 1,284 hour rental.
+  function worst() {
+    const r = rng(7);
+    const named = [
+      "Northeast Waterfront Intermodal Transit Center, Upper Level Gate B (temporary location during construction)",
+      "Station_Northeast_Waterfront_Intermodal_Transit_Center_UpperLevel_GateB",
+      "محطة الميناء الشمالية",
+      "北港駅前広場",
+      "Seán O'Brien-Ó Súilleabháin Memorial Plaza",
+      "🚲 Bike Barn 🌉",
+      "Q",
+      "",
+      "<script>alert(1)<\/script>",
+      "Harbor Steps",
+      "Harbor Steps",
+    ];
+    const stations = named.map((name, i) => ({ id: "w" + i, name }));
+    for (let i = stations.length; i < 300; i++) stations.push({ id: "w" + i, name: "Kiosk " + (i + 1) + ", Tannery Lane" });
+    // a third of the docks crowd the centre, the rest spread over the land
+    for (const s of stations) {
+      if (r() < 0.34) {
+        const a = r() * Math.PI * 2, d = Math.sqrt(r()) * CITY.centre.r;
+        s.x = CITY.centre.x + Math.cos(a) * d;
+        s.y = Math.min(coastY(CITY.centre.x + Math.cos(a) * d) - 3, CITY.centre.y + Math.sin(a) * d);
+      } else {
+        s.x = 4 + r() * 92;
+        s.y = 4 + r() * (coastY(s.x) - 8);
+      }
+    }
+    const trips = [];
+    let id = 1;
+    const add = (hour, n, rider) => {
+      for (let k = 0; k < n; k++) {
+        const from = k < 6000 ? stations[k % 11] : stations[Math.floor(r() * stations.length)];
+        trips.push({ id: id++, start: hour * 60 + Math.floor(r() * 60), from: from.id, to: stations[(k + 3) % stations.length].id, minutes: 4 + Math.floor(r() * 30), rider });
+      }
+    };
+    add(8, 48000, "member");
+    add(17, 30000, "member");
+    add(17, 18000, "casual");
+    add(3, 1, "casual");
+    add(12, 2, undefined);
+    add(23, 9999, "casual");
+    trips.push({ id: id++, start: 14 * 60 + 5, from: "gone-1", to: "w0", minutes: 77040, rider: undefined });
+    trips.push({ id: id++, start: 14 * 60 + 9, from: "w6", to: "w6", minutes: 0, rider: "member" });
+    return {
+      city: "Saffron Bay and Greater Lantern Quay Metropolitan Cycling Cooperative",
+      day: "Saturday 31 October, the city marathon closed the harbor docks (a made-up example)",
+      stations,
+      trips,
+    };
+  }
+
+  function empty() {
+    const d = demo();
+    return { ...d, trips: [] };
+  }
+
+  return {
+    city: CITY,
+    load(kind) {
+      if (kind === "worst") return worst();
+      if (kind === "empty") return empty();
+      return demo(); // "demo" and "loading" share the demo set
+    },
+  };
+})();
+
+/* ============================================================
+   DERIVE: pure reads of a dataset. No DOM.
+   ============================================================ */
+const Derive = {
+  riders(trips, rider) {
+    return rider === "all" ? trips : trips.filter((t) => t.rider === rider);
+  },
+  hourCounts(trips) {
+    const c = new Array(24).fill(0);
+    for (const t of trips) c[Math.floor(t.start / 60)]++;
+    return c;
+  },
+  // Up to three busiest hours, each with at least half the peak; a tie goes to the earlier hour.
+  busiest(counts, n = 3) {
+    const max = Math.max(...counts);
+    return new Set(
+      counts.map((c, h) => [c, h]).filter(([c]) => c > 0 && c >= max / 2)
+        .sort((a, b) => b[0] - a[0] || a[1] - b[1]).slice(0, n).map(([, h]) => h)
+    );
+  },
+  topHours(counts) {
+    const max = Math.max(...counts);
+    return max > 0 ? counts.map((c, h) => (c === max ? h : -1)).filter((h) => h >= 0) : [];
+  },
+  stationCounts(trips, hour) {
+    const m = new Map();
+    for (const t of trips) {
+      if (hour != null && Math.floor(t.start / 60) !== hour) continue;
+      m.set(t.from, (m.get(t.from) || 0) + 1);
+    }
+    return [...m.entries()].sort((a, b) => b[1] - a[1]);
+  },
+  median(trips) {
+    if (!trips.length) return null;
+    const m = trips.map((t) => t.minutes).sort((a, b) => a - b);
+    const mid = m.length >> 1;
+    return m.length % 2 ? m[mid] : Math.round((m[mid - 1] + m[mid]) / 2);
+  },
+  // A rounded top for the y axis with 4 even steps.
+  niceTop(max) {
+    if (max <= 0) return 4;
+    const raw = max / 4;
+    const p = Math.pow(10, Math.floor(Math.log10(raw)));
+    const step = [1, 1.5, 2, 2.5, 3, 4, 5, 10].map((f) => f * p).find((s) => s >= raw && Number.isInteger(s)) || Math.ceil(raw);
+    return step * 4;
+  },
+  // Routes: trips between two docks, either way, per hour. Round trips to the same dock and
+  // unknown docks have no line to draw, so they are left out.
+  routes(trips, known) {
+    const byHour = Array.from({ length: 24 }, () => new Map());
+    const day = new Map();
+    for (const t of trips) {
+      if (t.from === t.to || !known.has(t.from) || !known.has(t.to)) continue;
+      const key = t.from < t.to ? t.from + "|" + t.to : t.to + "|" + t.from;
+      const h = Math.floor(t.start / 60);
+      byHour[h].set(key, (byHour[h].get(key) || 0) + 1);
+      day.set(key, (day.get(key) || 0) + 1);
+    }
+    return { byHour, day };
+  },
+  // Trips per hour that start or end at one dock.
+  touches(trips, id) {
+    const c = new Array(24).fill(0);
+    for (const t of trips) if (t.from === id || t.to === id) c[Math.floor(t.start / 60)]++;
+    return c;
+  },
+  // Bikes a set of docks gained since midnight, at the end of each hour.
+  gained(trips, ids) {
+    const step = new Array(24).fill(0);
+    for (const t of trips) {
+      const h = Math.floor(t.start / 60);
+      if (ids.has(t.to)) step[h]++;
+      if (ids.has(t.from)) step[h]--;
+    }
+    let run = 0;
+    return step.map((v) => (run += v));
+  },
+  inCentre(stations, c) {
+    return new Set(stations.filter((s) => s.x != null && Math.hypot(s.x - c.x, s.y - c.y) <= c.r).map((s) => s.id));
+  },
+};
+
+/* ============================================================
+   FORMAT: words and numbers on screen.
+   ============================================================ */
+const nf = new Intl.NumberFormat("en-US");
+const plural = new Intl.PluralRules("en-US");
+const Fmt = {
+  n: (x) => nf.format(x),
+  trips: (x) => nf.format(x) + (plural.select(x) === "one" ? " trip" : " trips"),
+  bikes: (x) => (x === 0 ? "No change" : nf.format(Math.abs(x)) + (Math.abs(x) === 1 ? " bike " : " bikes ") + (x > 0 ? "more" : "fewer")),
+  signed: (x) => (x > 0 ? "+" : x < 0 ? "-" : "") + nf.format(Math.abs(x)),
+  hour: (h) => String(h).padStart(2, "0") + ":00",
+  by: (h) => "By " + (h === 23 ? "midnight" : Fmt.hour(h + 1)),
+  range: (h) => Fmt.hour(h) + " to " + (h === 23 ? "midnight" : Fmt.hour(h + 1)),
+  minutes: (m) => (m == null ? "None" : m < 60 ? m + " min" : Math.floor(m / 60) + " h " + (m % 60) + " min"),
+};
+
+/* ============================================================
+   STATE: what the person chose. Changes only through commit().
+   hover and cursor are the hour under the pointer or the keyboard;
+   station is the dock picked on the map or in the list; spot is the
+   dock or route under the pointer on the map or in the list.
+   ============================================================ */
+const params = new URLSearchParams(location.search);
+const startKind = ["worst", "empty", "loading"].includes(params.get("data")) ? params.get("data") : "demo";
+const S = { kind: startKind, rider: "all", hour: null, station: null, hover: null, cursor: null, focused: false, spot: null };
+let D = Data.load(startKind);
+
+function commit(patch) {
+  const lead = "station" in patch && patch.station !== S.station;
+  Object.assign(S, patch);
+  render({ lead });
+}
+
+/* ============================================================
+   VIEW: draws state. Reads Data and Derive, never writes them.
+   ============================================================ */
+const $ = (id) => document.getElementById(id);
+const el = {
+  city: $("city"), day: $("day"), rider: $("rider"), plot: $("plot"), area: $("area"), cols: $("cols"),
+  glines: $("glines"), yaxis: $("yaxis"), xaxis: $("xaxis"), empty: $("empty"), tip: $("tip"),
+  tipTime: $("tip-time"), tipN: $("tip-n"), tipShare: $("tip-share"), bandHover: $("band-hover"), bandSelect: $("band-select"),
+  tplot: $("tplot"), tarea: $("tarea"), tcols: $("tcols"), tyaxis: $("tyaxis"), ttip: $("ttip"), ttipTime: $("ttip-time"), ttipN: $("ttip-n"),
+  tbandHover: $("tband-hover"), tbandSelect: $("tband-select"), tideScope: $("tide-scope"), peakHi: $("peak-hi"), peakLo: $("peak-lo"),
+  map: $("map"), mapWrap: $("map-wrap"), mapTip: $("map-tip"), mapTipName: $("map-tip-name"), mapTipN: $("map-tip-n"), mapEmpty: $("map-empty"),
+  mapScope: $("map-scope"), mapKey: $("map-key"), keyMin: $("key-min"), keyMax: $("key-max"), keyCap: $("key-cap"),
+  stations: $("stations"), scope: $("station-scope"), allDay: $("all-day"),
+  sTrips: $("s-trips"), sBusiest: $("s-busiest"), sMedian: $("s-median"), sStations: $("s-stations"),
+};
+const SVG = "http://www.w3.org/2000/svg";
+const svg = (tag, attrs) => { const n = document.createElementNS(SVG, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); return n; };
+const ROUTE_CAP = 24;
+
+const cols = [];
+const tcols = [];
+for (let h = 0; h < 24; h++) {
+  const col = document.createElement("div");
+  col.className = "col";
+  const bar = document.createElement("div");
+  bar.className = "bar";
+  const part = document.createElement("span");
+  part.className = "part";
+  const dot = document.createElement("span");
+  dot.className = "dot";
+  bar.append(part, dot);
+  col.appendChild(bar);
+  el.cols.appendChild(col);
+  cols.push({ col, bar, part });
+  const tcol = document.createElement("div");
+  tcol.className = "tcol";
+  const tbar = document.createElement("div");
+  tbar.className = "tbar";
+  tcol.appendChild(tbar);
+  el.tcols.appendChild(tcol);
+  tcols.push({ col: tcol, bar: tbar });
+}
+const xlabels = [];
+for (let h = 0; h < 24; h++) {
+  const s = document.createElement("span");
+  s.textContent = Fmt.hour(h);
+  if (h % 3) s.classList.add("minor3");
+  if (h % 6) s.classList.add("minor");
+  s.style.left = ((h + 0.5) / 24) * 100 + "%";
+  el.xaxis.appendChild(s);
+  xlabels.push(s);
+}
+
+let view = null; // the numbers the last render drew, for hover and tooltips
+let model = null; // per data set and rider type: routes, centre, known docks
+let listKey = "";
+
+let byId = null; // station by id, for the data set in view
+function stationName(id) {
+  if (!byId || byId.data !== D) byId = { data: D, map: new Map(D.stations.map((x) => [x.id, x])) };
+  const s = byId.map.get(id);
+  if (!s) return { text: "Unknown station", missing: true };
+  if (!s.name.trim()) return { text: "Unnamed station", missing: true };
+  return { text: s.name, missing: false };
+}
+// a break chance after each underscore, so a code-style name wraps at its parts, not mid-word
+function fillName(node, text) {
+  node.textContent = "";
+  text.split(/(?<=_)/).forEach((part, k) => { if (k) node.appendChild(document.createElement("wbr")); node.appendChild(document.createTextNode(part)); });
+}
+
+// Everything a rider type needs, worked out once per data set and kept, so switching
+// riders only redraws (the worst-case day has over 100,000 trips).
+const models = new Map();
+function modelFor(kind, rider) {
+  const key = kind + "|" + rider;
+  if (models.has(key)) return models.get(key);
+  const loading = kind === "loading";
+  const trips = loading ? [] : Derive.riders(D.trips, rider);
+  const known = new Map(D.stations.filter((s) => s.x != null).map((s) => [s.id, s]));
+  const centre = Derive.inCentre(D.stations, Data.city.centre);
+  const m = {
+    key, trips, known, centre,
+    counts: Derive.hourCounts(trips),
+    median: Derive.median(trips),
+    used: new Set(trips.map((t) => t.from)).size,
+    routes: Derive.routes(trips, known),
+    centreGained: Derive.gained(trips, centre),
+  };
+  models.set(key, m);
+  return m;
+}
+
+function render({ lead = false } = {}) {
+  const loading = S.kind === "loading";
+  document.body.classList.toggle("loading", loading);
+  document.body.setAttribute("aria-busy", String(loading));
+  el.city.textContent = D.city;
+  el.day.textContent = D.day;
+
+  for (const b of el.rider.querySelectorAll("button")) b.setAttribute("aria-checked", String(b.dataset.rider === S.rider));
+  for (const b of document.querySelectorAll(".chrome button")) b.setAttribute("aria-checked", String(b.dataset.kind === (S.kind === "worst" ? "worst" : "demo")));
+
+  model = modelFor(S.kind, S.rider);
+  const trips = model.trips;
+  const counts = loading ? new Array(24).fill(1) : model.counts;
+  const top = Derive.niceTop(Math.max(...counts));
+  const busy = loading ? new Set() : Derive.busiest(counts);
+  const share = S.station != null && !loading ? Derive.touches(trips, S.station) : null;
+  view = { trips, counts, top, busy, share };
+
+  // y axis and grid lines
+  el.glines.textContent = "";
+  el.yaxis.textContent = "";
+  const sizer = document.createElement("span");
+  sizer.className = "sizer";
+  sizer.textContent = loading ? "" : Fmt.n(top);
+  el.yaxis.appendChild(sizer);
+  const yarea = document.createElement("div");
+  yarea.className = "yarea";
+  el.yaxis.appendChild(yarea);
+  const flat = !loading && counts.every((c) => c === 0);
+  for (let i = 0; i <= 4; i++) {
+    const line = document.createElement("div");
+    line.className = "gline" + (i === 0 ? " base" : "");
+    line.style.bottom = (i / 4) * 100 + "%";
+    // a day with no trips keeps only the base line, so the empty message never sits on a grid line
+    if (!(flat && i > 0)) el.glines.appendChild(line);
+    if (loading || (flat && i > 0)) continue;
+    const t = document.createElement("span");
+    t.className = "tick";
+    t.textContent = Fmt.n((top / 4) * i);
+    t.style.bottom = (i / 4) * 100 + "%";
+    yarea.appendChild(t);
+  }
+
+  // bars, and the selected station's part of each, filled nearest the map first
+  const order = lead ? leadOrder() : null;
+  cols.forEach(({ col, bar, part }, h) => {
+    // any hour with trips keeps a visible sliver, so 1 trip never reads as none
+    bar.style.height = counts[h] > 0 ? "max(2px, " + (counts[h] / top) * 100 + "%)" : "0%";
+    if (loading) bar.style.height = "16%"; // one flat height, so the placeholder never reads as a day of data
+    part.style.setProperty("--lead", order ? "calc(var(--lead-start) + " + order[h] + " * var(--stagger))" : "0ms");
+    part.style.height = share && counts[h] > 0 ? (share[h] / counts[h]) * 100 + "%" : "0%";
+    const isBusy = busy.has(h);
+    col.classList.toggle("busy", isBusy);
+    if (isBusy) col.setAttribute("data-ui-need", "");
+    else col.removeAttribute("data-ui-need");
+  });
+  $("legend-share").classList.toggle("on", !!share);
+
+  const none = !loading && trips.length === 0;
+  el.empty.hidden = !none;
+  $("legend-busy").style.visibility = loading || none ? "hidden" : "";
+  el.empty.textContent = D.trips.length === 0 ? "No trips on this day" : S.rider === "member" ? "No member trips on this day" : "No casual trips on this day";
+
+  // summary
+  const hours = Derive.topHours(counts);
+  el.sTrips.textContent = Fmt.n(trips.length);
+  // while loading, one hour's worth of hidden text keeps the placeholder the size of a real value
+  el.sBusiest.textContent = loading ? Fmt.hour(0) : hours.length ? hours.map(Fmt.hour).join(", ") : "None";
+  el.sMedian.textContent = Fmt.minutes(model.median);
+  el.sStations.textContent = Fmt.n(model.used);
+
+  // selection
+  const sel = S.hour;
+  for (const [band, wasOn] of [[el.bandSelect, el.bandSelect.classList.contains("on")], [el.tbandSelect, el.tbandSelect.classList.contains("on")]]) {
+    if (sel != null) placeBand(band, sel, wasOn);
+    band.classList.toggle("on", sel != null);
+  }
+  placePill(document.body.classList.contains("ready"));
+  xlabels.forEach((s, h) => {
+    s.classList.toggle("sel", h === sel);
+    // a selected label hides the tick labels it would collide with
+    s.classList.toggle("near", sel != null && h !== sel && Math.abs(h - sel) <= 2);
+  });
+  el.scope.textContent = sel == null ? "All day" : Fmt.range(sel);
+  $("all-day-wrap").setAttribute("aria-hidden", String(sel == null));
+  el.allDay.tabIndex = sel == null ? -1 : 0;
+  el.plot.setAttribute("aria-valuenow", String(sel ?? S.cursor ?? 0));
+
+  renderTide(trips, loading, order);
+  const key = S.kind + "|" + S.rider + "|" + sel;
+  if (key !== listKey) { listKey = key; renderStations(trips, sel, loading); }
+  markStations();
+  buildMap(false);
+  paintMap(lead);
+  paintHover();
+}
+
+// For each hour, its place in the fill order: the column nearest the map fills first.
+function leadOrder() {
+  const m = el.mapWrap.getBoundingClientRect();
+  const mx = m.left + m.width / 2;
+  const d = cols.map(({ col }, h) => { const r = col.getBoundingClientRect(); return [Math.abs(r.left + r.width / 2 - mx), h]; });
+  d.sort((a, b) => a[0] - b[0]);
+  const order = new Array(24);
+  d.forEach(([, h], i) => (order[h] = i));
+  return order;
+}
+
+/* The day's story: what the centre (or the picked dock) gained since midnight. */
+function renderTide(trips, loading, order) {
+  const ids = S.station != null ? new Set([S.station]) : model.centre;
+  const series = loading ? new Array(24).fill(0) : S.station != null ? Derive.gained(trips, ids) : model.centreGained;
+  const maxAbs = Math.max(...series.map(Math.abs));
+  const T = Derive.niceTop(maxAbs);
+  view.tide = series;
+  view.tideT = T;
+  view.peakBoxes = [];
+  el.tplot.parentElement.classList.toggle("tide-chart-sel", S.station != null);
+  $("scope-centre").classList.toggle("off", S.station != null);
+  $("scope-station").classList.toggle("off", S.station == null);
+  // y axis: zero, and the top and bottom of the scale
+  el.tyaxis.textContent = "";
+  const sz = document.createElement("span");
+  sz.className = "sizer";
+  sz.textContent = "-" + Fmt.n(T);
+  el.tyaxis.appendChild(sz);
+  const yarea = document.createElement("div");
+  yarea.className = "yarea";
+  yarea.style.top = "20px";
+  yarea.style.bottom = "20px";
+  el.tyaxis.appendChild(yarea);
+  if (!loading && maxAbs > 0) {
+    for (const v of [T, 0, -T]) {
+      const t = document.createElement("span");
+      t.className = "tick";
+      t.textContent = Fmt.signed(v);
+      t.style.bottom = ((v / T) * 50 + 50) + "%";
+      yarea.appendChild(t);
+    }
+  }
+  tcols.forEach(({ bar }, h) => {
+    const v = series[h];
+    const pct = (Math.abs(v) / T) * 50;
+    bar.style.setProperty("--lead", order ? "calc(var(--lead-start) + " + order[h] + " * var(--stagger))" : "0ms");
+    bar.style.top = (v > 0 ? 50 - pct : 50) + "%";
+    bar.style.height = v === 0 ? "0%" : "max(2px, " + pct + "%)";
+    bar.classList.toggle("neg", v < 0);
+  });
+  // direct labels on the high and the low only
+  const hi = series.indexOf(Math.max(...series));
+  const lo = series.indexOf(Math.min(...series));
+  const H = el.tarea.clientHeight;
+  const W = el.tcols.clientWidth;
+  const place = (node, h, above) => {
+    const v = series[h];
+    const y = H / 2 - (v / T) * (H / 2);
+    const x = ((h + 0.5) / 24) * W;
+    node.textContent = Fmt.signed(v);
+    // a label travels with its bar
+    node.style.setProperty("--lead", order ? "calc(var(--lead-start) + " + order[h] + " * var(--stagger))" : "0ms");
+    const w = node.offsetWidth;
+    const left = Math.max(0, Math.min(W - w, x - w / 2));
+    const top = above ? y - 16 : y + 4;
+    node.style.transform = "translate(" + Math.round(left) + "px," + Math.round(top) + "px)";
+    view.peakBoxes.push({ l: left, r: left + w, t: top, b: top + node.offsetHeight });
+  };
+  const showHi = !loading && series[hi] > 0;
+  const showLo = !loading && series[lo] < 0;
+  el.peakHi.classList.toggle("off", !showHi);
+  el.peakLo.classList.toggle("off", !showLo);
+  if (showHi) place(el.peakHi, hi, true);
+  if (showLo) place(el.peakLo, lo, false);
+  view.peaks = { hi: showHi ? hi : -1, lo: showLo ? lo : -1 };
+}
+
+function renderStations(trips, hour, loading) {
+  const list = el.stations;
+  list.textContent = "";
+  list.classList.remove("fresh");
+  void list.offsetWidth;
+  list.classList.add("fresh");
+  if (loading) {
+    for (let i = 0; i < 6; i++) {
+      const li = document.createElement("li");
+      li.innerHTML = '<div class="row"><span class="name">Station name</span><span class="track"><span class="sbar" style="width:' + (90 - i * 12) + '%"></span></span><span class="count">000</span></div>';
+      list.appendChild(li);
+    }
+    return;
+  }
+  const rows = Derive.stationCounts(trips, hour);
+  if (!rows.length) {
+    const li = document.createElement("li");
+    li.className = "none";
+    li.textContent = hour == null ? "No trips started anywhere" : "No trips started in this hour";
+    list.appendChild(li);
+    return;
+  }
+  const max = rows[0][1];
+  list.classList.toggle("long", rows.length > 14);
+  let i = 0;
+  for (const [id, n] of rows) {
+    const li = document.createElement("li");
+    li.dataset.id = id;
+    li.style.setProperty("--i", String(Math.min(i++, 12)));
+    const row = document.createElement("button");
+    row.type = "button";
+    row.className = "row";
+    row.dataset.id = id;
+    const name = document.createElement("span");
+    const nm = stationName(id);
+    name.className = "name" + (nm.missing ? " missing" : "");
+    name.dir = "auto";
+    fillName(name, nm.text);
+    const count = document.createElement("span");
+    count.className = "count";
+    count.textContent = Fmt.n(n);
+    const track = document.createElement("span");
+    track.className = "track";
+    const bar = document.createElement("span");
+    bar.className = "sbar";
+    bar.style.width = (n / max) * 100 + "%";
+    track.appendChild(bar);
+    row.append(name, track, count);
+    li.appendChild(row);
+    list.appendChild(li);
+  }
+}
+function markStations() {
+  const spotId = S.spot && S.spot.type === "st" ? S.spot.id : null;
+  for (const li of el.stations.children) {
+    if (!li.dataset.id) continue;
+    li.classList.toggle("sel", li.dataset.id === S.station);
+    li.classList.toggle("hover", li.dataset.id === spotId);
+    const b = li.firstChild;
+    if (b) b.setAttribute("aria-pressed", String(li.dataset.id === S.station));
+  }
+}
+
+/* ============================================================
+   MAP: the city square fits the frame; the coast and the water run on to its edges.
+   ============================================================ */
+const M = { w: 0, h: 0, s: 1, ox: 0, oy: 0, dataKey: "", routes: new Map(), lit: new Map(), dots: new Map(), layers: null, drawn: [], litFor: null };
+
+const ready = () => document.body.classList.contains("ready");
+function project(x, y) { return [M.ox + x * M.s, M.oy + y * M.s]; }
+function smoothPath(pts) {
+  let d = "M" + pts[0][0].toFixed(1) + " " + pts[0][1].toFixed(1);
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
+    const c1 = [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6];
+    const c2 = [p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6];
+    d += " C" + c1.map((v) => v.toFixed(1)).join(" ") + " " + c2.map((v) => v.toFixed(1)).join(" ") + " " + p2.map((v) => v.toFixed(1)).join(" ");
+  }
+  return d;
+}
+
+function buildMap(force) {
+  const w = el.mapWrap.clientWidth, h = el.mapWrap.clientHeight;
+  const dataKey = S.kind;
+  if (!force && w === M.w && h === M.h && dataKey === M.dataKey && M.layers) return;
+  M.w = w; M.h = h; M.dataKey = dataKey;
+  // fit the docks, the centre ring and the bay's head to the frame
+  const pad = 22;
+  const c0 = Data.city.centre;
+  const xs = [c0.x - c0.r, c0.x + c0.r], ys = [c0.y - c0.r, c0.y + c0.r];
+  for (const s of D.stations) if (s.x != null) { xs.push(s.x); ys.push(s.y); }
+  const x0 = Math.min(...xs), x1 = Math.max(...xs);
+  for (const [x, y] of Data.city.coast) if (x >= x0 && x <= x1) ys.push(y);
+  const y0 = Math.min(...ys), y1 = Math.max(...ys);
+  M.s = Math.max(0.5, Math.min((w - pad * 2) / (x1 - x0), (h - pad * 2) / (y1 - y0)));
+  M.ox = (w - (x1 - x0) * M.s) / 2 - x0 * M.s;
+  M.oy = (h - (y1 - y0) * M.s) / 2 - y0 * M.s;
+  el.map.setAttribute("viewBox", "0 0 " + w + " " + h);
+  el.map.textContent = "";
+  // the coast runs on flat past the city square to both edges of the frame
+  const c = Data.city.coast.map(([x, y]) => project(x, y));
+  const pts = [[-2, c[0][1]], ...c, [w + 2, c[c.length - 1][1]]];
+  const coast = smoothPath(pts);
+  el.map.append(
+    svg("path", { class: "water", d: coast + " L" + (w + 2) + " " + (h + 2) + " L-2 " + (h + 2) + " Z" }),
+    svg("path", { class: "coast", d: coast })
+  );
+  const [cx, cy] = project(Data.city.centre.x, Data.city.centre.y);
+  el.map.append(svg("circle", { class: "ring", cx, cy, r: Data.city.centre.r * M.s }));
+  const gRoutes = svg("g", {}), gLit = svg("g", {}), gDots = svg("g", {});
+  el.map.append(gRoutes, gLit, gDots);
+  M.layers = { gRoutes, gLit, gDots };
+  M.routes = new Map(); M.lit = new Map(); M.dots = new Map(); M.litFor = null;
+  M.still = true; // a rebuilt map (new size or data set) draws at once on its next paint
+  const many = D.stations.length > 40;
+  for (const s of D.stations) {
+    if (s.x == null) continue;
+    const [x, y] = project(s.x, s.y);
+    const dot = svg("circle", { class: "st", cx: x.toFixed(1), cy: y.toFixed(1), r: many ? 2.5 : 4.5 });
+    gDots.appendChild(dot);
+    M.dots.set(s.id, { node: dot, x, y });
+  }
+}
+
+function mapHour() {
+  const h = shownHour();
+  return h != null ? h : S.hour;
+}
+function scopeRoutes() {
+  const h = mapHour();
+  return h == null ? model.routes.day : model.routes.byHour[h];
+}
+// read once: reading a computed style mid-paint would start every new route's transition
+const css0 = getComputedStyle(document.documentElement);
+const ROUTE_W = { lo: parseFloat(css0.getPropertyValue("--route-min")) || 0.75, hi: parseFloat(css0.getPropertyValue("--route-max")) || 7 };
+function routeWidth(n, max) {
+  return max > 0 ? ROUTE_W.lo + (ROUTE_W.hi - ROUTE_W.lo) * (n / max) : 0;
+}
+function routePath(a, b) {
+  const p = M.dots.get(a), q = M.dots.get(b);
+  return { d: "M" + p.x.toFixed(1) + " " + p.y.toFixed(1) + " L" + q.x.toFixed(1) + " " + q.y.toFixed(1), len: Math.hypot(q.x - p.x, q.y - p.y) };
+}
+
+// Draws the routes for the hour in view. A route that leaves the view thins to nothing;
+// one that joins grows from nothing. The picked dock's routes draw out of the dock.
+function paintMap(lead) {
+  const loading = S.kind === "loading";
+  const all = loading ? [] : [...scopeRoutes().entries()].sort((a, b) => b[1] - a[1]);
+  const drawn = all.slice(0, ROUTE_CAP);
+  const max = drawn.length ? drawn[0][1] : 0;
+  const min = drawn.length ? drawn[drawn.length - 1][1] : 0;
+  M.drawn = drawn;
+  const h = mapHour();
+  el.mapScope.textContent = h == null ? "All day" : Fmt.range(h);
+  // the key names the thinnest and the thickest line in view
+  el.mapKey.setAttribute("aria-hidden", String(!drawn.length));
+  el.keyMin.textContent = Fmt.n(min);
+  // the samples are drawn at the widths of the thinnest and thickest lines on the map
+  $("key-min-line").setAttribute("stroke-width", routeWidth(min, max).toFixed(2));
+  el.keyMax.textContent = Fmt.trips(max);
+  el.keyCap.hidden = all.length <= ROUTE_CAP;
+  el.keyCap.textContent = "Busiest " + ROUTE_CAP + " of " + Fmt.n(all.length) + " routes";
+  const none = !loading && !all.length;
+  el.mapEmpty.hidden = !none;
+  el.mapKey.classList.toggle("none", none);
+  el.mapEmpty.textContent = h == null ? "No routes on this day" : "No routes in this hour";
+
+  const fresh = [];
+  const inView = new Map(drawn);
+  for (const [key, n] of drawn) {
+    if (!M.routes.has(key)) {
+      const [a, b] = key.split("|");
+      const p = svg("path", { class: "route", d: routePath(a, b).d });
+      M.layers.gRoutes.appendChild(p);
+      M.routes.set(key, p);
+      // on first paint a route starts at its width; after a touch it grows from nothing
+      if (ready() && !M.still) { p.style.strokeWidth = "0px"; fresh.push(p); }
+    }
+  }
+  if (fresh.length) void el.map.getBoundingClientRect();
+  for (const [key, p] of M.routes) {
+    const n = inView.get(key) || 0;
+    p.style.strokeWidth = (n ? routeWidth(n, max) : 0) + "px";
+    p.style.opacity = n ? "1" : "0";
+    p.classList.toggle("hover", !!(S.spot && S.spot.type === "route" && S.spot.key === key));
+  }
+
+  // the picked dock's routes, in ink, on top
+  const st = S.station;
+  if (st !== M.litFor || lead) {
+    M.layers.gLit.textContent = "";
+    M.lit = new Map();
+    M.litFor = st;
+  }
+  const mine = st != null && M.dots.has(st) ? drawn.filter(([key]) => key.split("|").includes(st)) : [];
+  const drawNew = [];
+  for (const [key] of mine) {
+    if (M.lit.has(key)) continue;
+    const [a, b] = key.split("|");
+    const other = a === st ? b : a;
+    const { d, len } = routePath(st, other);
+    const p = svg("path", { class: "lit", d });
+    if (ready() && !M.still) p.style.strokeWidth = "0px";
+    if (lead && !M.still) { p.style.strokeDasharray = len + " " + (len + 8); p.style.strokeDashoffset = String(len); drawNew.push(p); }
+    M.layers.gLit.appendChild(p);
+    M.lit.set(key, p);
+  }
+  if (drawNew.length || fresh.length) void el.map.getBoundingClientRect();
+  const mineMap = new Map(mine);
+  for (const [key, p] of M.lit) {
+    const n = mineMap.get(key) || 0;
+    p.style.strokeWidth = (n ? routeWidth(n, max) : 0) + "px";
+    p.style.opacity = n ? "1" : "0";
+  }
+  for (const p of drawNew) p.style.strokeDashoffset = "0";
+  M.still = false;
+
+  // docks
+  const spotId = S.spot && S.spot.type === "st" ? S.spot.id : null;
+  for (const [id, { node }] of M.dots) {
+    node.classList.toggle("sel", id === st);
+    node.classList.toggle("hover", id === spotId && id !== st);
+  }
+  // the picked dock draws on top of the others
+  if (st != null && M.dots.has(st)) M.layers.gDots.appendChild(M.dots.get(st).node);
+  el.mapWrap.classList.toggle("centre-on", S.station == null && S.spot && S.spot.type === "centre");
+  paintMapTip();
+}
+
+function paintMapTip() {
+  const tip = el.mapTip;
+  const wasOn = tip.classList.contains("on");
+  let at = null, name = "", line = "";
+  const scope = scopeRoutes();
+  const spot = S.spot && (S.spot.type === "st" || S.spot.type === "route") ? S.spot : S.station != null ? { type: "st", id: S.station } : null;
+  if (spot && S.kind !== "loading") {
+    if (spot.type === "st" && M.dots.has(spot.id)) {
+      const d = M.dots.get(spot.id);
+      at = [d.x, d.y];
+      name = stationName(spot.id).text;
+      // the same count the hour tooltip gives: every trip that starts or ends here
+      const t = Derive.touches(view.trips, spot.id);
+      const h = mapHour();
+      line = Fmt.trips(h == null ? t.reduce((x, y) => x + y, 0) : t[h]);
+    } else if (spot.type === "route") {
+      const [a, b] = spot.key.split("|");
+      const p = M.dots.get(a), q = M.dots.get(b);
+      at = spot.at || [(p.x + q.x) / 2, (p.y + q.y) / 2];
+      name = stationName(a).text + " and " + stationName(b).text;
+      line = Fmt.trips(scope.get(spot.key) || 0);
+    }
+  }
+  if (!at) { tip.classList.remove("on"); return; }
+  fillName(el.mapTipName, name);
+  el.mapTipN.textContent = line;
+  const tw = tip.offsetWidth, th = tip.offsetHeight;
+  const left = Math.max(8, Math.min(M.w - tw - 8, at[0] - tw / 2));
+  let top = at[1] - th - 12;
+  if (top < 8) top = Math.min(M.h - th - 8, at[1] + 12);
+  const place = () => { tip.style.transform = "translate(" + Math.round(left) + "px," + Math.round(top) + "px)"; };
+  if (wasOn) place();
+  else jump(tip, place);
+  tip.classList.add("on");
+}
+
+// The dock or route under a point of the map: docks win within 12 px, then routes within 6 px.
+function spotAt(clientX, clientY) {
+  const r = el.mapWrap.getBoundingClientRect();
+  const x = clientX - r.left, y = clientY - r.top;
+  let best = null, bd = 12;
+  for (const [id, d] of M.dots) { const dd = Math.hypot(d.x - x, d.y - y); if (dd < bd) { bd = dd; best = { type: "st", id }; } }
+  if (best) return best;
+  let rd = 6;
+  for (const [key] of M.drawn) {
+    const [a, b] = key.split("|");
+    const p = M.dots.get(a), q = M.dots.get(b);
+    const vx = q.x - p.x, vy = q.y - p.y, L = vx * vx + vy * vy;
+    const t = L ? Math.max(0, Math.min(1, ((x - p.x) * vx + (y - p.y) * vy) / L)) : 0;
+    const dd = Math.hypot(p.x + t * vx - x, p.y + t * vy - y);
+    if (dd < rd) { rd = dd; best = { type: "route", key, at: [p.x + t * vx, p.y + t * vy] }; }
+  }
+  if (best) return best;
+  const [cx, cy] = project(Data.city.centre.x, Data.city.centre.y);
+  if (Math.abs(Math.hypot(cx - x, cy - y) - Data.city.centre.r * M.s) < 6) return { type: "centre" };
+  return null;
+}
+
+// Moves a band to hour h. A band that was hidden jumps there, then fades in;
+// a visible band springs across, so the move reads as the same object.
+function jump(node, apply) {
+  node.style.transition = "none";
+  apply();
+  void node.offsetWidth;
+  node.style.transition = "";
+}
+function placeBand(band, h, wasOn) {
+  const w = el.cols.clientWidth;
+  const gap = parseFloat(getComputedStyle(el.cols).columnGap) || 0;
+  const cw = (w - gap * 23) / 24;
+  const apply = () => {
+    band.style.transform = "translateX(" + (h * (cw + gap) - gap / 2) + "px)";
+    band.style.width = cw + gap + "px";
+  };
+  if (wasOn) apply();
+  else jump(band, apply);
+}
+function placePill(animate) {
+  const on = el.rider.querySelector('button[aria-checked="true"]');
+  const pill = $("seg-pill");
+  if (!on || !pill) return;
+  const apply = () => {
+    pill.style.width = on.offsetWidth + "px";
+    pill.style.transform = "translateX(" + on.offsetLeft + "px)";
+  };
+  if (animate) apply();
+  else jump(pill, apply);
+}
+
+function shownHour() {
+  if (S.hover != null) return S.hover;
+  if (S.focused && S.cursor != null) return S.cursor;
+  return null;
+}
+
+// Places a tooltip inside its plot clear of every column it would cover:
+// centred on the column, then beside it on each side, then the nearest clear spot.
+function placeTip(tip, plot, columns, h, extraTop) {
+  const plotW = plot.clientWidth;
+  const tipW = tip.offsetWidth;
+  const tipH = tip.offsetHeight;
+  const plotRect = plot.getBoundingClientRect();
+  const colRect = columns[h].col.getBoundingClientRect();
+  const centre = colRect.left + colRect.width / 2 - plotRect.left;
+  // where each bar is headed, not where it is mid-spring, so a tip placed during a move still lands clear
+  const tops = columns.map(({ col }, i) => {
+    const r = col.getBoundingClientRect();
+    const target = view.counts[i] > 0 ? Math.max(2, (view.counts[i] / view.top) * r.height) : 0;
+    const t = (target > 0 ? r.bottom - target : r.bottom) - extraTop(i);
+    return { l: r.left - plotRect.left, r: r.right - plotRect.left, t: t - plotRect.top };
+  });
+  const room = (x) => { let t = Infinity; for (const c of tops) if (c.r > x && c.l < x + tipW) t = Math.min(t, c.t); return t - tipH - 8; };
+  const side = colRect.width / 2 + 8;
+  const tries = [centre - tipW / 2, centre + side, centre - side - tipW].map((x) => Math.max(0, Math.min(plotW - tipW, x)));
+  let left = tries[0], top = -Infinity;
+  for (const x of tries) {
+    const t = room(x);
+    if (t >= 0) { left = x; top = t; break; }
+    if (t > top) { left = x; top = t; }
+  }
+  if (top < 0) {
+    // a narrow chart: find the clear spot nearest the column, else the one that covers least
+    let best = null, least = { x: left, t: top };
+    for (let x = 0; x <= plotW - tipW; x += 4) {
+      const t = room(x);
+      if (t >= 0 && (!best || Math.abs(x + tipW / 2 - centre) < Math.abs(best.x + tipW / 2 - centre))) best = { x, t };
+      if (t > least.t) least = { x, t };
+    }
+    const pick = best || least;
+    left = pick.x; top = pick.t;
+  }
+  return { left, top: Math.max(0, top) };
+}
+
+function paintHover() {
+  const h = shownHour();
+  const on = h != null && S.kind !== "loading";
+  for (const [band, list] of [[el.bandHover, cols], [el.tbandHover, tcols]]) {
+    const wasOn = band.classList.contains("on");
+    if (on) placeBand(band, h, wasOn);
+    band.classList.toggle("on", on && h !== S.hour);
+  }
+  if (!on) { el.tip.classList.remove("on"); el.ttip.classList.remove("on"); return; }
+
+  // trips chart
+  const tipWasOn = el.tip.classList.contains("on");
+  el.tipTime.textContent = Fmt.range(h);
+  el.tipN.textContent = Fmt.trips(view.counts[h]);
+  el.tipShare.hidden = !view.share;
+  if (view.share) el.tipShare.textContent = Fmt.n(view.share[h]) + " at the selected station";
+  const p = placeTip(el.tip, el.plot, cols, h, (i) => (cols[i].col.classList.contains("busy") ? 14 : 0));
+  const place = () => { el.tip.style.transform = "translate(" + Math.round(p.left) + "px," + Math.round(p.top) + "px)"; };
+  if (tipWasOn) place();
+  else jump(el.tip, place);
+  el.tip.classList.add("on");
+  el.plot.setAttribute("aria-valuetext", Fmt.range(h) + ", " + Fmt.trips(view.counts[h]));
+
+  // the day's story: the tooltip sits in whichever half of the plot the bars leave clearer
+  const tWasOn = el.ttip.classList.contains("on");
+  el.ttipTime.textContent = Fmt.by(h);
+  el.ttipN.textContent = Fmt.bikes(view.tide[h]);
+  const t = placeTideTip(h);
+  const tplace = () => { el.ttip.style.transform = "translate(" + Math.round(t.left) + "px," + Math.round(t.top) + "px)"; };
+  if (tWasOn) tplace();
+  else jump(el.ttip, tplace);
+  el.ttip.classList.add("on");
+}
+
+function placeTideTip(h) {
+  const plot = el.tplot;
+  const pr = plot.getBoundingClientRect();
+  const W = plot.clientWidth, Hh = plot.clientHeight;
+  const tw = el.ttip.offsetWidth, th = el.ttip.offsetHeight;
+  // the bars and labels where they are headed, not where they are mid-spring
+  const ar = el.tarea.getBoundingClientRect();
+  const A = ar.height, T = view.tideT;
+  const boxes = tcols.map(({ col }, i) => {
+    const r = col.getBoundingClientRect();
+    const v = view.tide[i];
+    const hgt = v === 0 ? 0 : Math.max(2, (Math.abs(v) / T) * (A / 2));
+    const top = ar.top - pr.top + A / 2 - (v > 0 ? hgt : 0);
+    return { l: r.left - pr.left, r: r.right - pr.left, t: top, b: top + hgt };
+  });
+  for (const b of view.peakBoxes) boxes.push({ l: b.l + ar.left - pr.left, r: b.r + ar.left - pr.left, t: b.t + ar.top - pr.top, b: b.b + ar.top - pr.top });
+  const cr = tcols[h].col.getBoundingClientRect();
+  const centre = cr.left + cr.width / 2 - pr.left;
+  // a 6 px margin round each bar and label, so the tip never sits flush against one
+  const m = 6;
+  const cover = (x, y) => { let a = 0; for (const b of boxes) { const w = Math.min(x + tw, b.r + m) - Math.max(x, b.l - m), hh = Math.min(y + th, b.b + m) - Math.max(y, b.t - m); if (w > 0 && hh > 0) a += w * hh; } return a; };
+  let best = null;
+  for (let x = 0; x <= Math.max(0, W - tw); x += 4) {
+    for (const y of [0, Math.max(0, Hh - th)]) {
+      const c = cover(x, y);
+      const score = c * 1000 + Math.abs(x + tw / 2 - centre);
+      if (!best || score < best.score) best = { left: x, top: y, score };
+    }
+  }
+  return best;
+}
+
+/* ============================================================
+   INPUT
+   ============================================================ */
+function hourAt(clientX) {
+  const r = el.cols.getBoundingClientRect();
+  return Math.max(0, Math.min(23, Math.floor(((clientX - r.left) / r.width) * 24)));
+}
+function setHover(h) {
+  if (h === S.hover) return;
+  S.hover = h;
+  paintHover();
+  paintMap(false);
+}
+for (const plot of [el.plot, el.tplot]) {
+  plot.addEventListener("pointermove", (e) => setHover(hourAt(e.clientX)));
+  plot.addEventListener("pointerleave", () => setHover(null));
+  plot.addEventListener("click", (e) => {
+    if (S.kind === "loading") return;
+    const h = hourAt(e.clientX);
+    S.cursor = h;
+    commit({ hour: h === S.hour ? null : h });
+  });
+}
+el.plot.addEventListener("focus", () => {
+  S.focused = true;
+  if (S.cursor == null) S.cursor = S.hour ?? ([...view.busy][0] ?? 0);
+  paintHover();
+  paintMap(false);
+});
+el.plot.addEventListener("blur", () => { S.focused = false; paintHover(); paintMap(false); });
+el.plot.addEventListener("keydown", (e) => {
+  const c = S.cursor ?? 0;
+  const moves = { ArrowLeft: c - 1, ArrowRight: c + 1, ArrowDown: c - 1, ArrowUp: c + 1, Home: 0, End: 23 };
+  if (e.key in moves) {
+    e.preventDefault();
+    S.cursor = Math.max(0, Math.min(23, moves[e.key]));
+    S.hover = null;
+    paintHover();
+    paintMap(false);
+  } else if (e.key === "Enter" || e.key === " ") {
+    e.preventDefault();
+    commit({ hour: S.cursor === S.hour ? null : S.cursor });
+  } else if (e.key === "Escape" && S.hour != null) {
+    commit({ hour: null });
+  }
+});
+function pickStation(id) {
+  if (S.kind === "loading" || id == null) return;
+  commit({ station: id === S.station ? null : id });
+}
+function setSpot(spot) {
+  const same = (a, b) => (a && b ? a.type === b.type && a.id === b.id && a.key === b.key : a === b);
+  if (same(spot, S.spot)) { if (spot && spot.type === "route") { S.spot = spot; paintMapTip(); } return; }
+  S.spot = spot;
+  markStations();
+  paintMap(false);
+}
+el.mapWrap.addEventListener("pointermove", (e) => setSpot(S.kind === "loading" ? null : spotAt(e.clientX, e.clientY)));
+el.mapWrap.addEventListener("pointerleave", () => setSpot(null));
+el.mapWrap.addEventListener("click", (e) => {
+  const s = spotAt(e.clientX, e.clientY);
+  if (s && s.type === "st") pickStation(s.id);
+});
+el.stations.addEventListener("click", (e) => {
+  const b = e.target.closest("button.row[data-id]");
+  if (b) pickStation(b.dataset.id);
+});
+el.stations.addEventListener("pointerover", (e) => {
+  const b = e.target.closest("button.row[data-id]");
+  setSpot(b ? { type: "st", id: b.dataset.id } : null);
+});
+el.stations.addEventListener("pointerleave", () => setSpot(null));
+el.stations.addEventListener("focusin", (e) => {
+  const b = e.target.closest("button.row[data-id]");
+  if (b && b.matches(":focus-visible")) setSpot({ type: "st", id: b.dataset.id });
+});
+el.stations.addEventListener("focusout", () => setSpot(null));
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && S.station != null && document.activeElement !== el.plot) commit({ station: null });
+});
+el.rider.addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-rider]");
+  if (b && b.dataset.rider !== S.rider) commit({ rider: b.dataset.rider });
+});
+el.allDay.addEventListener("click", () => commit({ hour: null }));
+document.querySelector(".chrome").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-kind]");
+  if (!b) return;
+  const url = new URL(location.href);
+  if (b.dataset.kind === "worst") url.searchParams.set("data", "worst");
+  else url.searchParams.delete("data");
+  history.replaceState(null, "", url);
+  D = Data.load(b.dataset.kind);
+  models.clear();
+  commit({ kind: b.dataset.kind, hour: null, cursor: null, station: null, spot: null });
+});
+/* Fade the station list's bottom edge while rows sit below it. */
+const stationEdge = () => { const l = el.stations; l.classList.toggle("more", l.scrollHeight - l.clientHeight - l.scrollTop > 1); };
+el.stations.addEventListener("scroll", stationEdge, { passive: true });
+new MutationObserver(() => requestAnimationFrame(stationEdge)).observe(el.stations, { childList: true });
+stationEdge();
+if (document.fonts) document.fonts.ready.then(stationEdge);
+window.addEventListener("resize", () => {
+  stationEdge();
+  if (S.hour != null) { placeBand(el.bandSelect, S.hour, false); placeBand(el.tbandSelect, S.hour, false); }
+  placePill(false);
+  buildMap(false);
+  paintMap(false);
+  renderTide(view.trips, S.kind === "loading", null);
+  paintHover();
+});
+
+/* Read-only handle for checks and later rungs. */
+window.bikeShare = {
+  get state() { return { kind: S.kind, rider: S.rider, hour: S.hour, station: S.station }; },
+  get data() { return D; },
+  get map() { return { hour: mapHour(), routes: M.drawn.length, lit: [...M.lit.values()].filter((p) => p.style.opacity === "1").length }; },
+  derive: Derive,
+};
+
+render();
+// Rows pop in only after a touch, never on first paint. The pill is placed
+// again once the web font has set the button widths, without moving.
+requestAnimationFrame(() => document.body.classList.add("ready"));
+// work out the other rider types once the page has drawn, so the first switch is quick
+setTimeout(() => { for (const r of ["member", "casual", "all"]) modelFor(S.kind, r); }, 300);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { placePill(false); renderTide(view.trips, S.kind === "loading", null); });
+</script>
+</body>
+</html>

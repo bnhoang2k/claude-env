@@ -1,0 +1,8 @@
+{
+  "name": "ui-suite",
+  "description": "UI taste, lint, break-test and consistency skills, with the hooks that inject taste rules and gate unlinted pages",
+  "version": "0.1.0",
+  "author": {
+    "name": "claude-env maintainers"
+  }
+}

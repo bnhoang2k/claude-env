@@ -1,0 +1,10 @@
+#!/bin/sh
+# Public clone pre-push hook. The logic lives in scripts/prepush.mjs.
+# install-guards writes the scripts folder's path into <config folder>/scripts-dir.
+home="${PUBLISH_PUBLIC_HOME:-$HOME/.claude/publish-public}"
+scripts="$(cat "$home/scripts-dir" 2>/dev/null)"
+if [ -z "$scripts" ] || [ ! -f "$scripts/prepush.mjs" ]; then
+  echo "publish-public guards: scripts-dir missing; re-run install-guards" >&2
+  exit 1
+fi
+exec node "$scripts/prepush.mjs" "$@"

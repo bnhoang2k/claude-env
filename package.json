@@ -1,0 +1,9 @@
+{
+  "name": "claude-env",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "claude plugin validate . && for p in plugins/*/; do claude plugin validate \"$p\" || exit 1; done",
+    "test": "node -e \"const fs=require('fs'),p=require('path');let n=0;const walk=d=>{for(const e of fs.readdirSync(d,{withFileTypes:true})){const f=p.join(d,e.name);if(e.isDirectory()){if(e.name!=='node_modules')walk(f)}else if(f.endsWith('.json')){JSON.parse(fs.readFileSync(f,'utf8'));n++}}};walk('plugins');console.log(n+' JSON files parse')\""
+  }
+}

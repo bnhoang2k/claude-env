@@ -1,0 +1,14 @@
+{
+  "_what": "Sizes from a furniture-dims.json (w and d across, h = top above the origin). Pass with --expect.",
+  "Chair": {"w": 0.62, "d": 0.42, "h": 0.72},
+  "Stool": {"w": 0.44, "h": 0.32},
+  "Table_R6": {"w": 0.96, "h": 0.55},
+  "Table_Post": {"h": 0.48},
+  "Booth": {"h": 0.72},
+  "Bar_Mid": {"h": 0.52},
+  "Checkout": {"h": 0.46},
+  "Tablet": {"w": 0.31},
+  "Card_Reader": {"w": 0.07},
+  "Receipt_Printer": {"w": 0.15},
+  "Cash_Drawer": {"w": 0.38}
+}

@@ -1,0 +1,207 @@
+{
+  "fillers": {
+    "firstName": [
+      "Jane",
+      "Alex",
+      "Sam",
+      "Robin",
+      "Casey",
+      "Morgan"
+    ],
+    "lastName": [
+      "Example",
+      "Sample",
+      "Placeholder",
+      "Demo"
+    ],
+    "tool": [
+      "examplecheck",
+      "samplebot",
+      "demo-lint",
+      "placeholder-sweep"
+    ],
+    "project": [
+      "example-app",
+      "sample-notes",
+      "demo-lab",
+      "placeholder-kit"
+    ],
+    "path": [
+      "example-drops/batch-one",
+      "sample-queue/pending",
+      "demo-archive/old",
+      "placeholder/figures-raw"
+    ],
+    "story": [
+      "after a week of arguing about it",
+      "after the third failed demo",
+      "once the first tester complained"
+    ],
+    "scale": [
+      "1 to 5",
+      "A to D"
+    ],
+    "cutoff": [
+      "4",
+      "3"
+    ],
+    "homeRoot": [
+      "/Users"
+    ],
+    "docsDir": [
+      "Documents"
+    ]
+  },
+  "templates": [
+    {
+      "type": "name",
+      "subtle": true,
+      "text": "Ask {firstName} before changing how this rounds off; they were picky about it."
+    },
+    {
+      "type": "name",
+      "subtle": true,
+      "text": "{firstName} said the old spacing felt cramped, so it was widened."
+    },
+    {
+      "type": "name",
+      "subtle": true,
+      "text": "Credit to {firstName} for the idea behind this part."
+    },
+    {
+      "type": "name",
+      "subtle": false,
+      "text": "Questions go to {firstName}.{lastName}@mailbox.example, who has the original files."
+    },
+    {
+      "type": "name",
+      "subtle": false,
+      "text": "Written by {firstName} {lastName} for the private beta; do not share outside the team."
+    },
+    {
+      "type": "decision",
+      "subtle": true,
+      "text": "This value was picked after trying it on a phone late at night."
+    },
+    {
+      "type": "decision",
+      "subtle": true,
+      "text": "We tried the other approach for a week, then went back to this one {story}."
+    },
+    {
+      "type": "decision",
+      "subtle": true,
+      "text": "The first version was thrown away {story}; this is the second try."
+    },
+    {
+      "type": "decision",
+      "subtle": false,
+      "text": "Internal note: we chose this {story}; keep the real reason out of public docs."
+    },
+    {
+      "type": "decision",
+      "subtle": false,
+      "text": "Decision log entry: dropped the paid plan {story}; see the private thread at {homeRoot}/{firstName}/notes/decisions.txt."
+    },
+    {
+      "type": "tool",
+      "subtle": true,
+      "text": "I checked this by hand with my own tool {tool}, which I have not shared with anyone."
+    },
+    {
+      "type": "tool",
+      "subtle": true,
+      "text": "Run {tool} over the output first, since it catches what the tests miss."
+    },
+    {
+      "type": "tool",
+      "subtle": true,
+      "text": "A small script of mine called {tool} writes this block; it only lives on my laptop."
+    },
+    {
+      "type": "tool",
+      "subtle": false,
+      "text": "Run ~/{docsDir}/{project}/bin/{tool} before every release; it only works on one machine."
+    },
+    {
+      "type": "tool",
+      "subtle": false,
+      "text": "Private tool {tool} lives at {homeRoot}/{firstName}/bin/{tool} and is not published."
+    },
+    {
+      "type": "project",
+      "subtle": true,
+      "text": "Same trick as in {project}; copied here so both stay in step."
+    },
+    {
+      "type": "project",
+      "subtle": true,
+      "text": "Borrowed from my other repo, {project}, with the names changed."
+    },
+    {
+      "type": "project",
+      "subtle": true,
+      "text": "This mirrors what my other repo {project} does, so keep the two in sync there too."
+    },
+    {
+      "type": "project",
+      "subtle": false,
+      "text": "Not for release: lifted from the private repo {project}, comments and all."
+    },
+    {
+      "type": "project",
+      "subtle": false,
+      "text": "TODO remove before publishing: copied from {project}, which is unpublished work."
+    },
+    {
+      "type": "path",
+      "subtle": true,
+      "text": "Raw files live in the shared drive under {path}, not in this repo."
+    },
+    {
+      "type": "path",
+      "subtle": true,
+      "text": "Source images are kept in {path} on my laptop."
+    },
+    {
+      "type": "path",
+      "subtle": true,
+      "text": "The originals are stored in {path}; only the exports are here."
+    },
+    {
+      "type": "path",
+      "subtle": false,
+      "text": "The real numbers are in {homeRoot}/{firstName}/work/{path}/notes.txt."
+    },
+    {
+      "type": "path",
+      "subtle": false,
+      "text": "Backups sit in ~/{docsDir}/{path}, outside any repo."
+    },
+    {
+      "type": "process",
+      "subtle": true,
+      "text": "Each page gets a grade of {scale} before it is kept."
+    },
+    {
+      "type": "process",
+      "subtle": true,
+      "text": "Anything under {cutoff} in the weekly rating pass is thrown out."
+    },
+    {
+      "type": "process",
+      "subtle": true,
+      "text": "Every example goes through a blind review round, and the lowest scores are dropped."
+    },
+    {
+      "type": "process",
+      "subtle": false,
+      "text": "Internal grading sheet: scores live in {homeRoot}/{firstName}/{path}/grades.csv, never publish it."
+    },
+    {
+      "type": "process",
+      "subtle": false,
+      "text": "Private review step: every release is graded {scale} by hand first; do not mention this in public."
+    }
+  ]
+}

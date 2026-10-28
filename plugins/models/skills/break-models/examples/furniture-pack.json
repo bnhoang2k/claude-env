@@ -1,0 +1,10 @@
+{
+  "_what": "Furniture packs (assets/<pack>.glb). Values from a furniture spec and a pack checker script.",
+  "tris": 2000,
+  "slots": ["Fill", "Shade", "Ink", "Leg"],
+  "float_ok": ["Table_Corner", "Table_Edge", "Table_Fill", "Cash_Drawer"],
+  "open_ok": ["Table_Corner", "Table_Edge", "Table_Fill"],
+  "origin_skip": ["Table_Corner", "Table_Edge", "Table_Fill", "Booth", "Bar_End_L", "Bar_Mid", "Bar_End_R",
+                  "Back_Bar_End_L", "Back_Bar_Mid", "Back_Bar_End_R"],
+  "crease": 25
+}
