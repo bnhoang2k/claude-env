@@ -17,7 +17,7 @@ and shown side by side so the user can grade it. Graded pages later enter motion
 |---|---|---|
 | **study** | 1 or more references | Ready |
 | **fix** | Pages graded Close for motion in `reviews.json` | Ready |
-| **intake** | Pages graded Pass, or Close for assets only | Ready for live, idle and scroll. With the public kit, choreo and sim bars cannot pass `validate-bar` yet (no `KNOB_FIELDS` key for those kinds): list them as left out, like a hover or a tilt. Needs a clone or fork of https://github.com/bnhoang2k/motion-kit and follows `intake.md` in this skill's folder (the optional `spec` arg replaces it). |
+| **intake** | Pages graded Pass, or Close for assets only | Ready for live, idle and scroll. Choreo and sim bars also need the kit to keep `kinds/<kind>/dial-set.json` for that kind; without it they cannot pass `validate-bar` (no `KNOB_FIELDS` key for those kinds): list them as left out, like a hover or a tilt. Needs a clone or fork of https://github.com/bnhoang2k/motion-kit and follows `intake.md` in this skill's folder (the optional `spec` arg replaces it). |
 
 Public kit gaps, as of 2026-10-27:
 
@@ -49,6 +49,22 @@ there with no variable), else `~/motion-kit`. Never clone without their yes. On 
 `"MOTION_KIT": "<folder>"` to the `env` block of `~/.claude/settings.json` (it takes effect in the
 next session), or export it in their shell profile. In this session, prefix each command with
 `MOTION_KIT=<folder>`. Then run preflight again.
+
+Offer to install every other `needs` line the same way, in the same question. List each missing
+tool with the exact command you will run, and never install without their yes:
+
+- `ffmpeg`: `brew install ffmpeg` on a Mac with Homebrew; on Linux, the distro's package manager.
+- Playwright or Puppeteer: in the user's project folder, `npm install playwright` then
+  `npx playwright install chromium`.
+- `pnpm`: `corepack enable pnpm` when `corepack` is present, else `npm install -g pnpm`.
+- `pnpm install in <folder>`: run `pnpm install` in that folder.
+- Node: switch with the user's version manager when one is installed (`nvm`, `fnm`, `volta`).
+  Never replace a system Node yourself; without a manager, point them to https://nodejs.org/.
+- publish-public scripts: find the folder with the `ls -d` command the line prints, then set
+  `PUBLISH_PUBLIC_SCRIPTS` the way `MOTION_KIT` is set above.
+
+A command that needs `sudo` or a password is the user's to run: show it and wait. After the installs,
+run preflight again, and stop only on the lines still missing.
 
 ## Launch
 
@@ -177,15 +193,17 @@ is yours, one bar at a time.
    `bars/`. The main kind must have a kind gate: live (a pointer drag), idle (a loop on a clock),
    scroll (scroll position), choreo (a staggered sequence after one tap, scroll or load) or sim
    (bodies moved by physics after a cause). A hover with no press or a device tilt waits for its
-   input kind; the agent returns `blocked` for those. With the public kit, choreo and sim bars
-   cannot pass `validate-bar` yet (no `KNOB_FIELDS` key for those kinds): list them as left out,
-   like a hover or a tilt.
+   input kind; the agent returns `blocked` for those. Check which kinds keep a dial set
+   (`ls <kit>/kinds/*/dial-set.json`). A choreo or sim bar whose kind has no `dial-set.json` cannot
+   pass `validate-bar` (no `KNOB_FIELDS` key for those kinds): list it as left out, like a hover or
+   a tilt.
    Screen each slug before you spend an agent, from its `study.md` Input and Feel sections and its
-   `trace-original.json`. With the public kit, leave out a page that (a) answers a hovering pointer
-   (`input.samples` have no press, `down` 0, from the first sample), even when a press also fires
-   something: the live gate judges the first press, and finds none; or (b) has feel numbers that
-   are not one of the four `KNOB_FIELDS` keys (a first-order ease, a trail life or a one-shot pulse
-   fits none: only a spring release, an idle period or a scroll smoothing does). Say which rule
+   `trace-original.json`. Leave out a page that (a) answers a hovering pointer (`input.samples`
+   have no press, `down` 0, from the first sample), even when a press also fires something: the
+   live gate judges the first press, and finds none; or (b), when its main kind has no
+   `dial-set.json`, has feel numbers that are not one of the four `KNOB_FIELDS` keys (a first-order
+   ease, a trail life or a one-shot pulse fits none: only a spring release, an idle period or a
+   scroll smoothing does). With a dial set, such a number becomes a `newDials` entry. Say which rule
    left it out. A stranger's first hover page costs an agent for nothing otherwise (seen on a
    hover-and-press page: `engine-gap`, gate lines `follows: no value moves` and `regrab: cannot
    aim a regrab`, then `unknown knob "live.trail"`).
@@ -194,13 +212,13 @@ is yours, one bar at a time.
    and 1 agent** with `"lean": true`. Lean drops the Check agent, reads one finished bar of the
    same kind instead of three, and has the Intake agent quote `rebuild-error.ts` and re-measure 5
    rows per channel itself. Use lean when the weekly limit is tight. Above 15 units, ask the user
-   first. Don't launch a bar whose kind has no gate (a hover, a tilt), or a choreo or sim bar against
-   the public kit (see step 1): list it as left out. Check the free disk space: frames are extracted from the originals.
+   first. Don't launch a bar whose kind has no gate (a hover, a tilt), or a choreo or sim bar whose
+   kind has no `dial-set.json` in the kit (see step 1): list it as left out. Check the free disk space: frames are extracted from the originals.
 3. **Launch** `run.js` with the JSON `{ "mode": "intake", "slugs": [...] }` (set `MOTION_KIT` first, unless the clone is `$PROJECTS_ROOT/motion-kit`). Wait for it to end.
 4. **Read each result.** `blocked` stays out; say why. `needs-decision` holds a new moment: ask
    the user (one AskUserQuestion, a real recommendation first). Dials never reach the user. In a kit that keeps
    `kinds/<kind>/dial-set.json` files, each dial names an entry there, and `newDials` lists the entries
-   a bar adds. The public kit keeps none: each dial names a `KNOB_FIELDS` key and `newDials` stays empty.
+   a bar adds. In a kit without them, each dial names a `KNOB_FIELDS` key and `newDials` stays empty.
    Dedupe them across the batch (the same concept under two names becomes one, named for the
    concept, not the page). A public knob (`KNOB_FIELDS` in `src/core/kinds.ts`) changes only by a
    deliberate promotion, never during intake. `engine-gap` names a note under the bar home's `<slug>/intake/`: fix the
