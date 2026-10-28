@@ -1,8 +1,8 @@
 # checks.py: automatic checks for a 3D model. One `ok` or `FAIL` line per check, `note` lines for facts to judge
 # by eye. Exits 1 on any FAIL. These checks SUPPORT looking at the model (look.py); they never replace it.
 #
-# Run (foreground):
-#   /Applications/Blender.app/Contents/MacOS/Blender --background --factory-startup \
+# Run (foreground). B is the Blender path on the `ok Blender` line of preflight.py:
+#   "$B" --background --factory-startup \
 #     --python checks.py -- MODEL.glb [options]
 import json, math, os, sys
 
@@ -34,7 +34,11 @@ USAGE = """checks.py -- MODEL(.glb|.gltf|.blend) [options]
   --compare OLD.glb       node, mesh, material and clip names and clip lengths must match the old export
   --config FILE.json      defaults for any option above"""
 
-import bpy, bmesh
+try:
+    import bpy, bmesh
+except ImportError:
+    print('run this inside Blender: blender --background --python checks.py -- MODEL.glb [options]')
+    sys.exit(3)
 from mathutils import Vector
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import common as C

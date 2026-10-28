@@ -1,7 +1,7 @@
 # look.py: render every angle of a 3D model so an agent can LOOK at it. Never judges anything itself.
 #
-# Run (foreground):
-#   /Applications/Blender.app/Contents/MacOS/Blender --background --factory-startup \
+# Run (foreground). B is the Blender path on the `ok Blender` line of preflight.py:
+#   "$B" --background --factory-startup \
 #     --python look.py -- MODEL.glb --out DIR [options]
 #
 # Writes DIR/views/*.png (one image per view), DIR/closeups/*.png, DIR/clips/*.png and DIR/index.txt (every image,
@@ -228,7 +228,12 @@ def flush(images, out, tmp):
     lay = os.path.join(tmp, 'layout.json')
     with open(lay, 'w') as fh:
         json.dump({'images': images, 'index': os.path.join(out, 'index.txt')}, fh)
-    subprocess.run([shutil.which('python3') or 'python3', os.path.abspath(__file__), '--composite', lay], check=True)
+    r = subprocess.run([shutil.which('python3') or 'python3', os.path.abspath(__file__), '--composite', lay])
+    if r.returncode == 3:       # Pillow is missing: the child already printed the one `needs Pillow` line
+        shutil.rmtree(tmp, ignore_errors=True)
+        sys.exit(3)
+    if r.returncode != 0:
+        raise subprocess.CalledProcessError(r.returncode, r.args)
     for img in images:
         for c in img['cells']:
             try:
@@ -379,8 +384,16 @@ def run_blender(opts):
 
 # ============================================================================ Pillow side
 def composite(lay_path):
-    from PIL import Image, ImageDraw, ImageFont
-    lay = json.load(open(lay_path))
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+    except ImportError:
+        print('needs Pillow: python3 -m pip install Pillow')
+        sys.exit(3)
+    try:
+        lay = json.load(open(lay_path))
+    except FileNotFoundError:
+        print('no such file: %s' % lay_path)
+        sys.exit(2)
 
     def font(size):
         for f in ('/System/Library/Fonts/Supplemental/Arial.ttf', 'arial.ttf', 'DejaVuSans.ttf'):

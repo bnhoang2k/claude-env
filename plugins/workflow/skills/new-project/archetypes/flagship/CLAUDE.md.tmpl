@@ -1,0 +1,109 @@
+# {{PROJECT_NAME}} — Project CLAUDE.md
+
+This file is loaded into every Claude Code session in this repo. Keep it under 200 lines (Anthropic guidance). Project knowledge and decisions live in `{{BRAIN_PATH}}`; this file holds only **rules that constrain code generation**.
+
+## Project shape
+
+- **Backend:** {{BACKEND_STACK}}. <!-- fill: hexagonal / layered / MVC / etc — name the architectural style if one is locked in -->
+- **Frontend:** {{FRONTEND_STACK}}.
+- **Code lives here.** Spec, phases, research, and decisions live in sibling `{{BRAIN_PATH}}`. **Read `{{BRAIN_PATH}}/README.md` before designing anything new.**
+<!-- fill: if this project has no sibling brain repo, delete the two lines above and instead point at
+     wherever specs/plans live in-repo (see the thin-site archetype for that shape). -->
+
+## Architecture rules (load-bearing — failures are reworks, not nits)
+
+- **{{ARCHITECTURE_BOUNDARY}}** <!-- fill: state the one non-negotiable boundary in this codebase, e.g.
+     "core/ imports nothing from adapters/ or pipeline/" — and who defines the crossing interface
+     (Protocol ports, an interface package, a facade). This is the spec's #1 architectural principle
+     and it is non-negotiable. -->
+- <!-- fill: any layered system (prompt/config layers, plugin layers, module boundaries) that's easy
+     to conflate goes here. Name each layer, its file location, and the substitution/templating
+     mechanism if any. -->
+- <!-- fill: any mandatory audit/logging contract — what gets written, where, in what format,
+     keyed by what. -->
+- **Idempotent and resumable.** Re-running any pipeline step must be safe. Key off content hashes and durable state. A crash mid-batch must produce zero duplicates and resume from the failed step.
+- <!-- fill: any outward action the pipeline must never take on its own (send, submit, publish,
+     pay). Name it, and bake the prohibition into the code path so a future change can't silently
+     flip it. Delete this line if the project has none. -->
+
+## Banned in {{ARCHITECTURE_BOUNDARY}}
+<!-- fill: replace the heading target with the actual pure-core directory name -->
+
+- {{BANNED_IMPORTS}} <!-- fill: the exact import paths that are forbidden from the pure layer -->
+- File I/O, network calls, subprocess calls, environment reads. If the pure layer needs config, pass it in.
+- `print()` / raw stdout. Logging happens at the boundary, not in the pure layer.
+
+## Banned everywhere
+
+- `print()` for user-facing output. Use a structured logger and/or a CLI-output library.
+- `.env` files for API keys. Secrets live in an OS keychain or secret manager. `.env.example` documents what's needed but real values never go in `.env`.
+- Auto-submission of any kind. Even behind a feature flag. Even for a "dry run that submits." No.
+- **Agents/subagents calling LLM-spending endpoints** without explicit user instruction in that session. <!-- fill: name the specific spend-gated endpoints/CLI commands and the code-level guard (e.g. a required `confirm: true` flag) that agents must never set programmatically. -->
+- Hardcoded model IDs in pipeline code. Read from {{TOOLCHAIN}} config. <!-- fill: name the actual config file, e.g. config/settings.toml -->
+- Hardcoded prompts in source. Prompts live in versioned template files and are read at call time.
+
+## Required idioms
+
+- **Type hints / types on everything.** {{TYPECHECK_CMD}} clean.
+- **Lint and format with {{LINT_CMD}}.**
+- **Toolchain managed by {{TOOLCHAIN}}.**
+- **Tests for the pure/core layer are mandatory** and run with no external dependencies.
+- Adapters/integrations get integration tests gated by an env var.
+- Use the language's native path type, not string paths.
+- Errors that the user must act on must include the action: `"<condition>. Run `<command>`."`
+- Datetimes are timezone-aware. UTC in storage, local for display.
+
+## Frontend rules
+
+- **Strict TypeScript.** No `any` without a `// reason: ...` comment.
+- **Server state via a query/cache library.** No raw `useEffect` + `fetch`.
+- **API types come from a generated client** against the backend's OpenAPI schema. Frontend cannot drift from backend contract.
+- **UI primitives live in a dedicated `ui/` folder** and are owned by us — feel free to modify them. Custom composed components live one level up.
+- **UI system lives in `DESIGN.md`** (`## UI system`: token home, component home, catalog). ui-lock lint fails a raw value outside the token home and a raw control outside the component home. Run the `unify-ui` skill before a UI plan is called done.
+- **Functional components with hooks.** No class components.
+- **Co-locate tests:** `Button.tsx` next to `Button.test.tsx`.
+
+## Verification & evidence (workflow rule)
+
+Never claim "done", "fixed", or "implemented" without fresh build output, test results, or a screenshot in the same message proving it. Ban "should work", "probably fixed", "seems correct". Run {{TEST_CMD}}, {{TYPECHECK_CMD}}, or {{LINT_CMD}} and quote the output, not vibes.
+
+After multi-file changes, run a build before declaring completion — even when "the types align."
+
+**Never substitute a new test for a failing existing one.** If an existing test is red, fix it or explicitly flag it as deferred in your report — writing a fresh passing test alongside a red one (so *your* test goes green while the real one stays red and invisible) is banned.
+
+<!-- fill: if this project has a green-gate pre-push hook (blocks push on red suite), describe it here:
+     what it runs, how it's enabled, and how to bypass deliberately. -->
+
+## Where things live
+
+- **Backend code:** <!-- fill: top-level source path --> {{PROJECT_PATH}}/<!-- fill -->
+- **Frontend code:** <!-- fill: top-level source path -->
+- **Config:** <!-- fill -->
+- **Generated artifacts (DB, logs, audit):** <!-- fill: and confirm it's gitignored -->
+- **Brain/docs:** {{BRAIN_PATH}} — spec, phases, decisions. **Read before designing anything new.**
+- **Skills/agents:** `.claude/`. Project-scoped agents live here.
+
+## Sector CLAUDE.md files
+
+Each populated source directory has its own CLAUDE.md with the type inventory, sector-specific rules, and lessons. **Read the relevant sector CLAUDE.md before working in a directory.**
+
+<!-- fill: list each sector CLAUDE.md path with a one-line description, e.g.
+     - `src/core/CLAUDE.md` — pure domain models, no I/O.
+     - `frontend/src/pages/CLAUDE.md` — page routes, data ownership. -->
+
+**No-duplication rule.** Every fact has one canonical home. Top CLAUDE.md owns global rules (architecture, banned imports, type-strictness). Sector CLAUDE.md owns directory-specific layout, file→type tables, and lessons. If a fact already lives in one, don't restate it in the other — link instead.
+
+## CLI entrypoints
+
+```bash
+<!-- fill: the project's actual CLI entrypoints, e.g. -->
+<!-- python -m {{PROJECT_NAME}}.cli.dashboard   # dev server on {{DEV_PORTS}} -->
+```
+
+`--dry-run` is a first-class feature, not an afterthought, for any command with side effects.
+
+## Source-of-truth pointers
+
+- Spec / product north star: {{BRAIN_SPEC_PATH}}
+- Phase map: {{PHASE_MAP_PATH}}
+- Review specs and plans before code with `workflow:plan-review`.

@@ -1,0 +1,1 @@
+{"hook_event_name":"PreToolUse","session_id":"stranger","transcript_path":"__TMP__/transcript.jsonl","cwd":"__TMP__","tool_name":"MultiEdit","tool_input":{"file_path":"__TMP__/page.html","edits":[{"old_string":"a","new_string":"b"}]}}

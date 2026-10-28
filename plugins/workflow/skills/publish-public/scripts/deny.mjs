@@ -45,15 +45,16 @@ function checkSets(sets) {
   }
 }
 
-function missing(path) {
-  return new Error(`no deny rules configured: ${path} (copy data/deny.example.json there)`);
+/** The error for a deny file that does not exist. It names the file to create. */
+function missing(target) {
+  return new Error(`no deny rules configured: copy data/deny.example.json to ${target}`);
 }
 
 /** Build every RegExp once, from <dir>/deny/<set>.json for each set, in order. Throws on a missing set,
  *  a bad entry or a repeated name (fail closed). Each rule carries the set it came from. */
 export function loadRules(sets, dir = configDir()) {
   checkSets(sets);
-  if (!existsSync(dir)) throw missing(dir);
+  if (!existsSync(dir)) throw missing(setPath(dir, sets[0]));
   const rules = GENERIC.map((r) => ({ name: r.name, set: "built-in", re: new RegExp(r.re.source, stateless(r.re.flags)) }));
   const seen = new Set([...rules.map((r) => r.name), EMAIL_RULE]);
   for (const set of sets) {

@@ -16,6 +16,16 @@ Because the object is real geometry, the same model turns through any angle, com
 
 `template/` is a complete working project. Its worked example is a dual-boiler espresso machine with a built-in grinder (82 parts), but nothing in the pipeline is specific to espresso machines: any object the user names or shows works the same way. Start every job from the template and replace the object.
 
+## Before you start
+
+Run `node "${CLAUDE_PLUGIN_ROOT}/skills/anatomy-reveal/template/scripts/preflight.mjs"` with Bash. It prints one line per need, `ok <tool>` or `needs <tool>: <where to get it>`. On exit code 3, stop: show the user the `needs` lines and do not start. A film render takes about 2 minutes per second of video, so a tool missing at the encode step wastes the whole render. The tools are:
+- Node 20 or newer, and `npm`, which `new-project.mjs` uses to install `puppeteer-core`;
+- Google Chrome, Chromium or Edge (set `CHROME_PATH` if it is not found);
+- `ffmpeg` (set `FFMPEG` to its path if it is not on the PATH);
+- ImageMagick 7, the `magick` command (set `MAGICK` to its path if needed). ImageMagick 6 does not work.
+
+Every project made from `template/` carries a copy of the preflight in its own `scripts/` folder, with `chrome-path.mjs` beside it.
+
 Read before building:
 - `references/inputs.md`: getting from a photo or a name to dimensions, features and a parts list.
 - `references/objects.md`: how any kind of object comes apart, and how to build curved, organic, soft and large shapes from convex parts.
@@ -98,4 +108,6 @@ Either way, finish with a short spec before any geometry: the dimensions, the fe
 | `template/motion/timeline.mjs` | Keys, eases, labels, the retiming behind `--duration` and the framing behind `--ratio`. |
 | `template/motion/build.mjs`, `look.css` | The film page: `frame(t)`, `pose(state)`, `speed(t)`. |
 | `template/motion/render.mjs`, `encode.mjs`, `scan.mjs` | Stills, poses, the adaptive-blur render; averaging and H.264 encode; the per-frame order check. |
-| `template/scripts/browser.mjs` | Finds Chrome, Chromium or Edge on macOS, Linux or Windows (`CHROME_PATH` overrides). |
+| `template/scripts/chrome-path.mjs` | Finds Chrome, Chromium or Edge on macOS, Linux or Windows (`CHROME_PATH` overrides). Imports only `node:` modules, so it loads before `npm install`. |
+| `template/scripts/browser.mjs` | Launches that browser through `puppeteer-core` and re-exports `chromePath()`. |
+| `template/scripts/preflight.mjs` | Checks Node, `npm`, Chrome, `ffmpeg` and ImageMagick 7 before a build. Prints `ok` or `needs` lines; exits 3 when one is missing. |

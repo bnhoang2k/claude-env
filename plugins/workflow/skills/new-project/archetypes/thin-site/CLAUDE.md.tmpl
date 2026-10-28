@@ -1,0 +1,47 @@
+# {{PROJECT_NAME}} — Project CLAUDE.md
+
+<!-- fill: one-line description of what this site/project is and its target domain/audience. -->
+This file holds only rules that constrain code and content generation. The full decision
+record lives in `docs/SPEC.md` — **read it before designing anything**.
+
+**No sibling brain repo.** Specs and plans live in-repo at `docs/superpowers/{specs,plans,Archive}`
+(archive on completion, same lifecycle as a brain repo's `Superpowers/` — just not in a separate
+repo). This is the thin-site pattern: one repo, no companion knowledge base.
+
+## Project shape
+
+- **Stack (locked):** {{FRONTEND_STACK}}. <!-- fill: framework, rendering mode (static export /
+  SSR / SPA), styling, hosting tier. Lock these — a thin site doesn't get to keep re-deciding
+  its stack. -->
+- **{{TOOLCHAIN}}** manages the toolchain.
+- <!-- fill: state the deployment model in one line, e.g. "No backend, ever — static export
+  only, no server runtime, no API routes, no database." If this project genuinely has none of
+  that, say so explicitly; it constrains what any future session is allowed to add. -->
+
+## Load-bearing rules
+
+<!-- fill: 3-6 rules genuinely specific to this project that would cause rework if violated.
+     Examples of the SHAPE (not content to copy): "every page reads fine with scripts off — motion
+     never hides content"; "a new post is a new content file, never a hand-coded
+     page"; "no self-labeling copy in hero/about sections." Each rule should be falsifiable —
+     a reviewer can point at a diff and say PASS/FAIL. -->
+
+## Content gates (hard)
+
+<!-- fill: any content that must NOT publish without a prior review/approval step, and any
+     topics that are off-limits entirely until explicitly lifted. Also list deliberate exclusions
+     — features intentionally NOT built, so a future session doesn't "helpfully" add them back. -->
+
+## Verification
+
+- Green gates: {{TEST_CMD}}, {{TYPECHECK_CMD}}, {{LINT_CMD}} with zero warnings. Quote output —
+  no "should work".
+- Green gates ≠ shipped: user-visible changes get a manual smoke walk (every mode/breakpoint this
+  project supports, reduced-motion if animated, every CTA actually opens/works) before "done".
+- Never deploy, push, or purchase (domain, hosting) without explicit go-ahead in-session.
+
+## Deferred — do not decide unilaterally
+
+<!-- fill: anything intentionally punted to a dedicated design/scoping session (visual identity,
+     v1 launch scope, etc.) so a future session doesn't silently decide it while doing something
+     else. Until resolved, build unstyled structure only where this applies. -->

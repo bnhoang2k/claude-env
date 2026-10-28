@@ -34,15 +34,19 @@ Two failure modes, and the first is worse:
 | "I sampled the clip start and end" | Feet go through the floor in the middle. Check every sampled frame. |
 | "The xray looks fine" | The house look is what ships. Judge both. |
 
+## Before you start
+
+Run `python3 "${CLAUDE_PLUGIN_ROOT}/skills/break-models/scripts/preflight.py"` with Bash. It prints one line per need, `ok <tool>` or `needs <tool>: <where to get it>`. On exit code 3, stop: show the user the `needs` lines and do not start. The tools are Blender 5.0 or newer (the `blender` command on the PATH, the `BLENDER` variable set to its executable, or the macOS app) and Pillow, the Python imaging library (`python3 -m pip install Pillow`). A full check renders hundreds of views, so a missing tool found late wastes the run. The line `ok Blender <version> at <path>` gives the Blender path; use it as `B` below.
+
 ## Workflow
 
 Scripts live in this skill's `scripts/` folder. Run them with Blender in the background, in the foreground of your shell, with a timeout:
 
 ```bash
-B=/Applications/Blender.app/Contents/MacOS/Blender
+B=<the path on the preflight's "ok Blender" line>
 S="${CLAUDE_PLUGIN_ROOT}/skills/break-models/scripts"
-$B --background --factory-startup --python $S/checks.py -- MODEL.glb [--config FILE.json] > checks.txt
-$B --background --factory-startup --python $S/look.py -- MODEL.glb --out DIR [--config FILE.json]
+"$B" --background --factory-startup --python "$S/checks.py" -- MODEL.glb [--config FILE.json] > checks.txt
+"$B" --background --factory-startup --python "$S/look.py" -- MODEL.glb --out DIR [--config FILE.json]
 ```
 
 Run either script with `-- --help` for every option. `examples/` holds sample configs (`furniture-pack.json`, `character-rig.json`, `furniture-sizes.json`), copy and edit one for a new project.

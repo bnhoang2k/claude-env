@@ -20,6 +20,8 @@ Never answer a status question from memory. Collect the facts first. Run these i
 - For each Workflow run: the mtime of each agent's own transcript, `agent-<id>.jsonl`. That mtime is the sign that an agent is alive. The run's `journal.jsonl` sits beside the transcripts. It holds only "launched", "started" and "result" lines, so a healthy agent writes nothing there until it returns. Use the journal only to see which agents have started or returned. The directory is `~/.claude/projects/<project-slug>/<session-id>/subagents/workflows/wf_<run-id>/`. When the Workflow tool result does not show the path, `ls` that directory.
 - `git log -3 --format='%h %cr %s'` in each worktree that work runs in, and `git status --short` for uncommitted edits.
 
+The `mcp__ccd_session_mgmt__` tools come with Claude's desktop app. Where they are missing, skip the linked-session line and say so in the card.
+
 Read the tool results before you write the card. A tool that errors is a gap. Say so in the card. Do not fill it with a guess.
 
 ## Step 2: Decide "stalled" from the evidence

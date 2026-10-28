@@ -1,0 +1,37 @@
+name: stranger-test
+
+# Installs claude-env into a clean HOME with the Claude Code CLI, then runs every preflight, every script
+# a stranger runs bare and every shipped hook on a PATH with almost nothing on it. It fails on a stack
+# trace or a raw ENOENT. See tests/stranger/run.sh. No secrets are used.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: "17 6 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  stranger:
+    # Run in the public repo only.
+    if: github.repository == 'bnhoang2k/claude-env'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install the Claude Code CLI
+        run: npm install -g @anthropic-ai/claude-code
+      - name: Run the stranger test
+        run: bash tests/stranger/run.sh "$GITHUB_WORKSPACE"

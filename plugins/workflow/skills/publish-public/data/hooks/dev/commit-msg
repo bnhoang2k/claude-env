@@ -1,10 +1,22 @@
 #!/bin/sh
 # Dev repo commit-msg hook. The logic lives in scripts/devcheck.mjs.
-# install-guards writes the scripts folder's path into <config folder>/scripts-dir.
+# install-guards writes the scripts folder's path into <config folder>/scripts-dir. That path holds the
+# plugin version, so a plugin update removes it. Then the hook takes the newest version folder beside it.
+# `node` sorts the version names as numbers (0.10.0 is newer than 0.9.0); `sort -V` may be missing on macOS.
 home="${PUBLISH_PUBLIC_HOME:-$HOME/.claude/publish-public}"
 scripts="$(cat "$home/scripts-dir" 2>/dev/null)"
+if [ -n "$scripts" ] && [ ! -f "$scripts/devcheck.mjs" ]; then
+  version="${scripts%/skills/publish-public/scripts}"
+  if [ "$version" != "$scripts" ]; then
+    scripts="$(node -e 'const fs = require("fs"), path = require("path"), [parent, file] = process.argv.slice(1);
+const tail = path.join("skills", "publish-public", "scripts");
+const names = fs.readdirSync(parent).sort((a, b) => b.localeCompare(a, undefined, { numeric: true }));
+const hit = names.find((n) => fs.existsSync(path.join(parent, n, tail, file)));
+if (hit) console.log(path.join(parent, hit, tail));' "${version%/*}" devcheck.mjs 2>/dev/null)"
+  fi
+fi
 if [ -z "$scripts" ] || [ ! -f "$scripts/devcheck.mjs" ]; then
-  echo "publish-public guards: scripts-dir missing; re-run install-guards" >&2
+  echo "the publish tool moved: re-run install-guards" >&2
   exit 1
 fi
 exec node "$scripts/devcheck.mjs" commit-msg "$@"

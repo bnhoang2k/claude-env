@@ -10,7 +10,9 @@ The briefing is produced by dispatching an **Explore** agent that reads the rele
 ## Step 0: Derive the repo set
 
 - `PROJECT_DIR` = toplevel of the current repo (`git rev-parse --show-toplevel`); `PROJECT` = its basename.
-- `BRAIN_DIR` = sibling `${PROJECT}Brain` directory, included only if it exists. If there is no brain repo, all brain-sourced sections below fall back to the in-repo `docs/` folder (specs and plans there, if present) or are skipped.
+- `BRAIN_DIR` = sibling `${PROJECT}Brain` directory, included only if it exists. If there is no brain repo, all brain-sourced sections below fall back to the in-repo `docs/` folder (specs and plans there, if present) or are skipped. `workflow:new-project` can scaffold a notes repo.
+
+Needs Superpowers: `superpowers@claude-plugins-official`, for Stages 3 and 4 only. Without it, the briefing (Stages 0 to 2) works as written. For Stage 3, write the plan yourself, one step at a time, and get the user's approval before any code.
 
 ## Stage 0: Dedup Guard
 
@@ -103,7 +105,7 @@ For each approved plan, invoke `superpowers:executing-plans` (its own checkpoint
 ## Gotchas
 
 - The Explore agent reads across both repos so the main context stays clean. Do NOT also read those files yourself — duplicate token spend.
-- The template costs ~5.6 KB of output per render because `show_widget` takes inline HTML only. Don't "improve" it per run; edit `widget.html` once instead (via `/impeccable`, honoring the ui-suite:ui-taste brief).
+- The template costs ~5.6 KB of output per render because `show_widget` takes inline HTML only. Don't "improve" it per run; edit `widget.html` once instead (honoring the ui-suite:ui-taste brief).
 - **Never skip approval gates.** Even if the action seems obvious, always ask.
 - **One plan at a time.** The user reviews each before the next.
 - **If the user just wants the briefing, stop after Stage 2.**

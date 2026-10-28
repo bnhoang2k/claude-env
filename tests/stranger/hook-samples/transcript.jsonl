@@ -1,0 +1,6 @@
+{"type":"user","cwd":"__TMP__","message":{"role":"user","content":"make a small page"}}
+{"type":"assistant","cwd":"__TMP__","message":{"role":"assistant","content":[{"type":"tool_use","id":"t1","name":"Write","input":{"file_path":"page.html","content":"<p>hello</p>"}}]}}
+{"type":"user","cwd":"__TMP__","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":"written"}]}}
+{"type":"assistant","cwd":"__TMP__","message":{"role":"assistant","content":[{"type":"tool_use","id":"t2","name":"Bash","input":{"command":"echo '<p>again</p>' > page.html"}}]}}
+{"type":"user","cwd":"__TMP__","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t2","content":""}]}}
+{"type":"assistant","cwd":"__TMP__","message":{"role":"assistant","content":[{"type":"text","text":"Done."}]}}

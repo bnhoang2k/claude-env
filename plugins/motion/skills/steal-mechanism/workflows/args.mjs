@@ -3,10 +3,11 @@
 // launcher passes its output to the workflow as `args`:
 //   node "${CLAUDE_PLUGIN_ROOT}/skills/steal-mechanism/workflows/args.mjs" '<json: mode, slugs, ...>'
 // The command line fills `root` from this file's own location and reads HOME, STEAL_BAR_HOME,
-// MOTION_KIT, STEAL_TOOLS and the current folder from the real environment.
-import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
+// MOTION_KIT (else PROJECTS_ROOT/motion-kit), STEAL_TOOLS and the current folder from the real environment.
+import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+import { KIT_LINE, kitPath } from "../scripts/intake/kit.mjs";
 
 const strip = (p) => p.replace(/\/+$/, "");
 const MODES = ["study", "fix", "intake"];
@@ -26,8 +27,10 @@ export function resolveArgs(args, env = {}, cwd = "") {
     if (!cwd) throw new Error("no bar home: set args.barHome or STEAL_BAR_HOME, or pass the current folder as cwd");
     barHome = strip(cwd) + "/.steal-mechanism/bars";
   }
-  const kitRaw = a.kit || env.MOTION_KIT || "";
-  if (mode === "intake" && !kitRaw) throw new Error("intake needs a motion-kit checkout: set MOTION_KIT");
+  // Intake finds the kit as the intake scripts do (kitPath: MOTION_KIT, else $PROJECTS_ROOT/motion-kit). Study and fix
+  // never guess a kit: they take one only when it is named.
+  const kitRaw = mode === "intake" ? kitPath(a.kit ? { ...env, MOTION_KIT: a.kit } : env) || "" : a.kit || env.MOTION_KIT || "";
+  if (mode === "intake" && !kitRaw) throw new Error(KIT_LINE);
   const cap = a.captures || env.STEAL_CAPTURES || (env.HOME ? capturesHome(env) : "");
   return { mode, barHome: strip(barHome), kit: kitRaw ? strip(kitRaw) : null, root: strip(a.root), captures: cap ? strip(cap) : null };
 }
@@ -53,7 +56,8 @@ export function ensureBarIgnore(args, env = {}, cwd = "") {
 }
 
 // Everything run.js needs, resolved. `tools` is the folder holding capture.mjs and drive.mjs (optional);
-// `spec` is the motion-kit intake spec (optional); `capturesLink` (args.capturesLink, else
+// `spec` is the intake procedure (args.spec, else $MOTION_KIT_SPEC, else the intake.md that ships beside SKILL.md);
+// in intake mode `kitBars`, `kitDoc`, `kitDialSet` and `kitStripsPrivate` say which kit files exist; `capturesLink` (args.capturesLink, else
 // $STEAL_CAPTURES_LINK) is how a review page reaches the captures: when set, compare.json's
 // original_video is <link>/<slug>/original/<file>, else the absolute path.
 export function launchArgs(args, env = {}, cwd = "") {
@@ -66,7 +70,25 @@ export function launchArgs(args, env = {}, cwd = "") {
     ...resolved,
     capturesLink: link ? strip(link) : null,
     tools: a.tools || env.STEAL_TOOLS || null,
-    spec: a.spec || env.MOTION_KIT_SPEC || null,
+    spec: a.spec || env.MOTION_KIT_SPEC || resolved.root + "/intake.md",
+    ...(resolved.mode === "intake" ? kitFacts(resolved.kit) : {}),
+  };
+}
+
+// Which of the files run.js points agents at the kit has (run.js has no filesystem). The public kit has bars 04, 13
+// and 31, an AGENTS.md where an older kit has a CLAUDE.md, and no kinds/*/dial-set.json. Throws the one-line kit
+// message when the folder is missing.
+export function kitFacts(kit) {
+  const isDir = (p) => { try { return statSync(p).isDirectory(); } catch { return false; } };
+  if (!isDir(kit)) throw new Error(`${KIT_LINE} (no folder at ${kit})`);
+  const names = (d) => (isDir(d) ? readdirSync(d).sort() : []);
+  return {
+    kitBars: names(kit + "/bars").filter((n) => isDir(kit + "/bars/" + n)),
+    kitDoc: ["CLAUDE.md", "AGENTS.md"].find((n) => existsSync(kit + "/" + n)) || null,
+    kitDialSet: names(kit + "/kinds").some((k) => existsSync(kit + "/kinds/" + k + "/dial-set.json")),
+    // A kit with scripts/check-public.mjs is a private dev kit that strips study.md and bar.private.json at publish.
+    // Any other kit is a public clone or fork: those two files stay untracked there.
+    kitStripsPrivate: existsSync(kit + "/scripts/check-public.mjs"),
   };
 }
 

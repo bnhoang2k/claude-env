@@ -35,7 +35,7 @@ from pathlib import Path
 
 HEADING = "## UI system"
 ROW = re.compile(r"^\|\s*([^|]+?)\s*\|\s*([^|]*?)\s*\|\s*$")
-TEMPLATE = "the shared DESIGN.md template (archetypes/_shared/DESIGN.md.tmpl)"
+TEMPLATE = "the DESIGN.md template in the workflow:new-project skill (archetypes/_shared/DESIGN.md.tmpl)"
 
 
 def preset_root():
@@ -210,6 +210,7 @@ def dispatch(argv):
         return status(argv[1])
     if len(argv) == 2 and argv[0] == "sync":
         return sync(argv[1])
+    print("usage: ui-lock.py install <stack> <lint-dir> | status <lint-dir> | sync <lint-dir>", file=sys.stderr)
     print(__doc__, file=sys.stderr)
     return 2
 

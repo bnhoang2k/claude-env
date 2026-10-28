@@ -1,25 +1,30 @@
-// Scans one bar folder before it is committed, with both guards that will judge it later: the kit's
-// own leak check (scripts/check-public.mjs: names, home paths, links,
-// keys and emails) on every file, its process words on the public files only (study.md and
-// bar.private.json stay private), and the publish tool's deny list on every file.
-// usage: node leak-scan.mjs <bar dir>     exit 0 clean, 1 hits
+// Scans one bar folder before it is committed, with the guards that will judge it later: the kit's
+// own leak check (scripts/check-public.mjs: names, home paths, links, keys and emails) on every
+// file and its process words on the public files only (study.md and bar.private.json stay private),
+// when the kit has one, and the publish tool's deny list on every file.
+// usage: node leak-scan.mjs <bar dir>     exit 0 clean, 1 hits, 2 a missing kit or tool
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { KIT, kitImport } from "./kit.mjs";
+import { findPublishScripts, hasPublishScripts, kitImport, requireKit } from "./kit.mjs";
 const dir = process.argv[2];
 if (!dir) { console.error("usage: node leak-scan.mjs <bar dir>"); process.exit(2); }
-const { scanText, PROCESS_WORDS } = await kitImport("scripts/check-public.mjs");
+const KIT = requireKit();
+// The public kit has no check-public.mjs. Without it that pass is skipped, and the deny list below still runs.
+let scanText = () => [];
+let PROCESS_WORDS = null;
+if (existsSync(path.join(KIT, "scripts/check-public.mjs"))) {
+  ({ scanText, PROCESS_WORDS } = await kitImport("scripts/check-public.mjs"));
+} else {
+  console.log("leak-scan: this kit has no scripts/check-public.mjs, so its own leak check is skipped; the publish deny list still runs.");
+}
 // The publish tool's scripts (deny.mjs, export.mjs) are in the workflow plugin, a sibling of this one.
-// A plugin cannot assume where a sibling is installed, so the folder comes from PUBLISH_PUBLIC_SCRIPTS
-// (the workflow plugin's skills/publish-public/scripts), or else from the claude-env checkout layout
-// (plugins/motion/... beside plugins/workflow/...). With neither, stop: a scan without the deny list
-// would pass files the publish guard rejects.
+// kit.mjs finds them from PUBLISH_PUBLIC_SCRIPTS, else the claude-env checkout layout, else the plugin cache
+// layout. With none, stop: a scan without the deny list would pass files the publish guard rejects.
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const scriptsDir = process.env.PUBLISH_PUBLIC_SCRIPTS
-  || path.resolve(HERE, "../../../../../workflow/skills/publish-public/scripts");
-if (!existsSync(path.join(scriptsDir, "deny.mjs")) || !existsSync(path.join(scriptsDir, "export.mjs"))) {
-  console.error(`leak-scan: cannot find the publish tool's deny.mjs and export.mjs in ${scriptsDir}. Set PUBLISH_PUBLIC_SCRIPTS to the workflow plugin's skills/publish-public/scripts folder.`);
+const scriptsDir = findPublishScripts(HERE, process.env);
+if (!scriptsDir || !hasPublishScripts(scriptsDir)) {
+  console.error(`leak-scan: cannot find the publish tool's deny.mjs and export.mjs${scriptsDir ? ` in ${scriptsDir}` : ""}. Set PUBLISH_PUBLIC_SCRIPTS to the workflow plugin's skills/publish-public/scripts folder (find it with: ls -d ~/.claude/plugins/cache/*/workflow/*/skills/publish-public/scripts).`);
   process.exit(2);
 }
 const deny = await import(pathToFileURL(path.join(scriptsDir, "deny.mjs")).href);
@@ -42,7 +47,7 @@ for (const f of walk(dir).filter((p) => TEXT.test(p))) {
   const text = readFileSync(f, "utf8");
   for (const h of scanText(text)) hit(f, h.line, h.rule, h.text);
   for (const h of deny.scanText(text, rules)) hit(f, h.line, `deny ${h.rule}`, h.text);
-  if (!PRIVATE.has(path.basename(f))) text.split("\n").forEach((t, i) => { if (PROCESS_WORDS.test(t)) hit(f, i + 1, "process word", t); });
+  if (PROCESS_WORDS && !PRIVATE.has(path.basename(f))) text.split("\n").forEach((t, i) => { if (PROCESS_WORDS.test(t)) hit(f, i + 1, "process word", t); });
 }
 console.log(`hits: ${hits}`);
 process.exit(hits ? 1 : 0);

@@ -47,7 +47,7 @@ export function configDir() {
 
 /** Throws the standard "not configured" error unless the config folder exists. Call it before anything reads the folder. */
 export function assertConfigDir(dir = configDir()) {
-  if (!existsSync(dir)) throw new Error(`no deny rules configured: ${dir} (copy data/deny.example.json there)`);
+  if (!existsSync(dir)) throw new Error(`no deny rules configured: copy data/deny.example.json to ${path.join(dir, "deny", "base.json")}`);
 }
 
 /** The one public identity, from <dir>/identity.json: { name, email }. Throws if the file is missing or odd. */

@@ -1,0 +1,42 @@
+# --- Claude Code state ---
+# Policy: commit .claude/ (hooks, agents, settings.json, agent-memory) EXCEPT the
+# session-local/generated bits below. Committing .claude/ is what makes hooks, agents,
+# and rules travel with the repo for every clone and every collaborator.
+.claude/scheduled_tasks.lock
+.claude/worktrees/
+.worktrees/
+.claude/goals/
+.claude/settings.local.json
+
+# Playwright MCP — ephemeral console logs, page snapshots, screenshots
+.playwright-mcp/
+
+# Superpowers brainstorming session artifacts (mockups, server state)
+.superpowers/
+
+# --- Toolchain-specific ignores ---
+# fill: add the standard ignore patterns for {{TOOLCHAIN}} (e.g. __pycache__/, *.pyc,
+# .venv*/, .mypy_cache/, .ruff_cache/ for a uv/Python toolchain; node_modules/, dist/,
+# *.log for a Node/Vite toolchain). Keep this section short — defer to the toolchain's
+# own conventional ignore list rather than hand-enumerating everything.
+
+# Generated data — never committed
+data/
+
+# Secrets
+.env
+.env.local
+.env.*.local
+
+# IDE / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Top-level screenshots — see CLAUDE.md verification rules: never take screenshots
+# unless asked, and never write them inside the repo.
+/*.png
+/*.jpg
+/*.jpeg
+/*.gif

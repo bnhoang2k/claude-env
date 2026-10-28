@@ -14,6 +14,8 @@ Safety read before install (read-only, no code run): no agent-directed instructi
 3. `template/package.json`: `puppeteer-core` pinned from `^23.0.0` to `23.11.1`.
 4. `template/package-lock.json`: added, from the first install with `--ignore-scripts` (84 packages).
 5. `scripts/new-project.mjs`: `npm install` gets `--ignore-scripts`.
+6. `template/scripts/chrome-path.mjs` (new) holds `CANDIDATES` and `chromePath()`, moved out of `browser.mjs` so they load before `npm install`; Linux commands `google-chrome`, `chromium` and `chromium-browser` are also looked up on the PATH. `browser.mjs` imports and re-exports `chromePath()`.
+7. `template/scripts/preflight.mjs` (new): checks Node, `npm`, a browser, `ffmpeg` and ImageMagick 7. `SKILL.md` gains a "Before you start" section that runs it, and its Files table lists both new files.
 
 Related patches outside this folder: `../anatomy/SKILL.md` description points exploded views and reveal films here (anatomy's VENDORED.md, patch 4). The ui-suite taste hook triggers on `anatomy-reveal`.
 

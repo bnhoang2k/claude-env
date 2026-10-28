@@ -22,14 +22,23 @@ command that also contains a writer word (for example "cp a.txt b.txt; cat
 page.html") counts as a change; this is accepted. Heredoc bodies are not scanned:
 a commit message that names a page is text, not a write. Writes into a temp folder are
 test fixtures, not UI: an absolute path under /tmp, /private/tmp, /var/folders or $TMPDIR, or a
-relative or $VAR path in a command that made its own folder with mktemp. Gap: a command that
-runs mktemp and also writes a real page by a relative path is not seen.
+relative or $VAR path in a command that made its own folder with mktemp. A relative path is also
+resolved against the working folder of its own tool call (the "cwd" on each transcript entry, not
+the Stop payload's, which is only where the shell stands at Stop time), moved by the cd, pushd and
+popd earlier in the same command: absolute and relative targets, quoted targets, "cd -", and
+subshells "( ... )" whose cd does not move the outer shell. A path named twice in a command counts
+as temp only when every mention resolves into a temp folder. When the scan is unsure, the write
+gates. Gaps: a cd through a variable (cd $DIR) is not followed (it gates unless the command ran
+mktemp); a cd inside quoted text ("echo 'then cd /tmp/w' > page.html") still counts; a command
+that runs mktemp and also writes a real page by a relative path is not seen; cd inside a
+shell function, loop body or case branch is read as plain sequence.
 
 Never blocks when stop_hook_active is set (loop guard) or when the user's last
 message says "skip lint". Any error exits 0 silently.
 """
 import json
 import os
+import posixpath
 import re
 import shlex
 import sys
@@ -50,7 +59,13 @@ ALIGN_MARK = "data-ui-align"
 BROWSER_EVAL = re.compile(r"javascript_tool|browser_evaluate|browser_run_code", re.I)
 EDGE_SENTINEL = "textEdgeAutoV1"  # the detector returns check: 'textEdgeAutoV1'
 MAX_MARK_SCAN = 2_000_000
-REDIRECT = re.compile(r">>?\s*['\"]?([^\s'\";|&<>]+)")
+# Events that move the shell's folder, in command order: "(" and ")" bound a subshell, and
+# cd/pushd/popd carry a double-quoted, single-quoted or bare target.
+CD_EVENT = re.compile(
+    r"(?P<open>\()|(?P<close>\))"
+    r"|(?<![\w./$~-])(?P<verb>cd|pushd|popd)(?![\w./$~-])"
+    r"(?:[ \t]+(?:(?:--|-[PLe@]+)[ \t]+)*(?:\"(?P<dq>[^\"]*)\"|'(?P<sq>[^']*)'|(?P<bare>[^\s'\";|&<>()]+)))?")
+REDIRECT = re.compile(r">>?\s*['\"]?([^\s'\";|&<>)]+)")
 WRITER = re.compile(r"(?:^|[\s;|&(])(?:tee|cp|mv|install|rsync)\s|\b(?:sed|perl)\s+(?:-\w+\s+)*-\w*i")
 REASON = ("Web UI changed this turn and no passing lint covers it. Run the ui-suite:lint-ui skill: "
           "lintapple on the changed page must print 'Passed: 0 UI findings' (keep that line in "
@@ -89,18 +104,71 @@ def tool_uses(entry):
     return [b for b in content if isinstance(b, dict) and b.get("type") == "tool_use"]
 
 
-def is_temp_write(path, cmd=""):
+def _folder_before(cmd, end, cwd):
+    """The folder the shell stands in just before cmd[end:], after the cd, pushd and popd in
+    cmd[:end]. None means unknown (cd -, popd, a cd out of an unknown folder)."""
+    base, saved = cwd or None, []
+    for m in CD_EVENT.finditer(cmd, 0, end):
+        if m.group("open"):
+            saved.append(base)  # a subshell: its cd ends at the matching ")"
+        elif m.group("close"):
+            if saved:
+                base = saved.pop()
+        else:
+            verb = m.group("verb")
+            target = next((m.group(g) for g in ("dq", "sq", "bare") if m.group(g) is not None), None)
+            if verb == "popd" or target == "-" or (verb == "pushd" and target is None):
+                base = None
+            elif target is None:
+                base = "~"  # a bare cd goes home
+            elif target == "":
+                continue
+            elif target.startswith(("/", "~", "$")):
+                base = target
+            elif base is not None:
+                base = posixpath.normpath(posixpath.join(base, target))
+    return base
+
+
+def _landings(path, cmd, cwd):
+    """Every place a write to `path` can land: one per whole-path mention in cmd."""
+    p = path.strip("'\"")
+    if p.startswith(("/", "~", "$")):
+        return [path]
+    if cmd:
+        mention = re.compile(r"(?<![\w./~$-])" + re.escape(p) + r"(?![\w.-])")
+        ends = [m.start() for m in mention.finditer(cmd)] or [len(cmd)]
+    else:
+        ends = [0]
+    out = []
+    for end in ends:
+        base = _folder_before(cmd, end, cwd)
+        out.append(posixpath.normpath(posixpath.join(base, p)) if base else path)
+    return out
+
+
+def resolve_write_path(path, cmd="", cwd=""):
+    """Where a write lands. An absolute, ~ or $VAR path is returned as is. A relative path is
+    joined with the folder the shell stands in at that point of the command: cwd (the working
+    folder of the tool call that wrote it) moved by the cd, pushd and popd before it; with no
+    known folder it is returned unchanged. When the path is named more than once and the
+    mentions land in different places, the first one outside a temp folder is returned."""
+    landed = _landings(path, cmd, cwd)
+    return next((x for x in landed if not TEMP_ROOT.search(x)), landed[0])
+
+
+def is_temp_write(path, cmd="", cwd=""):
     """True for a write into a temp folder: a test fixture, not a page anyone will see."""
     p = path.strip("'\"")
-    if TEMP_ROOT.search(p):
+    if TEMP_ROOT.search(p) or TEMP_ROOT.search(resolve_write_path(path, cmd, cwd)):
         return True
     return "mktemp" in cmd and not p.startswith(("/", "~"))
 
 
-def is_ui_change(name, inp):
+def is_ui_change(name, inp, cwd=""):
     path = str(inp.get("file_path", ""))
     return (name in EDIT_TOOLS and bool(UI_EXT.search(path)) and not EXEMPT.search(path)
-            and not is_temp_write(path))
+            and not is_temp_write(path, cwd=cwd))
 
 
 def _tokens(cmd):
@@ -119,13 +187,13 @@ def _strip_heredocs(cmd):
     return HEREDOC.sub(lambda m: m.group(0).split("\n", 1)[0], cmd)
 
 
-def bash_ui_writes(cmd):
+def bash_ui_writes(cmd, cwd=""):
     """Web UI files a shell command writes: redirect targets, plus file arguments of writers."""
     cmd = _strip_heredocs(cmd)
     paths = [p for p in REDIRECT.findall(cmd) if UI_EXT.search(p)]
     if WRITER.search(cmd):
         paths += [t for t in _tokens(cmd) if "://" not in t and UI_EXT.search(t)]
-    return [p for p in paths if not EXEMPT.search(p) and not is_temp_write(p, cmd)]
+    return [p for p in paths if not EXEMPT.search(p) and not is_temp_write(p, cmd, cwd)]
 
 
 def results_by_id(entries):
@@ -226,7 +294,7 @@ def covers(changed, cmd, url=None):
     return any(os.path.basename(p).lower() == name.lower() for p in html)
 
 
-def decide(entries, stop_hook_active):
+def decide(entries, stop_hook_active, cwd=""):
     if stop_hook_active:
         return None
     start = -1
@@ -244,13 +312,14 @@ def decide(entries, stop_hook_active):
         for block in tool_uses(entry):
             name, inp = block.get("name"), block.get("input") or {}
             res = results.get(block.get("id"))
-            if is_ui_change(name, inp):
+            here = entry.get("cwd") or cwd  # where this call ran, not where the shell is at Stop
+            if is_ui_change(name, inp, here):
                 changed.append(str(inp.get("file_path", "")))
                 lint_ok = edge_ok = False
                 marked = carries_marks(inp, changed) or marked
             elif name == "Bash":
                 cmd = str(inp.get("command", ""))
-                writes = bash_ui_writes(cmd)
+                writes = bash_ui_writes(cmd, here)
                 if writes:
                     changed += writes
                     lint_ok = edge_ok = False
@@ -303,7 +372,8 @@ def tail_entries(path):
 def main():
     try:
         data = json.load(sys.stdin)
-        reason = decide(tail_entries(data["transcript_path"]), bool(data.get("stop_hook_active")))
+        reason = decide(tail_entries(data["transcript_path"]), bool(data.get("stop_hook_active")),
+                        str(data.get("cwd") or ""))
     except Exception:  # never break stopping
         sys.exit(0)
     if reason:

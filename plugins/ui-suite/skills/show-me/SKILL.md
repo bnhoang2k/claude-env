@@ -29,7 +29,9 @@ sits in a corner with no stated meaning.
    If a value is invented for the sketch, the legend says so.
 5. **Draw it.** Call `mcp__visualize__read_me` once, with the module for your preset:
    Results uses `chart` or `data_viz`, Options uses `elicitation` and `interactive`, Map uses
-   `diagram`. Pass platform `mobile` when the user follows from a phone. Then call
+   `diagram`. The two `mcp__visualize__` tools come with Claude's desktop app; where they are
+   missing, build the same picture as an HTML file (or with the Artifact tool) and say where it
+   is. Pass platform `mobile` when the user follows from a phone. Then call
    `mcp__visualize__show_widget`. Inline is the default, because it shows in the chat with no
    extra click. Use the Artifact tool when the user says "artifact" or "page", or wants to keep
    or share the result.

@@ -141,10 +141,6 @@ The user's own work. Copy the feel, not the layout: never copy an approved page'
   use when: wiring in a diagram
   take: orthogonal traces, 45° corners
   not for: nothing recorded
-- **impeccable overdrive** · overdrive, motion · ~/.claude/plugins/cache/impeccable/impeccable/*/skills/impeccable/reference/overdrive.md
-  use when: expressive, animated work on an Overdrive page
-  take: propose 2-3 distinct directions before building
-  not for: anything outside an Overdrive page, or a whole tool UI
 - **anatomy** · overdrive, explainer, motion, diagram · the figures:anatomy skill
   use when: a system should read as a real physical machine
   take: figures that show a system as a real physical machine, animated

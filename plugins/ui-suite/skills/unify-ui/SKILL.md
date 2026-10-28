@@ -1,6 +1,6 @@
 ---
 name: unify-ui
-description: "Use when the user asks to check or fix visual consistency across screens, says pages or components look different from each other, asks to merge duplicate components into shared blocks, and before any plan that touched UI is called done. Finds drift that lint allows (the same job built twice, one role with several looks, blocks missing from the catalog) and merges it through impeccable extract with their approval."
+description: "Use when the user asks to check or fix visual consistency across screens, says pages or components look different from each other, asks to merge duplicate components into shared blocks, and before any plan that touched UI is called done. Finds drift that lint allows (the same job built twice, one role with several looks, blocks missing from the catalog) and merges it into a shared block with their approval."
 ---
 
 # Unify a UI
@@ -37,20 +37,23 @@ Native stacks skip this section for now. Check one role with several tokens by g
 
 1. Build one local HTML page. For each drift group: the role, each look side by side as a real crop, its count and routes, and the proposed merge. The look to keep is the most common one unless DESIGN.md says otherwise.
 2. Make each crop from an example's `box` (page coordinates, in CSS pixels). Use it as-is with the scale-1 screenshot. Collect styles in a window at device scale 1 too, because layout at DPR 2 can shift boxes by a few pixels.
-   - Screenshot the route with headless Chrome. Use the example's `viewport` and `pageHeight`: `"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless --force-device-scale-factor=1 --hide-scrollbars --window-size=<viewport>,<pageHeight> --screenshot=<file>.png <url>`.
-   - Crop with `sips --cropOffset <y> <x> -c <height> <width> <file>.png --out <crop>.png`. Careful: sips takes Y before X, and height before width.
+   - Find Chrome: use `CHROME_PATH` if it is set; else the first of `command -v google-chrome chromium chromium-browser` that prints a path; else, on macOS, `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`. Call the result `$CHROME`. When none exists, stop and print the one line `needs Google Chrome or Chromium: set CHROME_PATH`.
+   - Screenshot the route with headless Chrome. Use the example's `viewport` and `pageHeight`: `"$CHROME" --headless --force-device-scale-factor=1 --hide-scrollbars --window-size=<viewport>,<pageHeight> --screenshot=<file>.png <url>`.
+   - Crop with `python3 "${CLAUDE_PLUGIN_ROOT}/skills/unify-ui/scripts/crop.py" <file>.png <x> <y> <width> <height> <crop>.png`. It takes x before y. It needs Pillow; when Pillow is missing it prints `needs Pillow: python3 -m pip install Pillow` and exits 3: stop and tell the user.
    - Embed the crops in the page.
 3. Serve it and open it in the browser pane.
 4. Ask the user with AskUserQuestion (multiSelect) which merges to do.
 
 ## 5. Merge
 
-For each chosen merge, run the `impeccable` skill with `extract`. Tell it:
-- the target is the component home from DESIGN.md, and the catalog entry is required;
-- two implementations of the same job is enough to merge (override its 3-use default);
-- ui-suite:ui-taste applies.
+Two implementations of the same job are enough to merge. For each chosen merge:
 
-The user approves the new block in the catalog. Then switch every old copy to it and delete the copies.
+1. Build the shared block in the component home from DESIGN.md. ui-suite:ui-taste applies.
+2. Add its catalog entry (Storybook: a `<Name>.stories.*` file beside it).
+3. Show the user the block and the list of copies, and wait for approval.
+4. Switch every copy to the shared block.
+5. Delete the copies.
+6. Re-run the screenshot pass (section 4) and the lint command (section 6).
 
 ## 6. Verify
 

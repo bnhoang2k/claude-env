@@ -70,6 +70,7 @@ export async function runGitleaks(dir) {
   } finally {
     rmSync(quiet, { recursive: true, force: true });
   }
+  if (r.error?.code === "ENOENT") throw new Error("needs gitleaks: https://github.com/gitleaks/gitleaks#installing");
   if (r.error) throw r.error;
   let hits;
   try { hits = JSON.parse(r.stdout); } catch { throw new Error("gitleaks output is not JSON"); }

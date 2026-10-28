@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """PreToolUse hook (matcher: Skill|Artifact|Edit|Write|MultiEdit): inject the user's UI taste rules.
 
-Fires when a design or figure skill loads (impeccable, artifact-design, any
+Fires when a design or figure skill loads (artifact-design, any
 taste-skill:* skill, design:*, ui-taste, anatomy, anatomy-reveal,
 explain-as-machine, hairline-create; each also as <plugin>:<skill>, such as
 ui-suite:ui-taste), when the Artifact tool starts or publishes a page, or when a
@@ -37,7 +37,7 @@ TASTE_DIR = os.path.join(PLUGIN_ROOT, "skills", "ui-taste")  # the plugin's read
 LIVE_DIR = os.path.join(HOME, ".claude", "taste")  # the user's live taste; read first
 STATE_DIR = os.path.join(HOME, ".claude", "state", "ui-taste")
 DESIGN_SKILL = re.compile(
-    r"(impeccable|artifact-design|^taste-skill:|^design:"
+    r"(artifact-design|^taste-skill:|^design:"
     r"|(^|:)(ui-taste|anatomy|anatomy-reveal|explain-as-machine|hairline-create)$)"
 )
 ARTIFACT_ACTIONS = {"publish", "quickstart"}

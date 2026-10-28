@@ -13,14 +13,24 @@ for (const file of readdirSync(src)) {
   groups.get(m[1]).push(join(src, file));
 }
 const keys = [...groups.keys()].sort();
-if (!keys.length) throw new Error(`no sub-frames in ${src}: run node motion/render.mjs blur ${src} first`);
-const run = (cmd, args) =>
+if (!keys.length) {
+  console.error(`no sub-frames in ${src}: run node motion/render.mjs blur ${src} first`);
+  process.exit(2);
+}
+// A tool that is missing or cannot run ends the run with one line and exit 3, not a stack trace.
+const NEEDS = { magick: "ImageMagick 7 (the magick command)", ffmpeg: "ffmpeg" };
+const run = (tool, cmd, args) =>
   new Promise((ok, fail) => {
     const p = spawn(cmd, args, { stdio: "inherit" });
-    p.on("error", fail);
+    p.on("error", (e) => {
+      if (e.code !== "ENOENT" && e.code !== "EACCES") return fail(e);
+      const why = e.code === "ENOENT" ? "was not found" : "is not an executable file";
+      console.error(`needs ${NEEDS[tool]}: \`${cmd}\` ${why}; run node scripts/preflight.mjs for where to get it`);
+      process.exit(3);
+    });
     p.on("close", (code) => (code ? fail(new Error(`${cmd} exited with ${code}`)) : ok()));
   });
-const magick = process.env.MAGICK ?? "magick";
+const magick = process.env.MAGICK || "magick";
 let next = 0;
 const worker = async () => {
   while (next < keys.length) {
@@ -28,11 +38,11 @@ const worker = async () => {
     const files = groups.get(key).sort();
     const target = join(avg, `f_${key}.png`);
     if (files.length === 1) copyFileSync(files[0], target);
-    else await run(magick, [...files, "-evaluate-sequence", "mean", target]);
+    else await run("magick", magick, [...files, "-evaluate-sequence", "mean", target]);
   }
 };
 await Promise.all(Array.from({ length: Math.max(2, Math.min(8, cpus().length)) }, worker));
-await run(process.env.FFMPEG ?? "ffmpeg", [
+await run("ffmpeg", process.env.FFMPEG || "ffmpeg", [
   "-v",
   "error",
   "-y",

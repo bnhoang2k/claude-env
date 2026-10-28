@@ -11,7 +11,12 @@
 # reaches less far forward than the belly, cannot touch what sits on that surface.
 # It assumes the figure faces glTF +Z (Blender -Y). Pass --flip if it faces the other way.
 import sys
-import bpy
+
+try:
+    import bpy
+except ImportError:
+    print('run this inside Blender: blender --background --python measure_actor.py -- ACTOR.glb [--hands hand.L,hand.R] [--pose stand]')
+    sys.exit(3)
 
 args = sys.argv[sys.argv.index('--') + 1:]
 path = args[0]

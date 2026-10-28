@@ -86,7 +86,7 @@ of every retry."
 | Writing a report file | Answer in chat. Write a doc only if the user asks |
 
 ## Not for
-- A long, multi-source, narrative report: use `anthropic-skills:deep-research`.
+- A long, multi-source, narrative report: use `anthropic-skills:deep-research`. It is built in to some Claude apps and has no install id; without it, search the web directly and write the answer in chat.
 - A choice between options already named, with no outside facts needed: give a short
   tradeoff and a stated pick in chat.
 - How this repo's own code works: read the code, or use `ui-suite:explain-as-machine` for a picture.

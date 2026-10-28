@@ -83,5 +83,7 @@ Next step: <one action>
 - A bug with a known cause and a clear repro: fix it (see `superpowers:systematic-debugging`).
 - A plain code test: use `superpowers:test-driven-development`.
 - Researching what others found: use `anthropic-skills:deep-research`.
+
+The pointers above are optional. Needs Superpowers: `superpowers@claude-plugins-official`, for `superpowers:systematic-debugging` and `superpowers:test-driven-development` only; without it, find the cause and write the test by hand. `anthropic-skills:deep-research` is built in to some Claude apps and has no install id; without it, search the web directly.
 - A project's own memories (its prompt-balance notes, its judge calibration) stay in that
   project. Read them as worked examples, and do not copy them here.

@@ -28,8 +28,9 @@ formatting, pings) and gets a cheap one. Pick the tier by the stage's shape, not
 4. **Write the `// TIERS:` block.** Every inline Workflow script carries one line per stage:
    `<stage> -> <model> (reasoning|mechanical: <one-clause why>)`. The launch message restates it
    with the worst-case units and headcount. A script with a missing block, a missing model
-   pin, or a Fable pin is not ready to launch (a user may run a hook that denies these; do
-   not rely on one). "Mechanical" next to an opus pin, or
+   pin, or a Fable pin is not ready to launch (the `workflow-tier-gate` hook in this plugin denies a missing
+   model pin always, a missing block when `WORKFLOW_GATE_TIERS` is `1` or `true`, and a Fable
+   pin when `WORKFLOW_GATE_FABLE` is `1` or `true`; do not rely on it). "Mechanical" next to an opus pin, or
    "reasoning" next to a sonnet pin, is a contradiction.
 5. **Pin `model` on every `agent()` call.** The orchestrator may run on Opus as often as Fable, so
    inheriting silently means "Opus everywhere" — the absence of a decision, not one. Pinning
@@ -77,6 +78,8 @@ implementation subagents in parallel (conflicts)."* That ban names the right haz
 wrong scope: the conflict is a shared working tree, not parallelism. Overlapping file sets get
 a worktree each (`superpowers:using-git-worktrees`) or a serial wave. Task reviewers are always
 parallel with each other; they only read.
+
+Needs Superpowers: `superpowers@claude-plugins-official`, for the two skills named above only. Without it, the wave rules in this section still hold: give overlapping file sets a `git worktree` each, or run them one after another.
 
 ## Watching children
 
@@ -174,7 +177,7 @@ Each rule is kept short; the evidence lives here.
   then wrong when that task starts.
 - **Subagents skip the full gates.** Many subagents each running the full suite for several
   minutes is nearly all redundant.
-- **Foreground gates in subagents** (a hook can enforce this). An implementer started the
+- **Foreground gates in subagents** (the `subagent-bg-gate` hook in this plugin enforces this). An implementer started the
   test suite in the background and waited hours for a notice that never came. SDD runs one
   task at a time, so the orchestrator sat idle too.
 - **Probe silent children.** A dead fix-round agent went unnoticed for over an hour. A user
@@ -182,6 +185,6 @@ Each rule is kept short; the evidence lives here.
 - **Opus refuters, and the TIERS labels.** The `// TIERS:` labels were once
   `bounded|open-ended`, and "verify one claim" was filed as bounded. That misfile kept
   producing sonnet refuters.
-- **Agent model pins** (a hook can enforce this). Two Explore recon agents
+- **Agent model pins** (the `agent-model-gate` hook in this plugin enforces this; `WORKFLOW_GATE_FABLE` adds the Fable-approval check). Two Explore recon agents
   dispatched with no pin silently inherited the most expensive model. The Workflow-only gate had a hole where
   the Agent tool's own description says "omit and inherit".

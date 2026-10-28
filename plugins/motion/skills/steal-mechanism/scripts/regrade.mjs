@@ -13,6 +13,10 @@ if (!bar || slugs.length === 0) {
   console.error('usage: node regrade.mjs <bar-home> <slug> [<slug> ...]')
   process.exit(2)
 }
+if (!fs.existsSync(bar)) {
+  console.error(`no such folder: ${bar}`)
+  process.exit(2)
+}
 const reviewsPath = path.join(bar, 'reviews.json')
 const historyPath = path.join(bar, 'reviews-history.json')
 const reviews = JSON.parse(fs.readFileSync(reviewsPath, 'utf8'))

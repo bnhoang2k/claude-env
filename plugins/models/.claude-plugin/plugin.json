@@ -1,7 +1,7 @@
 {
   "name": "models",
   "description": "Check 3D models and rooms for geometry and layout defects before they ship",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": {
     "name": "claude-env maintainers"
   }

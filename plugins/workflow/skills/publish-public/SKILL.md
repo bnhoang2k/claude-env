@@ -5,13 +5,24 @@ description: 'Use when publishing or releasing a kit to its public repo ("publis
 
 # Publish to a public repo
 
-Each public kit has a private twin repo (the private repo that its public repo is exported from) and a separate notes repo. All code work happens in the twin. Specs, plans and research live in the notes repo, never in the twin: a run fails when the twin has a `docs/` folder. The public repo gets only commits that this tool makes.
+Each public kit has a private twin repo (the private repo that its public repo is exported from) and a separate notes repo. All code work happens in the twin. Specs, plans and research live in the notes repo, never in the twin: **a run fails when the twin has a `docs/` folder.** Move it to the notes repo first. The public repo gets only commits that this tool makes.
 
 ## When to use
 
 - The user asks to publish or release a kit.
 - The user asks for a new public repo.
 - A kit repo must join the system.
+
+## What you need first
+
+Check these before the first run. Each missing one stops a run partway, after the slow steps.
+
+- Node, and `pnpm` (https://pnpm.io/installation). The build step runs `pnpm install --frozen-lockfile`, `pnpm build` and `pnpm test` in a copy of the export.
+- In the private repo, a `package.json` with a semver `version`, a `build` script and a `test` script, and no `prepare` script.
+- `gitleaks` on the PATH (https://github.com/gitleaks/gitleaks#installing). The secret scan runs the `gitleaks` command on every file.
+- The `claude` command (Claude Code's CLI), logged in, with access to the opus model. The blind reviewer runs `claude -p --model opus` (see "Cost").
+- Five items in the config folder (see "Your config folder"): `deny/base.json`, `deny/base.samples.json`, `plants.json`, `identity.json` and `hooks/`. Without them a run stops with `no deny rules configured`.
+- A `publish.json` in the private repo (see "A new repo joins"). `data/publish.json.example` shows the shape.
 
 ## The one command
 
@@ -55,13 +66,13 @@ The first line shows the seed. To repeat a run with the same plants, add `--seed
 ## A new repo joins
 
 1. Make a separate notes repo for the kit, a sibling of the private twin. Move any `docs/` folder from the twin into it.
-2. Add `publish.json` to the private repo and commit it. The tool reads it from the last commit. It names the public remote, the clone path, `allow`, `keep`, `versionFrom` and `identity`, and may name an `exportHook`, `deny` and `dist`. It holds no other field: an unknown one fails the run. It holds no private names. The `identity` must equal `identity.json` in your config folder (see "Your config folder"). `deny` lists the deny sets to scan with, such as `["base", "kit"]`. It defaults to `["base"]`. Set `"dist": false` for a repo used straight from its source, such as a plugin marketplace: the build then only checks the repo, and a build that writes `dist/` fails the run. A `keep` pattern may not use braces, brackets, backslashes or extglobs.
+2. Add `publish.json` to the private repo and commit it (start from `data/publish.json.example`; replace every `example-org` and `Jane Example` value). The tool reads it from the last commit. It names the public remote, the clone path, `allow`, `keep`, `versionFrom` and `identity`, and may name an `exportHook`, `deny` and `dist`. It holds no other field: an unknown one fails the run. It holds no private names. The `identity` must equal `identity.json` in your config folder (see "Your config folder"). `deny` lists the deny sets to scan with, such as `["base", "kit"]`. It defaults to `["base"]`. Set `"dist": false` for a repo used straight from its source, such as a plugin marketplace: the build then only checks the repo, and a build that writes `dist/` fails the run. A `keep` pattern may not use braces, brackets, backslashes or extglobs.
    An `exportHook` is a committed command, as a list (`["node", "scripts/trim.mjs"]`), for files that publish only on a condition the allowlist cannot express. It runs without a shell in the committed tree, with nothing installed, and gets the export folder as its last argument. It may delete or rewrite exported files, never add one. Every check reads the trimmed export.
 3. Run `node "${CLAUDE_PLUGIN_ROOT}/skills/publish-public/scripts/install-guards.mjs" dev <privateRepo>`.
 4. Run `node "${CLAUDE_PLUGIN_ROOT}/skills/publish-public/scripts/install-guards.mjs" public <privateRepo>`. It clones the public remote if the clone is missing.
 5. Each GitHub change (create, rename, visibility, settings) needs the user's yes.
 
-The dev hooks scan staged lines and commit messages against the repo's deny sets. Both installs set `core.hooksPath`, and write `scripts-dir` in your config folder so the hooks find the scripts. A hook that cannot find it refuses with `scripts-dir missing; re-run install-guards`. That puts both repos under the hooks-bypass gate, so Claude cannot skip hooks there.
+The dev hooks scan staged lines and commit messages against the repo's deny sets. Both installs set `core.hooksPath`, and write `scripts-dir` in your config folder so the hooks find the scripts. The path holds the plugin version, so after a plugin update the hooks take the newest version folder beside it. A hook that finds no scripts refuses with `the publish tool moved: re-run install-guards`. That puts both repos under the hooks-bypass gate, so Claude cannot skip hooks there.
 
 ## Waivers
 
@@ -87,8 +98,25 @@ Your personal data lives outside the skill, in `~/.claude/publish-public/` (or t
 - `plants.json`: the pool of fake leaks the blind reviewer must find.
 - `identity.json`: the one public name and email.
 - `hooks/`: the guard hooks, and `scripts-dir`, written by install-guards.
+- `blind-markers.json` (optional): see "Blindness markers" below.
 
-`data/deny.example.json`, `deny-samples.example.json`, `plants.example.json` and `identity.example.json` in this skill show the shape with neutral placeholders. Copy them into your config folder and edit them. A missing config folder or set stops the run with `no deny rules configured`.
+`data/deny.example.json`, `deny-samples.example.json`, `plants.example.json` and `identity.example.json` in this skill show the shape with neutral placeholders. Build the folder once, then edit the copies (never the examples in the plugin folder):
+
+    D="${CLAUDE_PLUGIN_ROOT}/skills/publish-public/data"
+    H="${PUBLISH_PUBLIC_HOME:-$HOME/.claude/publish-public}"
+    mkdir -p "$H/deny" "$H/hooks"
+    cp "$D/deny.example.json" "$H/deny/base.json"
+    cp "$D/deny-samples.example.json" "$H/deny/base.samples.json"
+    cp "$D/plants.example.json" "$H/plants.json"
+    cp "$D/identity.example.json" "$H/identity.json"
+    cp -R "$D/hooks/." "$H/hooks/"
+    chmod +x "$H/hooks/dev/pre-commit" "$H/hooks/dev/commit-msg" "$H/hooks/public/pre-push"
+
+A missing config folder or set stops the run with `no deny rules configured`.
+
+### Blindness markers
+
+Each run checks that the reviewer is blind: it asks the reviewer to repeat everything it was given before the question, and fails the run if the answer shows your private context. The check already looks for your deny rules and for the word `superpowers`. If your own session hooks or plugins print a recognisable phrase (a banner, a plugin name), list it in `blind-markers.json`: a JSON list of regular expressions, matched in any case. `data/blind-markers.example.json` holds one placeholder, `["MY-HOOK-BANNER"]`. Copy it to `blind-markers.json` and replace the placeholder with your own phrase. Without the file, only the built-in checks run.
 
 To scan any folder by hand: `node "${CLAUDE_PLUGIN_ROOT}/skills/publish-public/scripts/deny.mjs" scan <dir> --sets base,kit`. It prints `file:line: rule` and exits 1 on a finding.
 

@@ -54,28 +54,28 @@ def skill_name(name, inp):
     return str(inp.get("skill", "")).rsplit(":", 1)[-1]  # "plugin:break-ui" counts as break-ui
 
 
-def is_model_change(name, inp):
+def is_model_change(name, inp, cwd=""):
     if name in BLENDER_CHANGES:
         return True
     if name in lint.EDIT_TOOLS:
         path = str(inp.get("file_path", ""))
-        return bool(MODEL_EXT.search(path)) and not lint.is_temp_write(path)
+        return bool(MODEL_EXT.search(path)) and not lint.is_temp_write(path, cwd=cwd)
     if name == "Bash":
         cmd = str(inp.get("command", ""))
-        real = lambda p: MODEL_EXT.search(p) and not lint.is_temp_write(p, cmd)
+        real = lambda p: MODEL_EXT.search(p) and not lint.is_temp_write(p, cmd, cwd)
         if any(real(p) for p in lint.REDIRECT.findall(cmd)):
             return True
         return bool(lint.WRITER.search(cmd)) and any(real(t) for t in lint._tokens(cmd))
     return False
 
 
-def is_ui_change(name, inp):
-    if lint.is_ui_change(name, inp):
+def is_ui_change(name, inp, cwd=""):
+    if lint.is_ui_change(name, inp, cwd):
         return True
-    return name == "Bash" and bool(lint.bash_ui_writes(str(inp.get("command", ""))))
+    return name == "Bash" and bool(lint.bash_ui_writes(str(inp.get("command", "")), cwd))
 
 
-def missing_skills(entries):
+def missing_skills(entries, cwd=""):
     """Break skills that never ran after the first change that needs them."""
     ui_seen = model_seen = False
     ran_after = set()
@@ -89,9 +89,10 @@ def missing_skills(entries):
                 if model_seen and skill in MODEL_SKILLS:
                     ran_after.add(skill)
                 continue
-            if is_ui_change(name, inp):
+            here = entry.get("cwd") or cwd  # where this call ran, not where the shell is at Stop
+            if is_ui_change(name, inp, here):
                 ui_seen = True
-            if is_model_change(name, inp):
+            if is_model_change(name, inp, here):
                 model_seen = True
     need = (list(UI_SKILLS) if ui_seen else []) + (list(MODEL_SKILLS) if model_seen else [])
     return [s for s in need if s not in ran_after]
@@ -105,10 +106,10 @@ def reason_for(missing):
             f"The user can say \"{SKIP}\" to bypass.")
 
 
-def decide(entries, stop_hook_active, last_user_text):
+def decide(entries, stop_hook_active, last_user_text, cwd=""):
     if stop_hook_active or SKIP in (last_user_text or "").lower():
         return None
-    missing = missing_skills(entries)
+    missing = missing_skills(entries, cwd)
     return reason_for(missing) if missing else None
 
 
@@ -134,7 +135,8 @@ def main():
     try:
         data = json.load(sys.stdin)
         path = os.path.expanduser(data.get("agent_transcript_path") or data["transcript_path"])
-        reason = decide(session_entries(path), bool(data.get("stop_hook_active")), last_user_text(path))
+        reason = decide(session_entries(path), bool(data.get("stop_hook_active")),
+                        last_user_text(path), str(data.get("cwd") or ""))
     except Exception:  # never break stopping
         sys.exit(0)
     if reason:

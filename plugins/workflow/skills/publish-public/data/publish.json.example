@@ -1,0 +1,25 @@
+{
+  "public": {
+    "remote": "https://github.com/example-org/my-kit.git",
+    "clone": "../my-kit"
+  },
+  "allow": [
+    ".claude-plugin/",
+    "plugins/",
+    "README.md",
+    "LICENSE",
+    "package.json"
+  ],
+  "keep": [
+    "plugins/**/captures/**"
+  ],
+  "versionFrom": "package.json",
+  "deny": [
+    "base"
+  ],
+  "identity": {
+    "name": "Jane Example",
+    "email": "jane-example@users.noreply.github.com"
+  },
+  "dist": false
+}

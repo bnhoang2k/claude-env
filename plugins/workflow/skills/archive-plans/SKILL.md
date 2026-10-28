@@ -7,6 +7,10 @@ description: Use immediately after completing any task that had a Superpowers sp
 
 When the current project has a sister "brain" repo (e.g. `myapp` ↔ `myappBrain`), specs and plans live in the brain, not the code repo.
 
+Needs Superpowers: `superpowers@claude-plugins-official`. Its brainstorming and planning skills write the specs and plans this skill files. Without it, this skill still files any spec and plan the user names.
+
+With no notes repo, keep specs and plans in the project at `docs/superpowers/{specs,plans,Archive}` and move finished ones into `Archive/`. `workflow:new-project` scaffolds that layout, or a full notes repo. For a repo you publish with `workflow:publish-public`, use a notes repo instead: that skill refuses a twin repo that has a `docs/` folder.
+
 After completing any task that had a Superpowers spec or plan:
 
 ### 1. Archive the spec and plan
