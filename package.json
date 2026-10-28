@@ -1,6 +1,6 @@
 {
   "name": "claude-env",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "scripts": {
     "build": "claude plugin validate . && for p in plugins/*/; do claude plugin validate \"$p\" || exit 1; done",

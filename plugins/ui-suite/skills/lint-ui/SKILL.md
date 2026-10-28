@@ -35,17 +35,17 @@ Fix the interface, never the policy. Do not add `exceptions` beyond the built-in
 
 ## 3. Text-edge check (required, no marks needed)
 
-It finds text blocks stacked in one column whose left edges almost line up: more than 1px apart, at most 32px. The usual cause is an icon, dot or avatar placed before the text, or padding on some items only. It ignores centered and right-aligned text, `text-indent`, list markers, svg text, and an indent that repeats on both sides with nothing in the gap and no nested list or quote behind it.
+It checks both edges. Left: text blocks stacked in one column whose left edges almost line up. Right: text blocks at the right end of their row (right-aligned, or the last item of a `justify-between` or `flex-end` row) whose right edges almost line up. "Almost" means more than 1px apart, at most 32px. The usual cause is an icon, dot or avatar beside the text, or padding on some items only (a ghost button with 10px padding above values that end flush right). It compares where the text ends, not the box. It ignores centered text, `text-indent`, list markers, svg text, and an indent that repeats on both sides with nothing in the gap and no nested list or quote behind it. For the right edge it also skips text that wraps to several lines, unless it is right-aligned.
 
 Run it headless, from the project folder, with the page served (or an `.html` path):
 
 `npx -y -p lintapple@0.1.20 node ${CLAUDE_PLUGIN_ROOT}/skills/lint-ui/text-edge-auto.mjs http://localhost:8765/page.html`
 
-It loads the page at 390px and 1440px, prints `Text edges: 0 near-misses` on success, and otherwise `Text edges: N near-misses` followed by each group's edges and items. Exit 0 is a pass, 1 is findings, 2 means the check did not finish, which is not a pass. Add `--ready '<selector>'` for a page that loads late. Keep the first output line in what the command prints; the gate reads it.
+It loads the page at 390px and 1440px, prints `Text edges: 0 near-misses` on success, and otherwise `Text edges: N near-misses` followed by each group's edges and items ("text starts at Apx and Bpx" or "text ends at Apx and Bpx"). Exit 0 is a pass, 1 is findings, 2 means the check did not finish, which is not a pass. Add `--ready '<selector>'` for a page that loads late. Keep the first output line in what the command prints; the gate reads it.
 
 Or paste the whole of `text-edge-auto.js` into `javascript_tool` in the browser pane, at 390px and 1440px width (`resize_window`). It returns `{check: 'textEdgeAutoV1', line: 'Text edges: 0 near-misses', findings: []}`. Keep that result in view.
 
-Fix a near-miss by moving the text, never the check. Put the icon after the text, hang it in the margin (absolute, negative left), or give every item in the column the same lead. Do not add padding to the others to match, and do not hide the item from the check.
+Fix a near-miss by moving the text, never the check. Put the icon after the text, hang it in the margin (absolute, negative left), or give every item in the column the same lead. For padding on the right end (a ghost button), hang it with a negative right margin equal to the padding. Do not add padding to the others to match, and do not hide the item from the check.
 
 `text-edge.js` still reads marked groups (`data-ui-align`, `data-ui-align-item`) in the browser pane and returns `aligned` per group. Use it when you want a group's exact edges. It does not replace the automatic check.
 
@@ -59,8 +59,8 @@ State the routes, states and viewports checked; the ruler's final exit code and 
 |---|---|
 | Ruler, no marks | text size, font, contrast (light and dark), control size, gap between buttons, icon-button tooltips, off-screen and sideways scroll, banned phrases |
 | Ruler, with marks | box alignment, text overflowing its box, tabular digits, button padding in a container, concentric corners |
-| Text-edge (automatic) | text start of stacked blocks off a shared edge by 1 to 32px: icon before text, padding on some items |
+| Text-edge (automatic) | text start of stacked blocks, and text end of blocks at the end of a row, off a shared edge by 1 to 32px: icon beside text, padding on some items |
 | Text-edge, marked groups | the exact text start of each marked group |
 | Copy pass | redundant, instructional or mislabeled text |
 
-Adapted from lintapple (github.com/gholtzap/lintapple, MIT, see `LICENSE`), version 0.1.20. Measured: on a seeded page, a fresh agent using this skill went from 186 findings to `Passed: 0 UI findings across 4 page checks.` and cut all 4 seeded copy faults. The ruler passed a 6px padding offset that `text-edge.js` caught (`[340,346,340]`). The ruler also passes a page with a 16px icon before each heading, which puts the text 24px off the heading's edge; `text-edge-auto.mjs` fails it, and passes the same page with the icon after the text or hung in the margin.
+Adapted from lintapple (github.com/gholtzap/lintapple, MIT, see `LICENSE`), version 0.1.20. Measured: on a seeded page, a fresh agent using this skill went from 186 findings to `Passed: 0 UI findings across 4 page checks.` and cut all 4 seeded copy faults. The ruler passed a 6px padding offset that `text-edge.js` caught (`[340,346,340]`). The ruler also passes a page with a 16px icon before each heading, which puts the text 24px off the heading's edge; `text-edge-auto.mjs` fails it, and passes the same page with the icon after the text or hung in the margin. It also fails a ghost button with 10px padding at the right end of a heading above right-aligned values (text ends 10px apart), and passes it with `margin-right: -10px`.

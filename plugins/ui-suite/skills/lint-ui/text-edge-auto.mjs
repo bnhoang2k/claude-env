@@ -1,5 +1,6 @@
 // Headless runner for text-edge-auto.js. Needs no marks on the page.
 //   npx -y -p lintapple@0.1.20 node ${CLAUDE_PLUGIN_ROOT}/skills/lint-ui/text-edge-auto.mjs <url-or-html-path> [--ready '<selector>']
+// Checks left text edges of stacked blocks and right text edges of blocks at the end of a row.
 // Loads the page at 390px and 1440px wide (as lintapple does), runs the detector in each,
 // prints the first line "Text edges: N near-misses", then the findings.
 // Exit 0 = no near-misses. 1 = near-misses. 2 = the check did not finish (not a pass).
@@ -49,8 +50,9 @@ try {
     if (!res || res.check !== 'textEdgeAutoV1') fail('The detector returned nothing.');
     total += res.findings.length;
     for (const f of res.findings) {
-      report.push(`${width}px  ${f.container}: ${f.cause}; text starts at ${f.edges[0]}px and ${f.edges[1]}px (${f.offsetPx}px apart)`);
-      for (const it of f.items) report.push(`    ${it.textLeft}px  ${it.element}  "${it.text}"`);
+      const verb = f.side === 'right' ? 'ends' : 'starts';
+      report.push(`${width}px  ${f.container}: ${f.cause}; text ${verb} at ${f.edges[0]}px and ${f.edges[1]}px (${f.offsetPx}px apart)`);
+      for (const it of f.items) report.push(`    ${f.side === 'right' ? it.textRight : it.textLeft}px  ${it.element}  "${it.text}"`);
     }
   }
 } catch (e) {

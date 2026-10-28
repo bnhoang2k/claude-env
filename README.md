@@ -12,6 +12,10 @@ claude plugin marketplace add bnhoang2k/claude-env
 claude plugin install bnhoang2k@claude-env
 ```
 
+Or install one plugin instead of the bundle: `claude plugin install ui-suite@claude-env` (also `motion`, `models`, `figures`, `workflow`).
+
+Turn on updates: in Claude Code, open `/plugin`, go to Marketplaces, pick `claude-env` and choose Enable auto-update. It covers every plugin you installed from it.
+
 Then work as usual. Each skill loads when the task needs it, and the hooks run on their own. Call one by name, such as `/ui-suite:lint-ui`.
 
 ## Design with your taste

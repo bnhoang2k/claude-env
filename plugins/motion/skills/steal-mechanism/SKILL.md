@@ -40,6 +40,16 @@ clone, which makes `node_modules`), and a Node version inside the kit's `package
 `engines.node` range. Plain `node` runs the kit's `.ts` files only on versions that strip types by
 default, so the range is the rule; preflight compares it with the Node it runs on.
 
+When `needs motion-kit checkout` is one of the lines, offer to fix it before you stop. Ask the user
+one question: clone the public kit or their own fork (a fork if they want to push their bars), and
+into which folder. Default to `$PROJECTS_ROOT/motion-kit` when `PROJECTS_ROOT` is set (intake finds it
+there with no variable), else `~/motion-kit`. Never clone without their yes. On yes, run
+`git clone <url> <folder>`, then `pnpm install` in it when `pnpm` is present. Unless the folder is
+`$PROJECTS_ROOT/motion-kit`, tell the user how to set `MOTION_KIT` for good: add
+`"MOTION_KIT": "<folder>"` to the `env` block of `~/.claude/settings.json` (it takes effect in the
+next session), or export it in their shell profile. In this session, prefix each command with
+`MOTION_KIT=<folder>`. Then run preflight again.
+
 ## Launch
 
 Launch in two steps. The Workflow script has no filesystem and no environment, so a small Node
@@ -132,6 +142,11 @@ The bar home is the `barHome` folder resolved at launch (see above).
 4. When it ends, clean the run's pages (see "After every run"). If your bar home has
    `gen-index.mjs`, run `node gen-index.mjs` in it, start a local preview that serves the bar pages, and tell the user which pages to grade. Otherwise tell the user which
    pages to grade by hand (see "The review page is not part of this plugin").
+   Either way, let the user try each page, not only watch the video: serve the bar home over
+   localhost (`python3 -m http.server <free port> --bind 127.0.0.1` in it; pick a port nothing
+   listens on) and open two browser tabs, the imitation (`http://127.0.0.1:<port>/<slug>/index.html`)
+   and the original (its `url` from `refs.json`). Say which tab is which. The in-app browser pane
+   refuses `file://`, so a local file shows blank there. Stop the server once the user has graded.
 
 Each page folder gets `study.md`, `trace-original.json`, `index.html`, `notes.md` and
 `compare.json`. It also gets `capture/side-by-side.mp4` and `capture/strip.jpg`, which are git-ignored.
@@ -165,6 +180,15 @@ is yours, one bar at a time.
    input kind; the agent returns `blocked` for those. With the public kit, choreo and sim bars
    cannot pass `validate-bar` yet (no `KNOB_FIELDS` key for those kinds): list them as left out,
    like a hover or a tilt.
+   Screen each slug before you spend an agent, from its `study.md` Input and Feel sections and its
+   `trace-original.json`. With the public kit, leave out a page that (a) answers a hovering pointer
+   (`input.samples` have no press, `down` 0, from the first sample), even when a press also fires
+   something: the live gate judges the first press, and finds none; or (b) has feel numbers that
+   are not one of the four `KNOB_FIELDS` keys (a first-order ease, a trail life or a one-shot pulse
+   fits none: only a spring release, an idle period or a scroll smoothing does). Say which rule
+   left it out. A stranger's first hover page costs an agent for nothing otherwise (seen on a
+   hover-and-press page: `engine-gap`, gate lines `follows: no value moves` and `regrab: cannot
+   aim a regrab`, then `unknown knob "live.trail"`).
    The first time, run 3 (one per launchable kind: live, idle, scroll) and show the user before the rest.
 2. **State the cost:** **2 units and 2 agents per bar** (Intake and Check, both opus), or **1 unit
    and 1 agent** with `"lean": true`. Lean drops the Check agent, reads one finished bar of the
