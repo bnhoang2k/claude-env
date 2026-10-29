@@ -1,6 +1,6 @@
 ---
 name: blind-panel
-description: Use when the user asks for blind reviewers on a spec, plan, design, script or finished change ("send blind reviewers", "get three blind reviewers", "have blind reviewers check the plan", "see what they agree on", "do a quadruple check", "look for blind assumptions", "what did the original agent assume or make up?", "make sure it didn't change more than it needed to"). Runs one panel per artifact and returns an agreement table. Not for a correctness review of a code diff (use code-review), UI breakage (use ui-suite:break-ui), 3D models (use models:break-models), the leak review before a public push (use workflow:publish-public), or a second round on an artifact that already had its panel.
+description: Use when the user asks for blind reviewers on a spec, plan, design, script or finished change ("send blind reviewers", "get three blind reviewers", "have blind reviewers check the plan", "see what they agree on", "do a quadruple check", "look for blind assumptions", "what did the original agent assume or make up?", "make sure it didn't change more than it needed to"). Runs one panel per artifact as one ultracode Workflow and returns an agreement table. Not for a correctness review of a code diff (use code-review), UI breakage (use ui-suite:break-ui), 3D models (use models:break-models), the leak review before a public push (use workflow:publish-public), or a second round on an artifact that already had its panel.
 ---
 
 # Blind panel
@@ -17,6 +17,19 @@ Only on the user's explicit ask. Do not start a panel on your own. The panel cou
 
 If the user asks for blind reviewers on a spec and later on its plan, those are two artifacts and two panels. That is fine.
 
+**The call is an ultracode opt-in.** Run the whole panel as one Workflow script, never as separate background Agent calls. Separate agents leave the verify step to the author, who is the one person a blind panel exists to route around; a script puts adversarial verification in the same run.
+
+## The workflow
+
+Four stages, one script:
+
+1. **Find** (barrier): the N reviewers, the assumption hunter and the scope check, in one `parallel()`. Each returns findings through a schema (`claim`, `quote`, `severity`, `context_seen`).
+2. **Merge** (one opus agent): groups the findings by meaning, counts who raised each, and drops any finding with no quote or symbol and any reviewer whose `context_seen` names the plan or the chat. It needs every finding at once, which is why stage 1 is a barrier.
+3. **Verify** (refuters): for each merged Broken finding, two opus refuters; for each other singleton, one. Each reads the cited place in the artifact (and the code, for a plan or a change) and tries to refute the claim. A finding survives when no refuter refutes it. Cap this stage at 10 units with an explicit `.slice()`, and `log()` every finding the cap dropped; the author checks those by hand.
+4. **Return** the merged rows with their votes and verdicts. The author builds the agreement table from that.
+
+Worst case at N=3: `4.5 (find) + 1 (merge) + 10 (verify) = 15.5 units, 15 agents`. State it, with the `// TIERS:` block, in the launch message.
+
 ## Before launch
 
 1. **Load `workflow:workflow-fanout-budget`.** Do this before you write any launch call.
@@ -26,7 +39,7 @@ If the user asks for blind reviewers on a spec and later on its plan, those are 
 5. **State the worst case in the launch message.** Default N=3:
    `3 opus reviewers + 1 opus assumption hunter + 1 sonnet scope check = 4.5 units, 5 agents`.
    N=4 is 5.5 units. Never go above N=5. Cap the list with an explicit slice.
-6. **Pin `model` on every agent.** Reviewers and the assumption hunter run on opus, because review strength catches bugs. The scope check compares a diff to a request and runs on sonnet. Write the `// TIERS:` line if you use a Workflow script.
+6. **Pin `model` on every agent.** Reviewers and the assumption hunter run on opus, because review strength catches bugs. The scope check compares a diff to a request and runs on sonnet. The merge agent and the refuters judge, so they run on opus. Write the script's `// TIERS:` block.
 7. **Check the sandbox.** Copy the frozen artifact into the scratchpad and give reviewers only that path. A subagent starts in the project cwd, where CLAUDE.md, plan docs and design notes can leak the author's reasoning. Tell them not to read git log, commit messages, chat transcripts, plan history, memory files or sibling review notes. Ask each reviewer to start its findings with one line that states what context it could see. Drop a reviewer that names the plan or the chat.
 
 ## The panel
@@ -60,7 +73,7 @@ When all agents return, merge their findings by meaning, not by wording. Build o
 
 Group the rows in three blocks: **agreed** (most reviewers), **split** (some reviewers, some silent or opposed), **singletons** (one reviewer). Put the assumption hunter and scope check rows in their own block, since they work from a different brief.
 
-Do not just count votes. A singleton that cites a real line is worth more than three vague agreements. Verify each singleton and each Broken finding yourself by reading the cited place. Mark it "verified" or "not reproduced".
+Do not just count votes. A singleton that cites a real line is worth more than three vague agreements. The verify stage marks each singleton and each Broken finding "verified" or "not reproduced"; read the refuters' reasons, and check by hand any finding the cap dropped.
 
 The **author response** is yours, and it comes after the table. For each row pick one:
 
