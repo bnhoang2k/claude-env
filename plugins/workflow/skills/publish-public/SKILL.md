@@ -17,8 +17,10 @@ Each public kit has a private twin repo (the private repo that its public repo i
 
 Check these before the first run. Each missing one stops a run partway, after the slow steps.
 
-- Node, and `pnpm` (https://pnpm.io/installation). The build step runs `pnpm install --frozen-lockfile`, `pnpm build` and `pnpm test` in a copy of the export.
-- In the private repo, a `package.json` with a semver `version`, a `build` script and a `test` script, and no `prepare` script.
+- Node, and the kit's own build tool. `publish.json`'s `versionFrom` picks the version file and the build:
+  - `"package.json"`: a semver `version`, a `build` script, a `test` script and no `prepare` script. The build runs `pnpm install --frozen-lockfile`, `pnpm build` and `pnpm test` (needs `pnpm`, https://pnpm.io/installation).
+  - `"pyproject.toml"`: a semver `version` in the `[project]` table, written out, not `dynamic`. The build runs `uv sync --frozen` and `uv run pytest` (needs `uv`, https://docs.astral.sh/uv/). Set `"dist": false`.
+  The build runs in a copy of the export.
 - `gitleaks` on the PATH (https://github.com/gitleaks/gitleaks#installing). The secret scan runs the `gitleaks` command on every file.
 - The `claude` command (Claude Code's CLI), logged in, with access to the opus model. The blind reviewer runs `claude -p --model opus` (see "Cost").
 - Five items in the config folder (see "Your config folder"): `deny/base.json`, `deny/base.samples.json`, `plants.json`, `identity.json` and `hooks/`. Without them a run stops with `no deny rules configured`.
@@ -30,7 +32,7 @@ Run a dry run first. It checks everything and stages nothing. It works before th
 
     node "${CLAUDE_PLUGIN_ROOT}/skills/publish-public/scripts/publish.mjs" <privateRepo> --dry-run
 
-Then run the same command without `--dry-run`. A pass stages two commits and a tag in the public clone: the release on main, and the built `dist/` on the tag. With `"dist": false` it stages one release commit on main and tags it. The tool never pushes. A run fails if the exported `package.json` has a `prepare` script.
+Then run the same command without `--dry-run`. A pass stages two commits and a tag in the public clone: the release on main, and the built `dist/` on the tag. With `"dist": false` it stages one release commit on main and tags it. The tool never pushes. A run fails if the exported `package.json` has a `prepare` script, or if the version file states no semver version.
 
 The reviewer reads only the files added or changed since public main, plus a seeded sample of 5 unchanged files. The sample grows when the plants need more room. On a first release every file is new, so it reads them all. It reads in batches of 40 files, one reviewer call each and three at a time, because one call over a few hundred files skims and misses plants. Add `--full` to read every file. Use it when the deny list, the review policy or the plant pool changed since the last release. The deny scan and gitleaks always read every file.
 
@@ -57,7 +59,7 @@ The first line shows the seed. To repeat a run with the same plants, add `--seed
 - Only a pass may be pushed.
 - Ask the user at that moment. Quote the last line of the report. Wait for a clear yes.
 - Push with: `git -C <clone> push origin main v<version>`
-- The pre-push hook checks the stamps, the messages, the identity and the ref names. A refusal is final.
+- The pre-push hook checks the stamps, the messages, the identity, the ref names, and that a new release commit on main travels with its tag. A refusal is final.
 - If the user says no, or the hook refuses a push, run `node "${CLAUDE_PLUGIN_ROOT}/skills/publish-public/scripts/publish.mjs" <privateRepo> --unstage`. It drops the staged commits, the tag and their stamps. It keeps what the remote already has. Then run the tool again.
 - Never use `--no-verify`.
 - Never edit the public clone by hand.

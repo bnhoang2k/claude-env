@@ -17,7 +17,7 @@ To try a working copy of a group for one session, run `claude --plugin-dir plugi
 Call a skill as `<group>:<skill>`.
 
 - **ui-suite**: UI taste, lint, break-test and consistency skills, with the hooks that inject taste rules and gate unlinted pages.
-  Skills: `ui-suite:taste`, `ui-suite:ui-taste`, `ui-suite:lint-ui`, `ui-suite:break-ui`, `ui-suite:unify-ui`, `ui-suite:ui-iteration-guardrail`, `ui-suite:show-me`, `ui-suite:explain-as-machine`.
+  Skills: `ui-suite:taste`, `ui-suite:ui-taste`, `ui-suite:lint-ui`, `ui-suite:break-ui`, `ui-suite:inspo-sweep`, `ui-suite:unify-ui`, `ui-suite:ui-iteration-guardrail`, `ui-suite:show-me`, `ui-suite:explain-as-machine`.
 - **motion**: study how a page or clip moves, then rebuild the mechanism.
   Skill: `motion:steal-mechanism`.
 - **models**: check 3D models and rooms for geometry and layout defects before they ship.
@@ -60,6 +60,7 @@ python3 plugins/models/skills/break-models/scripts/preflight.py
 | `ui-suite:taste` | `python3`, to seed and check `~/.claude/taste/` | The taste folder cannot be seeded or checked; edit its files by hand |
 | `ui-suite:ui-taste` | `python3`, for the `ui-taste-inject` hook and the seed script. Optional: the `taste-skill` plugin (see Plugins) | The hook does not paste taste in; read the skill by hand |
 | `ui-suite:lint-ui` | Node and `npx`. The first run downloads `lintapple@0.1.20` from the npm registry and Chromium (about 94 MB), so it needs network. `python3` serves loose HTML pages | No measured lint, so a page cannot pass `lint-ui-gate` |
+| `ui-suite:inspo-sweep` | The Mobbin MCP connector. Web search is optional | Without Mobbin it searches the open web only |
 | `ui-suite:break-ui` | Nothing to install. A browser tool is optional, for screenshots | Findings are reasoned from the CSS and marked as not seen |
 | `ui-suite:unify-ui` | `python3`, `rg` (ripgrep, https://github.com/BurntSushi/ripgrep#installation), Node, Google Chrome (https://www.google.com/chrome/) or Chromium (`CHROME_PATH`, else `google-chrome`, `chromium` or `chromium-browser` on the PATH, else the macOS app), Pillow (`python3 -m pip install Pillow`) for `crop.py` | The code scan needs `rg`; the screenshot step stops with `needs Google Chrome or Chromium: set CHROME_PATH`; `crop.py` prints `needs Pillow` |
 | `ui-suite:ui-iteration-guardrail` | Nothing | Nothing |

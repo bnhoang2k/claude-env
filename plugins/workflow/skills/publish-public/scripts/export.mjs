@@ -6,7 +6,7 @@ import {
 } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import path from "node:path";
-import { fixedIdentity, listFiles } from "./util.mjs";
+import { SEMVER_RE, fixedIdentity, listFiles } from "./util.mjs";
 
 // Never exported at any depth, even when an allow entry covers it. Both are private config.
 export const NEVER_EXPORT = new Set([".publish-waivers.json", "publish.json"]);
@@ -19,6 +19,36 @@ const REQUIRED = [
 // rather than being skipped, because a skipped exportHook would publish files it was meant to drop.
 const KNOWN = new Set(["public", "allow", "keep", "versionFrom", "identity", "exportHook", "deny", "dist"]);
 const HOOK_TIMEOUT_MS = 60000;
+
+/** Each manifest a release can take its version from, and how to read it from the export. */
+const VERSION_SOURCES = {
+  "package.json": (text) => {
+    const pkg = JSON.parse(text);
+    if (pkg.scripts?.prepare !== undefined) {
+      throw new Error("package.json has a prepare script, which would run private hooks in the public repo");
+    }
+    return pkg.version;
+  },
+  // Only the plain `version = "..."` line of the [project] table. A dynamic version is refused:
+  // the tag must name the version the file states.
+  "pyproject.toml": (text) => {
+    let inProject = false;
+    for (const line of text.split(/\r?\n/)) {
+      const header = /^\s*\[([^\]]*)\]\s*(#.*)?$/.exec(line);
+      if (header) { inProject = header[1].trim() === "project"; continue; }
+      const m = inProject && /^\s*version\s*=\s*(?:"([^"\\]*)"|'([^']*)')\s*(#.*)?$/.exec(line);
+      if (m) return m[1] ?? m[2];
+    }
+    throw new Error("no [project].version in pyproject.toml");
+  },
+};
+
+/** The semver version the export's versionFrom file states. Throws on a missing or non-semver one. */
+export function readVersion(dir, versionFrom) {
+  const version = VERSION_SOURCES[versionFrom](readFileSync(path.join(dir, versionFrom), "utf8"));
+  if (typeof version !== "string" || !SEMVER_RE.test(version)) throw new Error(`version in ${versionFrom} is not semver: ${version}`);
+  return version;
+}
 const DEFAULT_DENY = ["base"];
 
 /** The deny sets a publish.json field names: a non-empty list of unique set names, or the default ["base"] when absent. */
@@ -82,8 +112,8 @@ export function readConfig(privateRepo) {
       throw new Error(`publish.json keep pattern is not supported (no { [ \\ or extglob): ${JSON.stringify(pattern)}`);
     }
   }
-  if (cfg.versionFrom !== "package.json") {
-    throw new Error('publish.json field versionFrom must equal "package.json"');
+  if (!Object.hasOwn(VERSION_SOURCES, cfg.versionFrom)) {
+    throw new Error(`publish.json field versionFrom must be one of ${Object.keys(VERSION_SOURCES).map((k) => JSON.stringify(k)).join(", ")}`);
   }
   const hook = cfg.exportHook;
   if (hook !== undefined && (!Array.isArray(hook) || hook.length === 0 || hook.some((a) => typeof a !== "string" || a === ""))) {

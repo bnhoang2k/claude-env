@@ -12,22 +12,30 @@ import {
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { readConfig, exportTree, showHead } from "./export.mjs";
+import { readConfig, exportTree, showHead, readVersion } from "./export.mjs";
 import { loadRules, checkSamples, scanTree } from "./deny.mjs";
 import { makePlants, placePlants, scorePlants } from "./plants.mjs";
 import { checkBlindness, blindReview, totalCost, resetCost } from "./review.mjs";
 import { writeStamp, stampPath } from "./stamp.mjs";
-import { SEMVER_RE, assertConfigDir, listFiles as listUtil } from "./util.mjs";
+import { assertConfigDir, listFiles as listUtil } from "./util.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const GITLEAKS_CONFIG = path.join(HERE, "../data/gitleaks.toml");
-const BUILD_TIMEOUT_MS = 600000;
+// A Python kit with Blender tests runs its whole suite on one core in about 25 minutes.
+const BUILD_TIMEOUT_MS = 3600000;
 
-export const BUILD_COMMANDS = [
-  ["pnpm", "install", "--frozen-lockfile"],
-  ["pnpm", "build"],
-  ["pnpm", "test"],
-];
+// The install, build and test commands, by the manifest publish.json's versionFrom names.
+export const BUILD_PRESETS = {
+  "package.json": [
+    ["pnpm", "install", "--frozen-lockfile"],
+    ["pnpm", "build"],
+    ["pnpm", "test"],
+  ],
+  "pyproject.toml": [
+    ["uv", "sync", "--frozen"],
+    ["uv", "run", "pytest"],
+  ],
+};
 
 const msg = (e) => (e instanceof Error ? e.message : String(e));
 const posix = (p) => p.split(path.sep).join("/");
@@ -43,9 +51,19 @@ function tryGit(cwd, args) {
   try { return git1(cwd, args); } catch { return null; }
 }
 
-/** Runs install, build and test in dir, one command at a time, without a shell. */
-export async function defaultBuild(dir) {
-  for (const [cmd, ...args] of BUILD_COMMANDS) {
+/** The versionFrom preset's commands for dir. A Python kit whose uv.lock holds pytest-xdist runs its tests on every core. */
+export function buildCommands(dir, versionFrom) {
+  const commands = BUILD_PRESETS[versionFrom].map((c) => [...c]);
+  const lock = path.join(dir, "uv.lock");
+  if (versionFrom === "pyproject.toml" && existsSync(lock) && /^name = "pytest-xdist"$/m.test(readFileSync(lock, "utf8"))) {
+    commands.find((c) => c[2] === "pytest").push("-n", "auto");
+  }
+  return commands;
+}
+
+/** Runs the versionFrom preset's install, build and test in dir, one command at a time, without a shell. */
+export async function defaultBuild(dir, versionFrom) {
+  for (const [cmd, ...args] of buildCommands(dir, versionFrom)) {
     const r = spawnSync(cmd, args, { cwd: dir, encoding: "utf8", timeout: BUILD_TIMEOUT_MS, maxBuffer: 64 * 1024 * 1024 });
     if (r.error || r.status !== 0) {
       const tail = `${r.stderr || ""}${r.stdout || ""}`.trim().slice(-300);
@@ -326,12 +344,7 @@ export async function publish(privateRepo, opts = {}) {
       clone = config.public.clone; // readConfig resolved it
       ({ files } = exportTree(privateRepo, config, exportDir));
       NO_IGNORE_FILE(files);
-      const version = JSON.parse(readFileSync(path.join(exportDir, "package.json"), "utf8")).version;
-      if (typeof version !== "string" || !SEMVER_RE.test(version)) throw new Error(`version in package.json is not semver: ${version}`);
-      if (JSON.parse(readFileSync(path.join(exportDir, "package.json"), "utf8")).scripts?.prepare !== undefined) {
-        throw new Error("package.json has a prepare script, which would run private hooks in the public repo");
-      }
-      report.version = version;
+      report.version = readVersion(exportDir, config.versionFrom);
       // node_modules/ and dist/ never go to public main. dist/ comes from the build only.
       files = files.filter((rel) => !/^dist\//.test(rel) && !rel.split("/").includes("node_modules"));
       report.changes = changesAgainst(clone, exportDir, files, dryRun);
@@ -387,7 +400,7 @@ export async function publish(privateRepo, opts = {}) {
     await step("build", async () => {
       cpSync(exportDir, buildDir, { recursive: true }); // the export stays as reviewed
       rmSync(path.join(buildDir, "dist"), { recursive: true, force: true }); // dist/ is build output only
-      await build(buildDir);
+      await build(buildDir, config.versionFrom);
     });
     // publish.json "dist": false is for a repo used straight from its source (a plugin marketplace):
     // the build only checks it, and a dist/ folder it leaves behind is refused rather than dropped.

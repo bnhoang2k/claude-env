@@ -88,6 +88,12 @@ View the worst case and look for each failure signature below. Check it:
 
 If browser tooling is available, screenshot both states at each width and compare. If it isn't, reason from the CSS and say which findings you verified visually and which you inferred.
 
+#### Interaction shifts
+
+A still screenshot cannot see a frame that moves when you hover. Run [hover-shift.js](hover-shift.js) in every data state: paste the whole file into `javascript_tool` in the browser pane, or `page.evaluate()` it from Playwright. It hovers every control and a sample of chart marks, then lists each box outside a chart that moved or changed height. Its first line is `Hover shifts: N`. Any N above 0 is a break. Its `cssHoverLayout` list names `:hover` rules that change size, weight or spacing, because synthetic events do not fire CSS `:hover`. Treat each one as a break too. The script does not click. For a click state (a pin, a toggle, an open row), click it yourself, then run the script again in that state.
+
+Measured, 2026-10-30, on a job-app Applications overview: a chart title moved 2px on every hover. The cause was a hover line with no text when empty, so the title lined up with its bottom edge. The script reported `Hover shifts: 135` with the fault and `Hover shifts: 0` with the fix, on all five data states.
+
 #### Failure signatures
 
 Each of these appears in the screenshot. The cause in the right column is almost always it.
@@ -106,6 +112,10 @@ Each of these appears in the screenshot. The cause in the right column is almost
 | Orphaned `—` or empty line where the role was | Placeholder rendered for a missing optional field | Omit the line, or reserve its height intentionally |
 | "1 members", "0 member" | Hardcoded plural | `Intl.PluralRules`, or separate strings per count |
 | Numbers jitter when they update, columns misalign | Proportional figures | `font-variant-numeric: tabular-nums` |
+| A title or row jumps a pixel or two when you hover something | Baseline-aligned to a hover line that is empty at rest | Keep the line's text baseline when empty (a no-break space) |
+| Siblings slide sideways when a hover label appears | The label takes width from a flexible neighbor | Give the label a fixed slot (`width` + `flex-shrink: 0`) and truncate inside it |
+| A card grows and pushes everything below when you hover | Hover text wraps to a second line, or a count unwraps when it shrinks | One line with an ellipsis and the full text on hover; size count columns to the widest value |
+| A hovered row nudges its columns | Hover or selected state changes `font-weight`, padding or border width | Mark the state with background or color only |
 | `1284`, `1,284.000000001`, `NaN`, `undefined` | Raw number rendered | `Intl.NumberFormat` with the user's locale; guard null |
 | Long translated button label overflows | Fixed-width button | Width from content with `min-width`, never a fixed `width` |
 | Diacritics or tall scripts (Vietnamese, Thai) clipped top or bottom | Tight `line-height` with `overflow: hidden` | Looser `line-height` or no clipping on text boxes |
@@ -124,7 +134,7 @@ Every long string forces this choice. Make it per field, not globally:
 - **Clamp** (`line-clamp: 2`) for multi-line previews in cards, so card heights stay predictable.
 - **Never truncate** numbers, amounts, dates, or anything the user compares. Give them the room.
 
-**Completion criterion:** every catalog row that applies has been tried, every width and environment above has been checked (at `quick`, only the short look in "Detail level"), and every break has a signature, a cause, and a fix.
+**Completion criterion:** every catalog row that applies has been tried, every width and environment above has been checked (at `quick`, only the short look in "Detail level"), `hover-shift.js` reports `Hover shifts: 0` in every data state, and every break has a signature, a cause, and a fix.
 
 ### Phase 5 — Report
 
@@ -183,9 +193,9 @@ Anything a check did not look at is listed as not checked. Never round it up to 
 
 When the user names no level, use standard. Say once, at the end: "Ran at standard: Broken findings fixed once, proven by the cheap check only. Say `quick` for a faster run, `thorough` for more fix rounds, or `again` for one more."
 
-**Short look here:** the worst-case dataset only, at the component's real container width. The 320px and widest layouts, 200% zoom, dark mode, RTL, and the Empty, One and Huge states are not checked.
+**Short look here:** the worst-case dataset only, at the component's real container width, plus one `hover-shift.js` run. The 320px and widest layouts, 200% zoom, dark mode, RTL, and the Empty, One and Huge states are not checked.
 
-**Cheap check here:** the project's gates (lint, type check, tests). The fixed breaks are not screenshotted again; list them as not checked. **Full fix round here:** Phase 6, every toggle state.
+**Cheap check here:** the project's gates (lint, type check, tests), plus `hover-shift.js` when a fix touched a hover. The fixed breaks are not screenshotted again; list them as not checked. **Full fix round here:** Phase 6, every toggle state.
 
 ## Invocation Variants
 

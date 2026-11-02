@@ -2,8 +2,11 @@
 """Stop hook: block turn end once when web UI changed and no passing lint covers it.
 
 A UI change is an Edit/Write/MultiEdit on a web UI file, or a Bash command that
-writes one (a > or >> redirect into it, or tee/cp/mv/install/rsync/sed -i/perl -i
-naming it). The check clears only when, after the last change, both of these held:
+writes one: a > or >> redirect into it, the destination of cp/mv/install/rsync (the last
+argument; the source is only read), a tee or sed -i/perl -i target, or any web file the
+command names (heredoc bodies included) whose modified time falls between the call and
+its result. The last catches a script the shell runs that writes a page it names
+(python3 - <<EOF ... open('page.html', 'w')). The check clears only when, after the last change, both of these held:
 1. a Bash lintapple run whose result is not an error and contains a line starting
    "Passed: 0 UI findings";
 2. the text-edge check passed: a Bash run of text-edge-auto.mjs printing a line
@@ -13,14 +16,16 @@ naming it). The check clears only when, after the last change, both of these hel
 lintapple's alignment checks run only on marked elements, so an unmarked "Passed" proves
 nothing about text edges. When every change this turn was
 an .html file, each run's URL or path must name one of those files (a URL ending in "/"
-means index.html). A ui-suite:lint-ui Skill call alone does not clear it: loading the instructions
+means index.html); a URL built from a shell variable (a loop over pages, "$U") counts when
+the command names the changed file elsewhere. Output with a "Failed:" line never counts,
+even beside a "Passed" line from another page in the same run. A ui-suite:lint-ui Skill call alone does not clear it: loading the instructions
 is not a pass.
 
-Known gaps: a file written by a program the shell runs (python3 gen.py) names no
-web file in the command, so it is not seen. A web file named only to be read in a
-command that also contains a writer word (for example "cp a.txt b.txt; cat
-page.html") counts as a change; this is accepted. Heredoc bodies are not scanned:
-a commit message that names a page is text, not a write. Writes into a temp folder are
+Known gaps: a file written by a program the shell runs (python3 gen.py) that the
+command does not name is not seen. A file written again later in the turn moves its
+modified time past the earlier call, so only its last write is seen; the gate needs no
+more. Heredoc bodies are not scanned for redirects or writer words: a commit message
+that names a page is text, not a write (its modified time does not change). Writes into a temp folder are
 test fixtures, not UI: an absolute path under /tmp, /private/tmp, /var/folders or $TMPDIR, or a
 relative or $VAR path in a command that made its own folder with mktemp. A relative path is also
 resolved against the working folder of its own tool call (the "cwd" on each transcript entry, not
@@ -42,6 +47,7 @@ import posixpath
 import re
 import shlex
 import sys
+from datetime import datetime
 from urllib.parse import urlsplit
 
 UI_EXT = re.compile(r"\.(html?|css|scss|jsx|tsx|vue|svelte|astro)$", re.I)
@@ -67,6 +73,12 @@ CD_EVENT = re.compile(
     r"(?:[ \t]+(?:(?:--|-[PLe@]+)[ \t]+)*(?:\"(?P<dq>[^\"]*)\"|'(?P<sq>[^']*)'|(?P<bare>[^\s'\";|&<>()]+)))?")
 REDIRECT = re.compile(r">>?\s*['\"]?([^\s'\";|&<>)]+)")
 WRITER = re.compile(r"(?:^|[\s;|&(])(?:tee|cp|mv|install|rsync)\s|\b(?:sed|perl)\s+(?:-\w+\s+)*-\w*i")
+COPIERS = {"cp", "mv", "install", "rsync"}  # write only their last argument
+IN_PLACE = re.compile(r"^-\w*i")  # sed -i, perl -pi
+SEGMENT = re.compile(r"&&|\|\||[;&|\n()]")
+UI_PATH = re.compile(r"[\w./~${}-]*\w\.(?:html?|css|scss|jsx|tsx|vue|svelte|astro)(?![\w.])", re.I)
+FAIL_LINE = re.compile(r"^Failed:", re.M)
+SLACK = 2.0  # seconds either side of a call's window, for clock and file-system rounding
 REASON = ("Web UI changed this turn and no passing lint covers it. Run the ui-suite:lint-ui skill: "
           "lintapple on the changed page must print 'Passed: 0 UI findings' (keep that line in "
           "the output), and the text-edge check must print 'Text edges: 0 near-misses' "
@@ -187,13 +199,76 @@ def _strip_heredocs(cmd):
     return HEREDOC.sub(lambda m: m.group(0).split("\n", 1)[0], cmd)
 
 
-def bash_ui_writes(cmd, cwd=""):
-    """Web UI files a shell command writes: redirect targets, plus file arguments of writers."""
-    cmd = _strip_heredocs(cmd)
+def writer_targets(cmd):
+    """Files the writer commands in cmd write: the last argument of cp/mv/install/rsync (the
+    others are sources, only read), every file a tee writes, every file sed -i/perl -i edits."""
+    out = []
+    for seg in SEGMENT.split(cmd):
+        toks = _tokens(seg)
+        while toks and ("=" in toks[0] and not toks[0].startswith("=") or toks[0] in ("sudo", "command")):
+            toks = toks[1:]  # VAR=x cp ..., sudo cp ...
+        if not toks:
+            continue
+        verb, args = os.path.basename(toks[0]), [t for t in toks[1:] if not t.startswith("-")]
+        if verb in COPIERS and len(args) >= 2:
+            out.append(args[-1])
+        elif verb == "tee":
+            out += args
+        elif verb in ("sed", "perl") and any(IN_PLACE.match(t) for t in toks[1:]):
+            out += args
+    return [t for t in out if "://" not in t and UI_EXT.search(t)]
+
+
+def _when(entry):
+    """An entry's timestamp in epoch seconds, or None."""
+    try:
+        return datetime.fromisoformat(str(entry.get("timestamp")).replace("Z", "+00:00")).timestamp()
+    except (TypeError, ValueError):
+        return None
+
+
+def touched_in_window(raw, cwd, window):
+    """Web files the command names (heredoc bodies included) whose modified time falls in the
+    call's window: whatever wrote them, the call did."""
+    start, end = window
+    if start is None or end is None:
+        return []
+    out = []
+    for p in dict.fromkeys(UI_PATH.findall(raw)):
+        if "://" in p or "$" in p or EXEMPT.search(p) or is_temp_write(p, raw, cwd):
+            continue
+        path = os.path.expanduser(resolve_write_path(p, raw, cwd))
+        if not os.path.isabs(path):
+            continue
+        try:
+            mtime = os.path.getmtime(path)
+        except OSError:
+            continue
+        if start - SLACK <= mtime <= end + SLACK:
+            out.append(p)
+    return out
+
+
+def bash_ui_writes(cmd, cwd="", window=(None, None)):
+    """Web UI files a shell command writes: redirect targets, writer destinations, and named
+    files whose modified time falls in the call's window (start, end) in epoch seconds."""
+    raw, cmd = cmd, _strip_heredocs(cmd)
     paths = [p for p in REDIRECT.findall(cmd) if UI_EXT.search(p)]
     if WRITER.search(cmd):
-        paths += [t for t in _tokens(cmd) if "://" not in t and UI_EXT.search(t)]
-    return [p for p in paths if not EXEMPT.search(p) and not is_temp_write(p, cmd, cwd)]
+        paths += writer_targets(cmd)
+    paths = [p for p in paths if not EXEMPT.search(p) and not is_temp_write(p, cmd, cwd)]
+    return list(dict.fromkeys(paths + touched_in_window(raw, cwd, window)))
+
+
+def result_times(entries):
+    """{tool_use_id: epoch seconds of its result} for every tool_result in the entries."""
+    out = {}
+    for entry in entries:
+        content = (entry.get("message") or {}).get("content") if entry.get("type") == "user" else None
+        for b in content if isinstance(content, list) else []:
+            if isinstance(b, dict) and b.get("type") == "tool_result":
+                out[b.get("tool_use_id")] = _when(entry)
+    return out
 
 
 def results_by_id(entries):
@@ -216,7 +291,7 @@ def is_passing_lint(cmd, res):
     if "lintapple" not in cmd or res is None:
         return False
     text, is_error = res
-    return not is_error and bool(PASS_LINE.search(text))
+    return not is_error and bool(PASS_LINE.search(text)) and not FAIL_LINE.search(text)
 
 
 def lint_url(cmd):
@@ -290,8 +365,12 @@ def covers(changed, cmd, url=None):
     url = url or lint_url(cmd)
     if not url:
         return False
+    names = {os.path.basename(p).lower() for p in html}
+    if "$" in url:  # a loop over pages: the changed page must be named in the command
+        found = {n.lower() for n in re.findall(r"[\w.-]+\.html?", cmd, re.I)}
+        return bool(names & found)
     name = urlsplit(url).path.rsplit("/", 1)[-1] or "index.html"
-    return any(os.path.basename(p).lower() == name.lower() for p in html)
+    return name.lower() in names
 
 
 def decide(entries, stop_hook_active, cwd=""):
@@ -306,6 +385,7 @@ def decide(entries, stop_hook_active, cwd=""):
         return None
     turn = entries[start + 1:]
     results = results_by_id(turn)
+    times = result_times(turn)
     changed = []
     lint_ok = edge_ok = marked = False
     for entry in turn:
@@ -319,7 +399,7 @@ def decide(entries, stop_hook_active, cwd=""):
                 marked = carries_marks(inp, changed) or marked
             elif name == "Bash":
                 cmd = str(inp.get("command", ""))
-                writes = bash_ui_writes(cmd, here)
+                writes = bash_ui_writes(cmd, here, (_when(entry), times.get(block.get("id"))))
                 if writes:
                     changed += writes
                     lint_ok = edge_ok = False

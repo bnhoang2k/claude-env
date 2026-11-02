@@ -5,7 +5,8 @@ Why it exists: the break skills were skipped when nothing forced them. The hook 
 run once per session, and the agent must fix what the run finds.
 
 Reads the whole transcript (a subagent's own transcript on SubagentStop). After the
-first web UI change, a Skill call to ui-suite:break-ui must appear somewhere later in it.
+first web UI change (what lint-ui-gate counts as one, including a page a script wrote,
+found by its modified time), a Skill call to ui-suite:break-ui must appear somewhere later in it.
 After the first 3D change (an Edit/Write or shell write of a .glb, .gltf, .blend,
 .fbx, .obj or .usdz file, or a Blender tool that changes the scene), Skill calls to
 models:break-models and models:break-scene must appear later. One run per session clears it;
@@ -69,17 +70,21 @@ def is_model_change(name, inp, cwd=""):
     return False
 
 
-def is_ui_change(name, inp, cwd=""):
+def is_ui_change(name, inp, cwd="", window=(None, None)):
     if lint.is_ui_change(name, inp, cwd):
         return True
-    return name == "Bash" and bool(lint.bash_ui_writes(str(inp.get("command", "")), cwd))
+    return name == "Bash" and bool(lint.bash_ui_writes(str(inp.get("command", "")), cwd, window))
 
 
 def missing_skills(entries, cwd=""):
     """Break skills that never ran after the first change that needs them."""
     ui_seen = model_seen = False
     ran_after = set()
-    for entry in entries:
+    for i, entry in enumerate(entries):
+        # Only tool calls are read, so a call's window ends at the next call (or 10 minutes on).
+        start = lint._when(entry)
+        nxt = lint._when(entries[i + 1]) if i + 1 < len(entries) else None
+        window = (start, nxt if nxt is not None else (start + 600 if start is not None else None))
         for block in lint.tool_uses(entry):
             name, inp = block.get("name"), block.get("input") or {}
             skill = skill_name(name, inp)
@@ -90,7 +95,7 @@ def missing_skills(entries, cwd=""):
                     ran_after.add(skill)
                 continue
             here = entry.get("cwd") or cwd  # where this call ran, not where the shell is at Stop
-            if is_ui_change(name, inp, here):
+            if is_ui_change(name, inp, here, window):
                 ui_seen = True
             if is_model_change(name, inp, here):
                 model_seen = True

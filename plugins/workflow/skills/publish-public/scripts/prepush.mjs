@@ -2,7 +2,8 @@
 // refuses (exit 1, one reason per line on stderr) anything that has no passing
 // stamp for its tree, a wrong author or committer, an off-template commit
 // message, a ref other than main or a version tag, or an annotated tag (the tool
-// makes lightweight tags only). Fails closed on any error.
+// makes lightweight tags only), or a new "Release vX" commit on main whose vX
+// tag is neither in the same push nor already on the remote. Fails closed on any error.
 import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { readStamp } from './stamp.mjs';
@@ -34,7 +35,7 @@ function matches(id, name, email) {
   return name === id.name && email === id.email;
 }
 
-function checkCommit(sha, id, cwd, reasons) {
+function checkCommit(sha, id, cwd, reasons, releases) {
   const short = sha.slice(0, 7);
   const tree = gitOut(['rev-parse', `${sha}^{tree}`]);
   const stamp = readStamp(cwd, tree);
@@ -56,13 +57,15 @@ function checkCommit(sha, id, cwd, reasons) {
   const raw = cat.out;
   const at = raw.indexOf('\n\n');
   const message = at === -1 ? '' : raw.slice(at + 2);
+  const version = /^Release (v\S+)/.exec(message);
+  if (MESSAGE_RE.test(message) && version) releases.add(version[1]);
   if (!MESSAGE_RE.test(message)) {
     reasons.push(`refused ${short}: message is not "Release vX.Y.Z" or "Release vX.Y.Z (built dist)"`);
   }
 }
 
 // Only main and version tags may be pushed. The object type decides what a push holds, never the ref name.
-function checkRef(localSha, remoteRef, id, cwd, reasons) {
+function checkRef(localSha, remoteRef, id, cwd, reasons, releases) {
   const isTag = TAG_REF_RE.test(remoteRef);
   if (remoteRef !== 'refs/heads/main' && !isTag) {
     reasons.push(`refused ${remoteRef}: ref: only refs/heads/main and refs/tags/vX.Y.Z may be pushed`);
@@ -84,7 +87,23 @@ function checkRef(localSha, remoteRef, id, cwd, reasons) {
   if (isTag) commits.add(localSha);
   const listed = gitOut(['rev-list', localSha, '--not', '--remotes=origin']);
   for (const sha of listed.split('\n').filter(Boolean)) commits.add(sha);
-  for (const sha of commits) checkCommit(sha, id, cwd, reasons);
+  // Only new commits on main need their tag: a pushed tag names its own version.
+  const found = isTag ? new Set() : releases;
+  for (const sha of commits) checkCommit(sha, id, cwd, reasons, found);
+}
+
+// A release commit pushed without its tag leaves the release untagged on the remote (v0.2.3 shipped
+// that way). Each new release version on main needs refs/tags/vX in this push or on the remote already.
+function checkReleaseTags(releases, pushedTags, remoteUrl, reasons) {
+  for (const v of releases) {
+    if (pushedTags.has(v)) continue;
+    const r = git(['ls-remote', '--tags', remoteUrl, `refs/tags/${v}`]);
+    if (r.status !== 0) {
+      reasons.push(`refused main: tag: cannot check the remote for ${v}: ${r.err.trim()}`);
+    } else if (!r.out.trim()) {
+      reasons.push(`refused main: tag: ${v} is missing, push it with main: git push origin main ${v}`);
+    }
+  }
 }
 
 function main() {
@@ -109,6 +128,8 @@ function main() {
   }
   const cwd = process.cwd();
   const reasons = [];
+  const releases = new Set();
+  const pushedTags = new Set();
   const lines = readFileSync(0, 'utf8').split('\n').filter((l) => l.trim());
   for (const line of lines) {
     const parts = line.trim().split(/\s+/);
@@ -117,8 +138,10 @@ function main() {
       continue;
     }
     const [, localSha, remoteRef] = parts;
-    checkRef(localSha, remoteRef, id, cwd, reasons);
+    if (TAG_REF_RE.test(remoteRef) && !ZERO.test(localSha)) pushedTags.add(remoteRef.replace('refs/tags/', ''));
+    checkRef(localSha, remoteRef, id, cwd, reasons, releases);
   }
+  checkReleaseTags(releases, pushedTags, process.argv[3] ?? process.argv[2] ?? 'origin', reasons);
   if (reasons.length === 0) return 0;
   console.error(reasons.join('\n'));
   return 1;

@@ -1,6 +1,6 @@
 # claude-env
 
-27 skills for Claude Code: build UI, motion, 3D models and technical figures, and run long
+28 skills for Claude Code: build UI, motion, 3D models and technical figures, and run long
 multi-agent jobs without losing the plan or the budget.
 
 <!-- picture: a few things these skills made -->
@@ -33,10 +33,12 @@ Claude builds UI from your principles and references, not its default look.
 Find what a screenshot hides: overlaps, bad data, drift between screens, fixes that break something else.
 
 - `ui-suite:lint-ui`: measure a page for overlapping text, tiny buttons and low contrast.
+- `ui-suite:inspo-sweep`: search Mobbin and the web cheaply for how other apps handle a UI idea, with cited links.
 - `ui-suite:break-ui`: feed a screen worst-case data (long names, emoji, zero items) and list what broke.
 - `ui-suite:unify-ui`: find screens that build the same thing two ways, and merge them.
 - `ui-suite:ui-iteration-guardrail`: list what must not break before a fix, and check it after each try.
 - Hook `lint-ui-gate`: after a UI edit, blocks the end of Claude's turn once if no passing lint-ui run covers the change. To skip it, write `skip lint` in your next message.
+- Hook `design-read-gate`: before a UI edit in a repo with a DESIGN.md, blocks the edit until Claude has read that DESIGN.md in full since the last compact. To skip it, write `skip design read` in your message.
 - Hook `break-gate`: after a UI or 3D edit, blocks the end of Claude's turn until the matching break skills have run once that session. To skip it, write `skip break` in your next message.
 - Tool `ui-lock`: installs lint rules in a React repo that refuse raw colors, sizes and buttons outside your design tokens and components.
 
