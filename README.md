@@ -39,7 +39,7 @@ Find what a screenshot hides: overlaps, bad data, drift between screens, fixes t
 - `ui-suite:ui-iteration-guardrail`: list what must not break before a fix, and check it after each try.
 - Hook `lint-ui-gate`: after a UI edit, blocks the end of Claude's turn once if no passing lint-ui run covers the change. To skip it, write `skip lint` in your next message.
 - Hook `design-read-gate`: before a UI edit in a repo with a DESIGN.md, blocks the edit until Claude has read that DESIGN.md in full since the last compact. To skip it, write `skip design read` in your message.
-- Hook `point-gate`: when a page is open in a browser, holds Claude's first question about it once, until Claude has ringed the parts it means with lettered red tags (`scripts/point.js`), so the answer can be "A" or "B". A question that is not about the page is re-sent unchanged. To skip it, write `skip point` in your message.
+- Hook `point-gate`: when a page is open in a browser, holds a reply or question that describes parts of it in words (a button, the sidebar, the top left) until Claude has ringed them with lettered red tags (`scripts/point.js`) and calls them "A" and "B". Every reply brings its own rings, and each hold happens once, so a reply that is not about the page goes out on the second try. To skip it, write `skip point` in your message.
 - Hook `break-gate`: after a UI or 3D edit, blocks the end of Claude's turn until the matching break skills have run once that session. To skip it, write `skip break` in your next message.
 - Tool `ui-lock`: installs lint rules in a React repo that refuse raw colors, sizes and buttons outside your design tokens and components.
 
@@ -106,7 +106,7 @@ Long work outlives one session. Pick it back up without re-explaining.
 
 ## Publish safely
 
-- `workflow:publish-public`: check a private repo for leaks and stage a public release. It never pushes by itself.
+- `workflow:publish-public`: check a private repo for leaks and stage a public release. It runs the repo's build and tests first, so a failing one stops the run before the paid leak review. It never pushes by itself.
 - Hook `name-lint`: warns when your name or email is about to enter a file that gets published. It stays silent until you build the `publish-public` config folder (see "Set up publish-public" in [REFERENCE.md](REFERENCE.md)).
 - Hook `hooks-bypass-gate`: in a repo with tracked git hooks (`.githooks/`), denies a command that skips them, such as `--no-verify`.
 - Hook `pre-push-confirm-main`: asks you before a `git push` to `main` or `master` (a command that starts with `git push`).

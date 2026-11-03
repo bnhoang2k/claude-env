@@ -16,7 +16,7 @@ To try a working copy of a group for one session, run `claude --plugin-dir plugi
 
 Call a skill as `<group>:<skill>`.
 
-- **ui-suite**: UI taste, lint, break-test and consistency skills, with the hooks that inject taste rules and gate unlinted pages.
+- **ui-suite**: UI taste, lint, break-test and consistency skills, with the hooks that inject taste rules, gate unlinted pages, and make Claude point at a page instead of describing it.
   Skills: `ui-suite:taste`, `ui-suite:ui-taste`, `ui-suite:lint-ui`, `ui-suite:break-ui`, `ui-suite:inspo-sweep`, `ui-suite:unify-ui`, `ui-suite:ui-iteration-guardrail`, `ui-suite:show-me`, `ui-suite:explain-as-machine`.
 - **motion**: study how a page or clip moves, then rebuild the mechanism.
   Skill: `motion:steal-mechanism`.

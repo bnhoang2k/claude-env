@@ -89,7 +89,7 @@ The reviewer runs through the `claude` CLI. On a subscription plan the cost is p
 - A small kit (about 60 files): about 1 to 1.30 USD per run.
 - A larger kit (about 200 files): about 5 to 6 USD per run.
 
-A diff review reads the changed files plus the sample, so a small release costs a small fraction of a full one. Plan for more than one run. Each run plants new leaks, so one pass does not promise the next.
+A diff review reads the changed files plus the sample, so a small release costs a small fraction of a full one. The build and its tests run before the blindness check and the review, so a failing build or test stops the run before it spends anything. Plan for more than one run. Each run plants new leaks, so one pass does not promise the next.
 
 ## Your config folder
 

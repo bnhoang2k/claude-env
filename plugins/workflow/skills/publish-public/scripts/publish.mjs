@@ -376,6 +376,30 @@ export async function publish(privateRepo, opts = {}) {
       }
     });
 
+    // The build and dist steps run before the blindness check and review: those two call the paid
+    // reviewer, so a failing build or test stops the run before it spends anything.
+    await step("build", async () => {
+      cpSync(exportDir, buildDir, { recursive: true }); // the export stays untouched for the review
+      rmSync(path.join(buildDir, "dist"), { recursive: true, force: true }); // dist/ is build output only
+      await build(buildDir, config.versionFrom);
+    });
+    // publish.json "dist": false is for a repo used straight from its source (a plugin marketplace):
+    // the build only checks it, and a dist/ folder it leaves behind is refused rather than dropped.
+    await step("dist", async () => {
+      const dist = path.join(buildDir, "dist");
+      if (!config.dist) {
+        if (existsSync(dist)) throw new Error('the build made dist/ files, but publish.json says "dist": false');
+        return;
+      }
+      if (!existsSync(dist) || listFiles(dist).length === 0) throw new Error("the build made no dist/ files");
+      NO_IGNORE_FILE(listFiles(dist));
+      const hits = [
+        ...hitsToFindings(await gitleaks(dist), "dist/", "secret scan"),
+        ...hitsToFindings(scanTree(dist, rules), "dist/", "deny rule"),
+      ];
+      if (hits.length > 0) { report.findings.push(...hits); throw new Error(`${hits.length} hit(s) in dist/`); }
+    });
+
     await step("blindness", async () => {
       const r = await review.checkBlindness(undefined, { rules });
       report.blindness = r.blind === true;
@@ -395,28 +419,6 @@ export async function publish(privateRepo, opts = {}) {
       // They go in the report for the user to read before the push. Missed plants still fail the run.
       report.reviewFindings.push(...rest);
       if (missed.length > 0) throw new Error(`${missed.length} plant(s) missed`);
-    });
-
-    await step("build", async () => {
-      cpSync(exportDir, buildDir, { recursive: true }); // the export stays as reviewed
-      rmSync(path.join(buildDir, "dist"), { recursive: true, force: true }); // dist/ is build output only
-      await build(buildDir, config.versionFrom);
-    });
-    // publish.json "dist": false is for a repo used straight from its source (a plugin marketplace):
-    // the build only checks it, and a dist/ folder it leaves behind is refused rather than dropped.
-    await step("dist", async () => {
-      const dist = path.join(buildDir, "dist");
-      if (!config.dist) {
-        if (existsSync(dist)) throw new Error('the build made dist/ files, but publish.json says "dist": false');
-        return;
-      }
-      if (!existsSync(dist) || listFiles(dist).length === 0) throw new Error("the build made no dist/ files");
-      NO_IGNORE_FILE(listFiles(dist));
-      const hits = [
-        ...hitsToFindings(await gitleaks(dist), "dist/", "secret scan"),
-        ...hitsToFindings(scanTree(dist, rules), "dist/", "deny rule"),
-      ];
-      if (hits.length > 0) { report.findings.push(...hits); throw new Error(`${hits.length} hit(s) in dist/`); }
     });
 
     if (!dryRun) {

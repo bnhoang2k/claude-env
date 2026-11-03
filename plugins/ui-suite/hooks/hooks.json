@@ -59,6 +59,12 @@
             "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/break-gate.py\"",
             "timeout": 10,
             "statusMessage": "break gate"
+          },
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/point-gate.py\"",
+            "timeout": 10,
+            "statusMessage": "point gate"
           }
         ]
       }
