@@ -1,7 +1,7 @@
 {
   "name": "bnhoang2k",
   "description": "Installs the whole claude-env set: ui-suite, motion, models, workflow and figures",
-  "version": "0.2.7",
+  "version": "0.2.8",
   "author": {
     "name": "claude-env maintainers"
   },

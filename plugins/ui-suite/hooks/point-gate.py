@@ -1,16 +1,20 @@
 #!/usr/bin/env python3
 """Stop and PreToolUse (matcher: AskUserQuestion) hook: point at the page instead of describing it.
 
-Why it exists: on 2026-11-02 a question described two parts of a page in words ("word tags per
-question" vs "colored lines per topic"), and the user asked to be pointed at them instead.
-Rings with letters, then "A or B?", got a three-word answer. The user wants that for every
-reply about the screen, not only questions: a description makes them map words onto the page.
+Why it exists: a reply that describes parts of a page in words makes the reader map those words
+onto the screen. Lettered rings on the page let the reply say "A" and "B", and let the reader
+answer with a letter.
 
 While a page is open in a browser (the built-in pane, Playwright or Chrome), a reply or a
 question that names two or more parts of a screen (button, card, sidebar, "top left", ...) is
 held when nothing was ringed with scripts/point.js during that turn. It is held once: at Stop,
 stop_hook_active lets the second try through; a question goes through when the turn already
 holds an earlier question. So a reply that is not about the page costs one re-send.
+
+Rings that crowd are held the same way: a box ringed with the boxes inside it hides one tag
+behind another, and a ring off screen or inside a scroll box points at nothing. point.js ends
+its line with "| Problems: ..." for those; when the turn's last ring call returned one, the reply
+or question is held until the rings are fixed and mark() runs clean.
 
 Words inside code (backticks or fenced blocks) do not count. The user can write "skip point"
 in a message to bypass. Any error lets the reply or question through.
@@ -44,9 +48,12 @@ ASK = "AskUserQuestion"
 # Tools that load a page: the built-in pane (also through remote-devices), Playwright, Chrome.
 PAGE_OPEN = re.compile(r"(Claude_Browser__(preview_start|navigate)|__browser_navigate|claude-in-chrome__navigate)$")
 # Tools that can run point.js on a page, and the marks that show they did: the pasted file
-# returns pointV1, a later ring is a __point.mark() call.
+# returns pointV1 or later, a later ring is a __point.mark() call, and a review list is a
+# __point.review() call. Reading answers (__point.answers()) points at nothing.
 RUNNERS = re.compile(r"(javascript_tool|browser_evaluate|browser_run_code\w*)$|^Bash$")
-POINT_MARK = re.compile(r"pointV1|point\.js|__point\.mark\(")
+POINT_MARK = re.compile(r"pointV\d|pointReviewV\d|point\.js|__point\.(mark|review)\(")
+# The problem list at the end of point.js's line. Problems never hold a double quote.
+PROBLEMS = re.compile(r"\| Problems: ([^\"\n]*)")
 SKIP = "skip point"
 NEED = 2  # distinct screen parts a text must name before it is held
 
@@ -69,6 +76,13 @@ CODE = re.compile(r"```.*?```|`[^`\n]*`", re.S)
 
 def is_point_run(name, inp):
     return bool(RUNNERS.search(name)) and bool(POINT_MARK.search(json.dumps(inp)))
+
+
+def ring_problems(turn, run):
+    """The problems point.js reported for this ring call, or '' when clean or not yet answered."""
+    res = lint.results_by_id(turn).get(run.get("id"))
+    match = PROBLEMS.search(res[0]) if res else None
+    return match.group(1).strip() if match else ""
 
 
 def named_parts(text):
@@ -113,21 +127,33 @@ def decide(page_open, turn, text, *, asking=False, tool_use_id="", user_text="",
     if stop_hook_active or not page_open or SKIP in user_text.lower():
         return None
     uses = [u for e in turn for u in lint.tool_uses(e)]
-    if any(is_point_run(str(u.get("name", "")), u.get("input") or {}) for u in uses):
-        return None
     if asking and any(u.get("name") == ASK and u.get("id") != tool_use_id for u in uses):
         return None  # this turn already held a question: the re-send goes through
+    what = "question" if asking else "reply"
+    runs = [u for u in uses if is_point_run(str(u.get("name", "")), u.get("input") or {})]
+    if runs:
+        problems = ring_problems(turn, runs[-1])
+        if not problems:
+            return None
+        return (f"Not sent yet: the last rings this turn have problems: {problems}. Fix them, run "
+                "__point.mark() again until its line ends in \"| Clean\", then send this "
+                f"{what}. Ring the inner parts, not a box and the parts inside it. Give a "
+                "selector that matches one part, or pass all: true when one letter means every "
+                "match. Ring a row of tight neighbors (icons, a facts line) as one part. Scroll "
+                "a part into view, or open what hides it, before ringing it.")
     named = named_parts(text)
     if len(named) < NEED:
         return None
-    what = "question" if asking else "reply"
     return (f"Not sent yet: a page is open beside the chat, and this {what} describes parts of it "
             f"in words ({', '.join(named[:4])}) with nothing ringed this turn. Point instead: ring "
             f"the parts with lettered red tags, then call them by letter (A, B, C). If {SCRIPT} "
             "is not loaded on this page yet, paste the whole file into the browser's javascript "
             "tool (Playwright: browser_evaluate as `async () => <file>`); after that one call "
             "rings them: `await __point.mark({A: 'visible text', B: {selector: '.css'}})`. Check "
-            "the line it returns has no \"no match\". On a phone, send a screenshot with the rings "
+            "the line it returns ends in \"| Clean\". For three or more parts (a sign-off, a list "
+            "of fixes), use `await __point.review([{note: 'what changed', selector: '.css'}])` "
+            "instead: the person answers each part on the page, and the next turn reads "
+            "`__point.answers().line`. On a phone, send a screenshot with the rings "
             "using SendUserFile. If this is not about the page, send it again unchanged.")
 
 
