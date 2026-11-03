@@ -195,37 +195,8 @@ cp "$FILLED/transcript.jsonl" "$WORK/transcript.jsonl"
 printf 'x = 1\n%.0s' $(seq 1 900) >"$WORK/big.py"
 printf '<p>a</p>\n' >"$WORK/page.html"
 
-# The matcher logic lives in node: it reads each plugin's hooks.json and pairs every hook command with
-# every sample whose event and tool (or SessionStart source) match. It prints one tab-separated line per
-# pair, `PAIR <label> <plugin dir> <command> <sample>`, and `NOSAMPLE <label>` for a hook with no sample.
-cat >"$TMP/pairs.js" <<'EOF'
-const fs = require("fs"), path = require("path");
-const [cache, samplesDir, ...plugins] = process.argv.slice(2);
-const samples = fs.readdirSync(samplesDir).filter((n) => n.endsWith(".json")).sort()
-  .map((n) => ({ name: n, file: path.join(samplesDir, n), data: JSON.parse(fs.readFileSync(path.join(samplesDir, n), "utf8")) }));
-for (const dir of plugins) {
-  const file = path.join(dir, "hooks", "hooks.json");
-  if (!fs.existsSync(file)) continue;
-  const plugin = path.basename(path.dirname(dir));
-  const hooks = JSON.parse(fs.readFileSync(file, "utf8")).hooks || {};
-  for (const [event, entries] of Object.entries(hooks)) {
-    for (const entry of entries) {
-      const matcher = entry.matcher || "";
-      const re = matcher ? new RegExp("^(?:" + matcher + ")$") : null;
-      const hit = samples.filter((s) => s.data.hook_event_name === event &&
-        (!re || re.test(String(event === "SessionStart" ? s.data.source : s.data.tool_name))));
-      if (hit.length === 0) console.log(["NOSAMPLE", `${plugin} ${event}${matcher ? " " + matcher : ""}`].join("\t"));
-      for (const h of entry.hooks || []) {
-        if (h.type !== "command") continue;
-        for (const s of hit) {
-          console.log(["PAIR", `${plugin} ${event}${matcher ? " " + matcher : ""} ${path.basename(h.command.split('"')[1] || h.command)} <- ${s.name}`, dir, h.command, s.name].join("\t"));
-        }
-      }
-    }
-  }
-}
-EOF
-node "$TMP/pairs.js" "$CACHE" "$FILLED" "$UISUITE" "$WORKFLOW" >"$TMP/pairs.txt" 2>"$TMP/pairs.err" \
+# tests/stranger/hook-pairs.js pairs every hook command with the samples whose event and matcher fit.
+node "$HERE/hook-pairs.js" "$FILLED" "$UISUITE" "$WORKFLOW" >"$TMP/pairs.txt" 2>"$TMP/pairs.err" \
   || { echo "FAIL hooks: could not read the hooks.json files"; cat "$TMP/pairs.err"; FAILS=$((FAILS + 1)); }
 [[ -s "$TMP/pairs.txt" ]] || { echo "FAIL hooks: no hook and sample pairs found"; FAILS=$((FAILS + 1)); }
 
