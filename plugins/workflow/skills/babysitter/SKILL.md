@@ -70,7 +70,11 @@ The babysitter never builds, edits plan code, or runs a plan's tasks itself.
   - "size each agent's job to finish in about 50 calls";
   - "settle every 'user decides' item the plan can settle from data, and log the reason.
     Send up only true User-only items";
-  - "send the babysitter 2-3 lines when a round ends".
+  - "send the babysitter 2-3 lines when a round ends";
+  - "when your task is done, ask the user in one AskUserQuestion whether to archive this
+    session. On yes, send the babysitter a 2-3 line done note (what landed: branch, commit or
+    PR; what is left), then archive yourself with `archive_session` as your last call. Send
+    first: an archived session may get no further call".
 - Why the long-command line: a subagent that waits more than 5 minutes loses its cache and
   must re-write its whole context.
 - **Keep sessions linked; keep subagents short.** A side session started with
@@ -121,8 +125,10 @@ a suggested fix.
 
 ## Archive and clean up
 
-When a session under the babysitter is done, the babysitter archives it and cleans up
-after it.
+A session under the babysitter archives itself when its task is done, after the user says
+yes (the brief's done line), and sends you a done note first. When a done note arrives,
+check that its work landed (step 1), then do steps 3-5. A session that finished without
+archiving itself, or whose user said no, you archive with step 2 when it is done.
 
 A session is done when its plan is archived or its job is finished, its work is merged,
 and nothing of its own is still running.
