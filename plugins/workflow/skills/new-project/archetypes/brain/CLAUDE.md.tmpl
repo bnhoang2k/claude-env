@@ -1,0 +1,48 @@
+# {{VAULT_NAME}}
+
+Knowledge and documentation repository for the {{PROJECT_NAME}} project. **Code lives in `{{PROJECT_PATH}}`** — not here.
+
+## Hard rules
+
+1. **No production code.** No source, compiled, or shipped code. Exception: **research prototypes** under `Phases/Phase N/Research/<x.y - Problem Name>/prototypes/` may contain throwaway scripts in any language as long as (a) they are not imported by production code, (b) their containing research folder has an `INDEX.md` documenting the experiment, (c) results are summarized inline in a research doc or explainer. The `.obsidian/` folder's own config is exempt — Obsidian owns it.
+2. **No `{{PROJECT_PATH}}/.claude/rules/` or `{{PROJECT_PATH}}/.claude/agents/` here.** Behavioral rules and agents live in the code repo. This brain is for knowledge, not behavior.
+3. **Obsidian wiki-links for intra-brain refs** (`[[filename|display text]]`). Standard markdown links for external URLs. Cross-repo refs back to the code repo start at the projects root (`{{PROJECT_PATH}}/.claude/rules/...`), never a literal home path; run `echo $PROJECTS_ROOT` to expand it before a Read.
+4. **Obsidian vault.** Open `{{BRAIN_PATH}}` as a vault named `{{VAULT_NAME}}` in Obsidian. Dataview, wiki-links, and backlinks are the primary navigation surface.
+
+## Structure
+
+Starts minimal. Grows with the project. Do not front-load `Phases/`, `Versions/`, or `Validation Reports/` — add them when there's something to phase, version, or validate.
+
+- `README.md` — canonical project doc (product + technical direction). What was previously called "the spec." This is the source of truth.
+- `Development_Phases.md` — high-level phase map. Per-phase detail lives in `Phases/Phase X/Phase X.md` files once each phase is planned.
+- `Reference/` — long-lived reference material.
+- `Ideas/` — captured ideas.
+- `Phases/` — per-phase folders (created when each phase starts). **`Phases/CLAUDE.md` defines the six-zone structure** (`Phase X.md` + `Versions/` + `Research/` + `Reference/` + `Explainers/` + `Design/`). Includes the canonical writing rules for Version Docs, Synthesis Docs, and Research INDEX dossiers.
+
+Will add as needed: `Versions/`, `Superpowers/` (specs + plans + Archive), `Templates/`, `Daily Briefings/`.
+
+## Naming
+
+<!-- fill: if the project folder name and any codename/alias used in spec prose diverge
+     (a common source of confusion), note the canonical name and the synonym here. -->
+
+## Git
+
+<!-- fill: describe the commit workflow for this brain repo — e.g. a `/commit` skill that
+     scans both the code repo and this brain repo in one invocation, and the remote (if any). -->
+
+## Cross-repo references
+
+When a file in {{VAULT_NAME}} needs to reference rules, agents, skills, or commands in the code repo, write the path from the projects root (`$PROJECTS_ROOT`), not a literal home path:
+- Rules: `{{PROJECT_PATH}}/.claude/rules/<rule>.md`
+- Agents: `{{PROJECT_PATH}}/.claude/agents/<agent>.md`
+- Skills: `{{PROJECT_PATH}}/.claude/skills/<skill>/<file>.md`
+- Commands: `{{PROJECT_PATH}}/.claude/commands/<cmd>.md`
+
+Intra-brain references use repo-relative paths or Obsidian wiki-links.
+
+## Reading order for a new contributor (or future Claude session)
+
+1. `README.md` — what this project is and why
+2. `Development_Phases.md` — where we are in the build
+3. The active phase folder (once `Phases/` exists)

@@ -1,0 +1,962 @@
+<!doctype html>
+<html lang="en" data-rung="2" data-look="quiet" data-motion="whimsical">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Denver to Lisbon</title>
+<script>
+  (function () {
+    var t = new URLSearchParams(location.search).get("theme");
+    if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+  })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600&display=swap">
+<style>
+  /* ---------- tokens: color (dark is the drawn palette; light is designed to match it) ---------- */
+  :root {
+    color-scheme: light;
+    --bg: #f4f3f1;
+    --surface: #ffffff;
+    --ink: #18191b;
+    --muted: #5f6166;
+    --faint: #b9bbbf;
+    --line: #e2e1de;
+    --hover: rgba(24, 25, 27, 0.05);
+    --accent: #c8350f;
+    --accent-ink: #ffffff;
+    --accent-soft: rgba(200, 53, 15, 0.08);
+    --shadow: 0 1px 2px rgba(24, 25, 27, 0.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #18191b;
+      --surface: #222427;
+      --ink: #eff0f1;
+      --muted: #9c9ea3;
+      --faint: #4a4d52;
+      --line: #2e3034;
+      --hover: rgba(239, 240, 241, 0.05);
+      --accent: #ff4a1f;
+      --accent-ink: #18191b;
+      --accent-soft: rgba(255, 74, 31, 0.1);
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #18191b;
+    --surface: #222427;
+    --ink: #eff0f1;
+    --muted: #9c9ea3;
+    --faint: #4a4d52;
+    --line: #2e3034;
+    --hover: rgba(239, 240, 241, 0.05);
+    --accent: #ff4a1f;
+    --accent-ink: #18191b;
+    --accent-soft: rgba(255, 74, 31, 0.1);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  }
+
+  /* ---------- tokens: type, space, shape, layout ---------- */
+  :root {
+    --font: "Work Sans", system-ui, sans-serif;
+    --text-meta: 13px;
+    --text-ui: 14px;
+    --text-big: 16px;
+    --text-h2: 18px;
+    --text-h1: 24px;
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 24px;
+    --radius: 8px;
+    --radius-sm: 6px;
+    --btn: 32px;
+    --row: 64px;
+    --filters-w: 300px;
+    --left-w: 380px;
+    --count-slot: 17ch;
+    --step-slot: 8ch;
+
+    /* motion: motion-kit whimsical (tap .15/.35, enter .48/.35, exit .29/0, move .48/.35, attention .38/.35 x1.1, stagger .065).
+       JS swaps these for spring linear() curves at boot. */
+    --tap-ms: 260ms;  --tap-ease: cubic-bezier(.3, 1.6, .5, 1);
+    --move-ms: 700ms; --move-ease: cubic-bezier(.3, 1.5, .5, 1);
+    --calm-ms: 600ms; --calm-ease: cubic-bezier(.2, .8, .3, 1);
+    --fade-ms: 150ms;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    :root { --tap-ms: 0ms; --move-ms: 0ms; --calm-ms: 0ms; }
+  }
+
+  /* ---------- base ---------- */
+  * { box-sizing: border-box; }
+  html { background: var(--bg); }
+  html, body { margin: 0; }
+  body { background: var(--bg); color: var(--ink); font: 400 var(--text-ui)/1.4 var(--font); -webkit-font-smoothing: antialiased; }
+  button { font: inherit; color: inherit; }
+  h1, h2, h3 { margin: 0; font-weight: 600; }
+  h1 { font-size: var(--text-h1); line-height: 1.25; letter-spacing: -0.01em; }
+  h2 { font-size: var(--text-h2); line-height: 1.3; font-weight: 500; }
+  h3 { font-size: var(--text-ui); line-height: 1.4; font-weight: 500; }
+  .num { font-variant-numeric: tabular-nums; }
+  .meta { font-size: var(--text-meta); color: var(--muted); }
+  :focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  ul, ol { list-style: none; margin: 0; padding: 0; }
+
+  .btn {
+    min-height: var(--btn); min-width: var(--btn); padding: 0 var(--space-3);
+    border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface);
+    font-size: var(--text-ui); font-weight: 500; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2);
+    transition: transform var(--tap-ms) var(--tap-ease), background-color var(--fade-ms) linear, border-color var(--fade-ms) linear;
+  }
+  .btn:hover { background: var(--hover); }
+  .btn:active { transform: scale(.95); }
+  .btn:disabled { cursor: default; color: var(--muted); background: transparent; }
+  .btn:disabled:active { transform: none; }
+  .btn.icon { padding: 0; width: var(--btn); }
+  .btn svg { width: 16px; height: 16px; }
+  .btn[aria-pressed="true"], .seg .btn[aria-checked="true"], .tabs .btn[aria-selected="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+  .tipwrap { position: relative; display: inline-flex; }
+  .tip {
+    position: absolute; top: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+    white-space: nowrap; padding: var(--space-1) var(--space-2); border-radius: var(--radius-sm);
+    background: var(--ink); color: var(--bg); font-size: var(--text-meta); font-weight: 500;
+    display: none; z-index: 5; pointer-events: none;
+  }
+  .tipwrap:hover .tip, .tipwrap:focus-within .tip { display: block; animation: tip-in var(--fade-ms) linear 300ms both; }
+  @keyframes tip-in { from { opacity: 0; } to { opacity: 1; } }
+
+  /* ---------- shell ---------- */
+  /* one page scroll; the filters and both list headers stay pinned while the rows move under them */
+  .app { min-height: 100dvh; }
+  .top { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-3) var(--space-5); border-bottom: 1px solid var(--line); min-height: 64px; }
+  .trip { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: var(--space-3); flex-wrap: wrap; row-gap: 0; }
+  .trip h1 { overflow-wrap: anywhere; }
+  .chrome { display: inline-flex; gap: var(--space-2); }
+  .chrome button { min-height: var(--btn); padding: 0 var(--space-2); border: 1px solid var(--line); border-radius: var(--radius); background: transparent; font-size: var(--text-meta); font-weight: 500; color: var(--muted); cursor: pointer; }
+  .chrome button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+  main { display: grid; grid-template-columns: var(--filters-w) minmax(0, 1fr) var(--left-w); align-items: start; }
+
+  /* ---------- filters ---------- */
+  .filters { position: sticky; top: 0; max-height: 100dvh; overflow: auto; padding: var(--space-4) var(--space-5) var(--space-5); display: flex; flex-direction: column; gap: var(--space-5); }
+  .filters-head { display: flex; align-items: center; justify-content: space-between; min-height: var(--btn); }
+  .fgroup { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3); margin: calc(var(--space-3) * -1); border-radius: var(--radius); transition: background-color var(--fade-ms) linear; }
+  .fgroup.lit { background: var(--hover); }
+  .fhead { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-2); }
+  .removed { font-size: var(--text-meta); color: var(--muted); display: inline-block; }
+  /* counts hold a fixed right-aligned slot, so a new digit does not shift where the count starts */
+  .removed { min-width: var(--count-slot); text-align: right; transform-origin: right center; }
+  #stepno { min-width: var(--step-slot); text-align: right; flex-shrink: 0; }
+  .removed.zero { color: var(--muted); }
+  .fgroup.last .removed { color: var(--accent); font-weight: 500; }
+  .fvalue { font-size: var(--text-meta); color: var(--muted); }
+  .seg { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+  .seg .btn { font-size: var(--text-meta); padding: 0 var(--space-2); }
+
+  .range { position: relative; height: 28px; touch-action: none; cursor: pointer; }
+  .range .track { position: absolute; left: 9px; right: 9px; top: 13px; height: 2px; background: var(--line); border-radius: 1px; }
+  .range .inner { position: absolute; left: 9px; right: 9px; top: 0; bottom: 0; }
+  .range .fill { position: absolute; top: 13px; height: 2px; background: var(--ink); border-radius: 1px; transition: left var(--move-ms) var(--move-ease), right var(--move-ms) var(--move-ease); }
+  .range .thumb {
+    position: absolute; top: 5px; width: 18px; height: 18px; margin-left: -9px; border-radius: 50%;
+    background: var(--surface); border: 2px solid var(--ink); box-shadow: var(--shadow);
+    transition: left var(--move-ms) var(--move-ease), transform var(--tap-ms) var(--tap-ease);
+  }
+  .range.dragging .thumb, .range.dragging .fill { transition: transform var(--tap-ms) var(--tap-ease); }
+  .range .thumb.active { transform: scale(1.1); }
+
+  .airlines { display: flex; flex-direction: column; gap: var(--space-1); }
+  .check {
+    width: 100%; min-height: 32px; display: grid; grid-template-columns: 18px minmax(0, 1fr); align-items: start; gap: var(--space-2);
+    padding: var(--space-1) var(--space-2); margin: 0 calc(var(--space-2) * -1); width: calc(100% + var(--space-4));
+    border: 0; border-radius: var(--radius-sm); background: transparent; cursor: pointer; text-align: left;
+  }
+  .check:hover { background: var(--hover); }
+  .check .box { margin-top: 1px; width: 18px; height: 18px; border-radius: 5px; border: 1.5px solid var(--muted); display: grid; place-items: center; transition: background-color var(--fade-ms) linear, transform var(--tap-ms) var(--tap-ease); }
+  .check .box svg { width: 12px; height: 12px; color: var(--bg); opacity: 0; transition: opacity var(--fade-ms) linear; }
+  .check[aria-checked="true"] .box { background: var(--ink); border-color: var(--ink); }
+  .check[aria-checked="true"] .box svg { opacity: 1; }
+  .check:active .box { transform: scale(.95); }
+  /* the name and its price share a line that wraps: a long name takes the full width and the price drops under it */
+  .check .aline { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: var(--space-2); min-width: 0; }
+  .check .aname { overflow-wrap: anywhere; min-width: 0; }
+  .check .aline .meta { margin-left: auto; white-space: nowrap; }
+
+  /* ---------- results ---------- */
+  .results, .gone { min-height: calc(100dvh - 64px); }
+  .gone, .results { border-left: 1px solid var(--line); }
+  .rhead { position: sticky; top: 0; z-index: 2; background: var(--bg); }
+  .rhead { padding: var(--space-4) var(--space-5) var(--space-3); display: flex; flex-direction: column; gap: var(--space-2); border-bottom: 1px solid var(--line); }
+  .rhead-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); min-height: var(--btn); }
+  .trace { display: flex; align-items: center; gap: var(--space-2); min-height: var(--btn); }
+  .trace .what { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .trace .what b { font-weight: 500; color: var(--accent); }
+  .list { padding: var(--space-2) var(--space-3) var(--space-5); }
+  .list > li { position: relative; }
+
+  .flight {
+    display: grid;
+    grid-template-columns: 76px minmax(120px, 1fr) 92px minmax(140px, 1.1fr) 84px;
+    align-items: center; column-gap: var(--space-4);
+    min-height: var(--row); padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius);
+    border-bottom: 1px solid var(--line);
+  }
+  .flight:hover { background: var(--hover); }
+  .flight .t { font-size: var(--text-big); font-weight: 500; }
+  .flight .t sup { font-size: var(--text-meta); color: var(--muted); font-weight: 400; vertical-align: 0; margin-left: 2px; }
+  .flight .tright { text-align: right; }
+  .route { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
+  .route .line { position: relative; height: 10px; }
+  .route .line::before { content: ""; position: absolute; left: 0; right: 0; top: 4px; height: 2px; background: var(--faint); border-radius: 1px; }
+  .route .dot { position: absolute; top: 1px; width: 8px; height: 8px; margin-left: -4px; border-radius: 50%; background: var(--surface); border: 2px solid var(--muted); }
+  .route .dot.end { background: var(--ink); border-color: var(--ink); }
+  .route .lbl { font-size: var(--text-meta); color: var(--muted); text-align: center; overflow-wrap: anywhere; }
+  .flight .airline { overflow-wrap: anywhere; }
+  .flight .price { text-align: right; font-size: var(--text-big); font-weight: 400; }
+  .list > li:first-child .flight .price { font-weight: 600; }
+
+  .gone-row { display: grid; grid-template-columns: 64px minmax(0, 1fr); column-gap: var(--space-3); row-gap: 2px; padding: var(--space-2) var(--space-3); border-radius: var(--radius); border-bottom: 1px solid var(--line); }
+  .gone-row:hover, .gone-row.lit { background: var(--hover); }
+  .gone-row .t, .gone-row .airline, .gone-row .price { color: var(--muted); }
+  /* like the airline filter: the name and its price share a line that wraps, so a long name takes the full width and the price drops under it */
+  .gone-row .aline { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: var(--space-2); min-width: 0; }
+  .gone-row .price { margin-left: auto; white-space: nowrap; text-align: right; }
+  .gone-row .airline { overflow-wrap: anywhere; min-width: 0; }
+  .gone-row .why { grid-column: 2; font-size: var(--text-meta); color: var(--muted); overflow-wrap: anywhere; }
+  .gone-row .why b { font-weight: 500; color: var(--ink); }
+  .gone-row .why b.now { color: var(--accent); }
+
+  .trace .what .nw { white-space: nowrap; }
+  main.searching .removed, main.searching #stepno, main.searching #gone-count, main.searching .trace .what, main.searching #filters-sum { visibility: hidden; }
+  /* the two lists run the full height, so the column dividers reach the bottom together */
+  .results, .gone { align-self: stretch; }
+  .empty { padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-3); align-items: flex-start; }
+  .empty[hidden] { display: none; }
+  .list:empty { display: none; }
+
+  .status[hidden] { display: none; }
+  .status { display: flex; align-items: center; gap: var(--space-3); min-height: 20px; }
+  .bar { position: relative; flex: 1; max-width: 160px; height: 2px; background: var(--line); border-radius: 1px; overflow: hidden; }
+  .bar i { position: absolute; inset: 0; background: var(--ink); transform-origin: left; transform: scaleX(0); }
+
+  .tabs { display: none; }
+  .filters-toggle { display: none; }
+
+  @media (max-width: 1180px) and (min-width: 901px) {
+    :root { --filters-w: 260px; --left-w: 300px; }
+    .flight { grid-template-columns: 68px minmax(100px, 1fr) 84px 84px; }
+    .flight .airline-cell { display: none; }
+  }
+
+  /* ---------- phone ---------- */
+  @media (max-width: 900px) {
+    .top { flex-wrap: wrap; padding: var(--space-3) var(--space-4); }
+    .trip { flex-basis: 100%; }
+    main { display: flex; flex-direction: column; align-items: stretch; }
+    .filters-toggle { order: 1; display: flex; margin: var(--space-3) var(--space-4) 0; justify-content: space-between; }
+    .filters { order: 2; }
+    .tabs { order: 3; }
+    .results { order: 4; }
+    .gone { order: 5; }
+    .filters { position: static; max-height: none; border: 0; overflow: visible; padding: var(--space-4); }
+    .results, .gone { min-height: 0; }
+    .rhead { position: static; }
+    .filters[data-open="false"] { display: none; }
+    .filters-head { display: none; }
+    .rhead { padding: var(--space-3) var(--space-4); }
+    .tabs { display: flex; gap: var(--space-2); padding: var(--space-3) var(--space-4) 0; }
+    .tabs .btn { flex: 1; }
+    .gone, .results { border: 0; }
+    .gone .rhead { display: none; }
+    main[data-tab="fit"] .gone { display: none; }
+    main[data-tab="gone"] .results .list, main[data-tab="gone"] .results .empty { display: none; }
+    .flight .t { white-space: nowrap; }
+    .flight { grid-template-columns: 76px minmax(0, 1fr) 100px; grid-template-areas: "dep route arr" "air air price"; row-gap: var(--space-1); column-gap: var(--space-3); padding: var(--space-3) var(--space-2); }
+    .flight .dep { grid-area: dep; }
+    .flight .route { grid-area: route; }
+    .flight .arr { grid-area: arr; }
+    .flight .airline-cell { grid-area: air; }
+    .flight .price { grid-area: price; }
+    .list { padding: var(--space-2) var(--space-2) var(--space-4); }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="trip">
+      <h1 id="route-title">Denver to Lisbon</h1>
+      <span class="meta" id="trip-meta">Fri 14 Nov, 1 adult (a made-up example)</span>
+    </div>
+    <div class="chrome" data-ui-chrome role="group" aria-label="Data">
+      <button type="button" data-set="demo" aria-pressed="true">Demo data</button>
+      <button type="button" data-set="worst" aria-pressed="false">Worst case</button>
+      <button type="button" data-set="empty" aria-pressed="false">Empty</button>
+    </div>
+  </header>
+
+  <main id="main" data-tab="fit">
+    <button class="btn filters-toggle" id="filters-toggle" data-ui-disclosure aria-expanded="false" aria-controls="filters"><span>Filters</span><span class="meta num" id="filters-sum"></span></button>
+
+    <aside class="filters" id="filters" data-open="false" aria-label="Filters">
+      <div class="filters-head">
+        <h2>Filters</h2>
+        <button class="btn" id="reset">Reset</button>
+      </div>
+
+      <section class="fgroup" data-key="stops">
+        <div class="fhead"><h3>Stops</h3><span class="removed num" data-ui-number></span></div>
+        <div class="seg" id="stops" role="radiogroup" aria-label="Stops">
+          <button class="btn" role="radio" data-v="any">Any</button>
+          <button class="btn" role="radio" data-v="0">Nonstop</button>
+          <button class="btn" role="radio" data-v="1">1 stop or fewer</button>
+        </div>
+      </section>
+
+      <section class="fgroup" data-key="depart">
+        <div class="fhead"><h3>Departs</h3><span class="removed num" data-ui-number></span></div>
+        <div class="fvalue num" data-value></div>
+        <div class="range" data-range="depart"><div class="track"></div><div class="inner"><div class="fill"></div><div class="thumb" role="slider" tabindex="0" data-end="0" aria-label="Departs after"></div><div class="thumb" role="slider" tabindex="0" data-end="1" aria-label="Departs before"></div></div></div>
+      </section>
+
+      <section class="fgroup" data-key="arrive">
+        <div class="fhead"><h3>Arrives</h3><span class="removed num" data-ui-number></span></div>
+        <div class="fvalue num" data-value></div>
+        <div class="range" data-range="arrive"><div class="track"></div><div class="inner"><div class="fill"></div><div class="thumb" role="slider" tabindex="0" data-end="0" aria-label="Arrives after"></div><div class="thumb" role="slider" tabindex="0" data-end="1" aria-label="Arrives before"></div></div></div>
+      </section>
+
+      <section class="fgroup" data-key="price">
+        <div class="fhead"><h3>Price</h3><span class="removed num" data-ui-number></span></div>
+        <div class="fvalue num" data-value></div>
+        <div class="range" data-range="price"><div class="track"></div><div class="inner"><div class="fill"></div><div class="thumb" role="slider" tabindex="0" data-end="1" aria-label="Highest price"></div></div></div>
+      </section>
+
+      <section class="fgroup" data-key="airlines">
+        <div class="fhead"><h3>Airlines</h3><span class="removed num" data-ui-number></span></div>
+        <ul class="airlines" id="airlines"></ul>
+      </section>
+    </aside>
+
+    <section class="results" aria-label="Flights that fit">
+      <div class="rhead">
+        <div class="rhead-row">
+          <h2 id="fit-title" class="num">Flights</h2>
+          <span class="meta">Cheapest first</span>
+        </div>
+        <div class="trace">
+          <span class="tipwrap">
+            <button class="btn icon" id="back" data-ui-step="back" aria-label="Step back" aria-describedby="tip-back">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>
+            </button>
+            <span class="tip" role="tooltip" id="tip-back">Step back, ⌘Z</span>
+          </span>
+          <span class="tipwrap">
+            <button class="btn icon" id="forward" data-ui-step="forward" aria-label="Step forward" aria-describedby="tip-forward">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg>
+            </button>
+            <span class="tip" role="tooltip" id="tip-forward">Step forward, ⇧⌘Z</span>
+          </span>
+          <span class="what" id="what" aria-live="polite"></span>
+          <span class="meta num" id="stepno"></span>
+        </div>
+        <div class="status" id="status" hidden><span class="meta" id="status-text"></span><span class="bar"><i id="status-bar"></i></span></div>
+      </div>
+      <ol class="list" id="fit-list"></ol>
+      <div class="empty" id="empty" hidden>
+        <h3>No flight fits</h3>
+        <span class="meta" id="empty-why"></span>
+        <button class="btn" id="empty-back">Step back</button>
+      </div>
+    </section>
+
+    <div class="tabs" role="tablist" aria-label="Lists">
+      <button class="btn" role="tab" data-tab="fit" aria-selected="true" id="tab-fit">Fit</button>
+      <button class="btn" role="tab" data-tab="gone" aria-selected="false" id="tab-gone">Left the list</button>
+    </div>
+
+    <section class="gone" aria-label="Flights that left the list">
+      <div class="rhead">
+        <div class="rhead-row"><h2>Left the list</h2><span class="meta num" id="gone-count"></span></div>
+      </div>
+      <ol class="list" id="gone-list"></ol>
+    </section>
+  </main>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var root = document.documentElement;
+  var reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ---------- motion: motion-kit whimsical, as springs ---------- */
+  var FEEL = { tap: [0.15, 0.35], enter: [0.48, 0.35], exit: [0.29, 0], move: [0.48, 0.35], attention: [0.38, 0.35] };
+  var STAGGER = 65;
+  function spring(vd, bounce) {
+    var w = (2 * Math.PI) / (vd * 1.2), k = w * w, zeta = Math.min(1, Math.max(0.05, 1 - bounce)), c = 2 * zeta * w;
+    var x = 0, v = 0, t = 0, dt = 1 / 240, pts = [0];
+    while (t < 4) { var a = -k * (x - 1) - c * v; v += a * dt; x += v * dt; t += dt; pts.push(x); if (Math.abs(x - 1) < 0.002 && Math.abs(v) < 0.02) break; }
+    var out = [], step = Math.max(1, Math.floor(pts.length / 48));
+    for (var i = 0; i < pts.length; i += step) out.push(+pts[i].toFixed(4));
+    out.push(1);
+    return { ms: Math.round(t * 1000), ease: "linear(" + out.join(", ") + ")" };
+  }
+  var M = {};
+  Object.keys(FEEL).forEach(function (n) { M[n] = spring(FEEL[n][0], FEEL[n][1]); });
+  M.calm = spring(0.48, 0); // arrivals no touch started: no bounce
+  if (!reduce) {
+    root.style.setProperty("--tap-ms", M.tap.ms + "ms"); root.style.setProperty("--tap-ease", M.tap.ease);
+    root.style.setProperty("--move-ms", M.move.ms + "ms"); root.style.setProperty("--move-ease", M.move.ease);
+    root.style.setProperty("--calm-ms", M.calm.ms + "ms"); root.style.setProperty("--calm-ease", M.calm.ease);
+  }
+
+  /* ---------- data ---------- */
+  function prng(seed) { return function () { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }; }
+  var TZ = 420; // Lisbon is 7 hours ahead of Denver in November
+
+  function makeFlights(spec) {
+    var r = prng(spec.seed), out = [];
+    for (var i = 0; i < spec.count; i++) {
+      var al = spec.airlines[Math.floor(r() * spec.airlines.length)];
+      var stops = al.stops[Math.floor(r() * al.stops.length)];
+      var dep = 300 + Math.round(r() * 210) * 5;
+      var dur = stops === 0 ? 590 + Math.round(r() * 8) * 5 : stops === 1 ? 720 + Math.round(r() * 60) * 5 : 960 + Math.round(r() * 96) * 5;
+      if (spec.long && r() > 0.8) dur = 2335;
+      var arrAbs = dep + dur + TZ;
+      var base = stops === 0 ? 1080 : stops === 1 ? 640 : 470;
+      var price = Math.round((base + r() * 420) * al.factor / 10) * 10;
+      if (spec.long && r() > 0.9) price = 12480;
+      var via = [];
+      for (var s = 0; s < stops; s++) via.push(al.hubs[(i + s) % al.hubs.length]);
+      out.push({ id: spec.prefix + i, airline: al.name, stops: stops, via: via, dep: dep, dur: dur, arr: arrAbs % 1440, plus: Math.floor(arrAbs / 1440), price: price });
+    }
+    return out;
+  }
+  var AIRLINES = [
+    { name: "Aster Air", stops: [1, 1, 2], hubs: ["JFK", "BOS"], factor: 1 },
+    { name: "Corvo Airways", stops: [1, 2], hubs: ["ORD", "EWR", "MAD"], factor: 0.92 },
+    { name: "Tejo Atlantic", stops: [0, 0, 1], hubs: ["EWR"], factor: 1.08 },
+    { name: "Plains Jet", stops: [1, 2, 2], hubs: ["ATL", "MAD"], factor: 0.86 },
+    { name: "Lumen Air", stops: [1, 1, 2], hubs: ["LHR", "FRA"], factor: 1.02 }
+  ];
+  var WORST_AIRLINES = [
+    { name: "Compañía Transatlántica de Aviación del Norte y del Sur", stops: [1, 2, 3], hubs: ["ORD", "KEF", "MAD"], factor: 1 },
+    { name: "日本トランスアトランティック航空", stops: [1, 2], hubs: ["NRT", "FRA"], factor: 1.3 },
+    { name: "Ø", stops: [0, 1], hubs: ["CPH"], factor: 1.1 },
+    { name: "✈️ Sky Hopper Express", stops: [2, 3], hubs: ["ATL", "BOS", "LHR"], factor: 0.8 },
+    { name: "Fitzgerald-Montgomery International Airways Holdings", stops: [0, 1, 2], hubs: ["EWR", "DUB"], factor: 1.6 }
+  ];
+  function defaults(set) {
+    var maxPrice = Math.max.apply(null, set.flights.map(function (f) { return f.price; }));
+    return { stops: "any", depart: [0, 1440], arrive: [0, 1440], price: maxPrice, airlines: [] };
+  }
+  function clone(f) { return { stops: f.stops, depart: f.depart.slice(), arrive: f.arrive.slice(), price: f.price, airlines: f.airlines.slice() }; }
+  function withChange(f, key, v) { var n = clone(f); n[key] = v; return n; }
+
+  var DATA = {
+    demo: function () {
+      var flights = makeFlights({ seed: 42, count: 40, airlines: AIRLINES, prefix: "d" });
+      var set = { title: "Denver to Lisbon", meta: "Fri 14 Nov, 1 adult (a made-up example)", flights: flights, airlines: AIRLINES.map(function (a) { return a.name; }) };
+      var f0 = defaults(set);
+      var f1 = withChange(f0, "stops", "1");
+      var f2 = withChange(f1, "price", 900);
+      var f3 = withChange(f2, "depart", [420, 1440]);
+      set.steps = [f0, f1, f2, f3]; set.current = 3;
+      return set;
+    },
+    worst: function () {
+      var flights = makeFlights({ seed: 7, count: 300, airlines: WORST_AIRLINES, prefix: "w", long: true });
+      var set = { title: "Denver International to Lisboa Humberto Delgado, with a stop on the way back", meta: "Fri 14 Nov to Sun 30 Nov, 2 adults, 1 child, 1 infant on lap (a made-up example)", flights: flights, airlines: WORST_AIRLINES.map(function (a) { return a.name; }) };
+      var f = defaults(set), steps = [f];
+      f = withChange(f, "stops", "1"); steps.push(f);
+      f = withChange(f, "airlines", ["Ø"]); steps.push(f);
+      f = withChange(f, "price", 1900); steps.push(f);
+      f = withChange(f, "arrive", [480, 1320]); steps.push(f);
+      f = withChange(f, "depart", [360, 1200]); steps.push(f);
+      set.steps = steps; set.current = steps.length - 1;
+      return set;
+    },
+    empty: function () {
+      var set = DATA.demo();
+      var f = withChange(set.steps[3], "stops", "0");
+      f = withChange(f, "price", 700);
+      set.steps = set.steps.concat([withChange(set.steps[3], "stops", "0"), f]);
+      set.current = set.steps.length - 1;
+      return set;
+    }
+  };
+
+  /* ---------- words ---------- */
+  function clock(m) {
+    m = ((m % 1440) + 1440) % 1440;
+    var h = Math.floor(m / 60), mm = m % 60, ap = h < 12 ? "AM" : "PM", hh = h % 12 || 12;
+    return hh + ":" + (mm < 10 ? "0" : "") + mm + " " + ap;
+  }
+  function endClock(m) { return m >= 1440 ? "midnight" : clock(m); }
+  function dur(m) { return Math.floor(m / 60) + " h" + (m % 60 ? " " + (m % 60) + " m" : ""); }
+  var money = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+  function plural(n, one, many) { return n + " " + (n === 1 ? one : many); }
+  function stopsWords(n) { return n === 0 ? "Nonstop" : plural(n, "stop", "stops"); }
+  var STOPS_LABEL = { any: "Any", "0": "Nonstop", "1": "1 stop or fewer" };
+  var NAMES = { stops: "Stops", depart: "Departs", arrive: "Arrives", price: "Price", airlines: "Airlines" };
+  function rangeWords(r) { return r[0] <= 0 && r[1] >= 1440 ? "Any time" : clock(r[0]) + " to " + endClock(r[1]); }
+  function priceWords(p, max) { return p >= max ? "Any price" : "Up to " + money.format(p); }
+  function stepLabel(prev, next) {
+    if (!prev) return "All flights";
+    var keys = changedKeys(prev, next);
+    if (!keys.length) return "No change";
+    var k = keys[0];
+    if (keys.length > 1) return "Filters reset";
+    if (k === "stops") return "Stops: " + STOPS_LABEL[next.stops];
+    if (k === "depart") return "Departs: " + rangeWords(next.depart);
+    if (k === "arrive") return "Arrives: " + rangeWords(next.arrive);
+    if (k === "price") return "Price: " + priceWords(next.price, maxPrice);
+    if (k === "airlines") {
+      var off = next.airlines.filter(function (a) { return prev.airlines.indexOf(a) < 0; });
+      var on = prev.airlines.filter(function (a) { return next.airlines.indexOf(a) < 0; });
+      return off.length ? off[0] + " hidden" : on[0] + " shown";
+    }
+    return "";
+  }
+  function changedKeys(a, b) {
+    return Object.keys(NAMES).filter(function (k) { return JSON.stringify(a[k]) !== JSON.stringify(b[k]); });
+  }
+
+  /* ---------- filtering ---------- */
+  function inRange(m, r) { return m >= r[0] && m <= r[1]; }
+  function fails(f, fl) {
+    var out = [];
+    if (f.stops !== "any" && fl.stops > Number(f.stops)) out.push("stops");
+    if (!inRange(fl.dep, f.depart)) out.push("depart");
+    if (!inRange(fl.arr, f.arrive)) out.push("arrive");
+    if (fl.price > f.price) out.push("price");
+    if (f.airlines.indexOf(fl.airline) >= 0) out.push("airlines");
+    return out;
+  }
+  function whyWords(k, fl) {
+    if (k === "stops") return "has " + stopsWords(fl.stops);
+    if (k === "depart") return "leaves at " + clock(fl.dep);
+    if (k === "arrive") return "lands at " + clock(fl.arr);
+    if (k === "price") return "costs " + money.format(fl.price);
+    if (k === "airlines") return "airline hidden";
+    return "";
+  }
+
+  /* ---------- state ---------- */
+  var params = new URLSearchParams(location.search);
+  var setName = DATA[params.get("data")] ? params.get("data") : "demo";
+  var set, maxPrice, minPrice, lastKeys = [];
+  var $ = function (id) { return document.getElementById(id); };
+  var els = { fit: $("fit-list"), gone: $("gone-list"), what: $("what"), stepno: $("stepno"), back: $("back"), forward: $("forward"),
+    fitTitle: $("fit-title"), goneCount: $("gone-count"), empty: $("empty"), emptyWhy: $("empty-why"), airlines: $("airlines"),
+    main: $("main"), filters: $("filters"), filtersToggle: $("filters-toggle"), filtersSum: $("filters-sum"),
+    status: $("status"), statusText: $("status-text"), statusBar: $("status-bar"), tabFit: $("tab-fit"), tabGone: $("tab-gone") };
+  function F() { return set.steps[set.current]; }
+
+  /* ---------- rows, keyed by flight id; a row is one object that moves between lists ---------- */
+  var rows = new Map();
+  function routeHTML(fl) {
+    var dots = '<span class="dot end" style="left:0%"></span><span class="dot end" style="left:100%"></span>';
+    for (var s = 0; s < fl.stops; s++) dots += '<span class="dot" style="left:' + ((s + 1) / (fl.stops + 1) * 100) + '%"></span>';
+    return '<div class="line">' + dots + '</div><div class="lbl num">' + dur(fl.dur) + ", " + stopsWords(fl.stops).toLowerCase() + (fl.via.length ? " (" + fl.via.join(", ") + ")" : "") + "</div>";
+  }
+  function esc(s) { var d = document.createElement("span"); d.textContent = s; return d.innerHTML; }
+  function makeRow(fl) {
+    var li = document.createElement("li");
+    li.dataset.id = fl.id;
+    li.innerHTML =
+      '<div class="flight">' +
+        '<div class="t num dep">' + clock(fl.dep) + '</div>' +
+        '<div class="route">' + routeHTML(fl) + '</div>' +
+        '<div class="t num tright arr">' + clock(fl.arr) + (fl.plus ? "<sup>+" + fl.plus + "</sup>" : "") + '</div>' +
+        '<div class="airline-cell"><span class="airline">' + esc(fl.airline) + '</span></div>' +
+        '<div class="price num">' + money.format(fl.price) + '</div>' +
+      '</div>' +
+      '<div class="gone-row">' +
+        '<span class="t num">' + clock(fl.dep) + '</span><span class="aline"><span class="airline">' + esc(fl.airline) + '</span><span class="price num">' + money.format(fl.price) + '</span></span>' +
+        '<span class="why"></span>' +
+      '</div>';
+    li._fl = fl;
+    return li;
+  }
+  function showAs(li, list) {
+    li.querySelector(".flight").style.display = list === "fit" ? "" : "none";
+    li.querySelector(".gone-row").style.display = list === "gone" ? "" : "none";
+    if (list === "fit") li.setAttribute("data-ui-need", ""); else li.removeAttribute("data-ui-need");
+  }
+
+  /* ---------- filters UI ---------- */
+  var ranges = {};
+  function buildAirlines() {
+    els.airlines.textContent = "";
+    set.airlines.forEach(function (name) {
+      var cheapest = Math.min.apply(null, set.flights.filter(function (f) { return f.airline === name; }).map(function (f) { return f.price; }).concat([Infinity]));
+      var li = document.createElement("li");
+      li.innerHTML = '<button class="check" role="checkbox" aria-checked="true"><span class="box"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2.5 6.2 2.3 2.3 4.7-4.9"/></svg></span><span class="aline"><span class="aname"></span><span class="meta num"></span></span></button>';
+      li.querySelector(".aname").textContent = name;
+      li.querySelector(".meta").textContent = isFinite(cheapest) ? "from " + money.format(cheapest) : "";
+      li.firstChild.dataset.airline = name;
+      els.airlines.appendChild(li);
+    });
+  }
+  els.airlines.addEventListener("click", function (e) {
+    var b = e.target.closest(".check"); if (!b) return;
+    var name = b.dataset.airline, cur = F().airlines.slice(), i = cur.indexOf(name);
+    if (i >= 0) cur.splice(i, 1); else cur.push(name);
+    commit("airlines", cur);
+  });
+  document.getElementById("stops").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-v]"); if (!b) return;
+    if (b.dataset.v !== F().stops) commit("stops", b.dataset.v);
+  });
+  $("reset").addEventListener("click", function () {
+    var d = defaults(set);
+    if (!changedKeys(F(), d).length) return;
+    pushStep(d);
+  });
+  $("empty-back").addEventListener("click", function () { go(set.current - 1); });
+
+  // two-thumb and one-thumb ranges
+  function rangeSpec(key) {
+    if (key === "price") return { min: minPrice, max: maxPrice, step: 10 };
+    return { min: 0, max: 1440, step: 30 };
+  }
+  function rangeValue(key, f) { return key === "price" ? [rangeSpec(key).min, f.price] : f[key]; }
+  // price runs on a log scale, so one very dear fare does not squash the cheap end
+  function toPos(key, v) { var s = rangeSpec(key); return key === "price" ? Math.log(v / s.min) / Math.log(s.max / s.min) : (v - s.min) / (s.max - s.min); }
+  function fromPos(key, p) { var s = rangeSpec(key); return key === "price" ? s.min * Math.pow(s.max / s.min, p) : s.min + p * (s.max - s.min); }
+  function placeRange(key, v) {
+    var r = ranges[key], s = rangeSpec(key);
+    var p0 = toPos(key, v[0]) * 100, p1 = toPos(key, v[1]) * 100;
+    var thumbs = r.querySelectorAll(".thumb");
+    if (thumbs.length === 2) { thumbs[0].style.left = p0 + "%"; thumbs[1].style.left = p1 + "%"; }
+    else thumbs[0].style.left = p1 + "%";
+    var fill = r.querySelector(".fill"); fill.style.left = (thumbs.length === 2 ? p0 : 0) + "%"; fill.style.right = (100 - p1) + "%";
+    thumbs.forEach(function (t) {
+      var val = thumbs.length === 2 ? v[+t.dataset.end] : v[1];
+      t.setAttribute("aria-valuemin", s.min); t.setAttribute("aria-valuemax", s.max); t.setAttribute("aria-valuenow", val);
+      t.setAttribute("aria-valuetext", key === "price" ? money.format(val) : endClock(val));
+    });
+    var label = r.closest(".fgroup").querySelector("[data-value]");
+    label.textContent = key === "price" ? priceWords(v[1], maxPrice) : rangeWords(v);
+  }
+  function toFilter(key, v) { return key === "price" ? v[1] : v; }
+  [].forEach.call(document.querySelectorAll("[data-range]"), function (r) {
+    var key = r.dataset.range; ranges[key] = r;
+    var live = null, which = 1;
+    function valAt(x) {
+      var box = r.querySelector(".inner").getBoundingClientRect(), s = rangeSpec(key);
+      var v = fromPos(key, Math.max(0, Math.min(1, (x - box.left) / box.width)));
+      v = Math.round(v / s.step) * s.step;
+      return Math.max(s.min, Math.min(s.max, v));
+    }
+    function set2(v) {
+      var cur = live || rangeValue(key, F()).slice(), s = rangeSpec(key);
+      if (which === 0) cur[0] = Math.min(v, cur[1] - s.step); else cur[1] = Math.max(v, cur[0] + (key === "price" ? 0 : s.step));
+      cur[0] = Math.max(s.min, cur[0]); cur[1] = Math.min(s.max, cur[1]);
+      live = cur;
+      placeRange(key, cur);
+      previewCounts(withChange(F(), key, toFilter(key, cur)));
+    }
+    r.addEventListener("pointerdown", function (e) {
+      if (e.button !== 0) return;
+      r.setPointerCapture(e.pointerId); r.classList.add("dragging");
+      var thumbs = r.querySelectorAll(".thumb"), v = valAt(e.clientX), cur = rangeValue(key, F());
+      which = thumbs.length === 1 ? 1 : (Math.abs(v - cur[0]) < Math.abs(v - cur[1]) ? 0 : 1);
+      thumbs.forEach(function (t) { t.classList.toggle("active", thumbs.length === 1 || +t.dataset.end === which); });
+      set2(v);
+    });
+    r.addEventListener("pointermove", function (e) { if (r.hasPointerCapture(e.pointerId)) set2(valAt(e.clientX)); });
+    function end() {
+      if (!r.classList.contains("dragging")) return;
+      r.classList.remove("dragging");
+      r.querySelectorAll(".thumb").forEach(function (t) { t.classList.remove("active"); });
+      if (live) { var v = live; live = null; commit(key, toFilter(key, v)); }
+    }
+    r.addEventListener("pointerup", end); r.addEventListener("pointercancel", end);
+    r.querySelectorAll(".thumb").forEach(function (t) {
+      t.addEventListener("keydown", function (e) {
+        var s = rangeSpec(key), d = { ArrowLeft: -1, ArrowDown: -1, ArrowRight: 1, ArrowUp: 1 }[e.key];
+        if (!d) return;
+        e.preventDefault();
+        var cur = rangeValue(key, F()).slice(), i = r.querySelectorAll(".thumb").length === 1 ? 1 : +t.dataset.end;
+        cur[i] = Math.max(s.min, Math.min(s.max, cur[i] + d * s.step * (key === "price" ? 5 : 1)));
+        if (cur[0] >= cur[1] && key !== "price") return;
+        commit(key, toFilter(key, cur));
+      });
+    });
+  });
+
+  /* ---------- steps ---------- */
+  function commit(key, v) {
+    var next = withChange(F(), key, v);
+    if (!changedKeys(F(), next).length) { renderFilters(); return; }
+    pushStep(next);
+  }
+  function pushStep(next) {
+    var prev = F();
+    set.steps = set.steps.slice(0, set.current + 1);
+    set.steps.push(next);
+    set.current = set.steps.length - 1;
+    update(prev, true);
+  }
+  function go(i) {
+    if (i < 0 || i >= set.steps.length || i === set.current) return;
+    var prev = F();
+    set.current = i;
+    update(prev, true);
+  }
+  els.back.addEventListener("click", function () { go(set.current - 1); });
+  els.forward.addEventListener("click", function () { go(set.current + 1); });
+  document.addEventListener("keydown", function (e) {
+    if (!(e.metaKey || e.ctrlKey)) return;
+    var k = e.key.toLowerCase();
+    if (k === "z" && !e.shiftKey) { e.preventDefault(); go(set.current - 1); }
+    else if ((k === "z" && e.shiftKey) || k === "y") { e.preventDefault(); go(set.current + 1); }
+  });
+
+  /* ---------- counts on each filter ---------- */
+  function counts(f) {
+    var c = { stops: 0, depart: 0, arrive: 0, price: 0, airlines: 0 };
+    set.flights.forEach(function (fl) { fails(f, fl).forEach(function (k) { c[k]++; }); });
+    return c;
+  }
+  var shownCounts = {};
+  function showCounts(c, bump) {
+    [].forEach.call(document.querySelectorAll(".fgroup"), function (g) {
+      var k = g.dataset.key, el = g.querySelector(".removed");
+      el.textContent = "removed " + plural(c[k], "flight", "flights");
+      el.classList.toggle("zero", c[k] === 0);
+      if (bump && shownCounts[k] !== undefined && shownCounts[k] !== c[k] && !reduce) {
+        el.animate([{ transform: "scale(1)" }, { transform: "scale(1.1)" }, { transform: "scale(1)" }], { duration: M.attention.ms, easing: "ease-out" });
+      }
+      shownCounts[k] = c[k];
+    });
+  }
+  function previewCounts(f) { showCounts(counts(f), false); }
+
+  function renderFilters() {
+    var f = F();
+    [].forEach.call(document.querySelectorAll("#stops [data-v]"), function (b) {
+      var on = b.dataset.v === f.stops;
+      b.setAttribute("aria-checked", on ? "true" : "false");
+    });
+    Object.keys(ranges).forEach(function (k) { placeRange(k, rangeValue(k, f)); });
+    [].forEach.call(els.airlines.querySelectorAll(".check"), function (b) {
+      b.setAttribute("aria-checked", f.airlines.indexOf(b.dataset.airline) >= 0 ? "false" : "true");
+    });
+    [].forEach.call(document.querySelectorAll(".fgroup"), function (g) { g.classList.toggle("last", lastKeys.indexOf(g.dataset.key) >= 0); });
+    var active = changedKeys(defaults(set), f).length;
+    els.filtersSum.textContent = active ? plural(active, "filter on", "filters on") : "";
+  }
+
+  /* ---------- the one update ---------- */
+  function update(prev, animate) {
+    var f = F();
+    lastKeys = prev ? changedKeys(prev, f) : [];
+    var c = counts(f);
+    renderFilters();
+    showCounts(c, animate);
+
+    var fit = [], gone = [];
+    set.flights.forEach(function (fl) { var w = fails(f, fl); (w.length ? gone : fit).push({ fl: fl, why: w }); });
+    fit.sort(function (a, b) { return a.fl.price - b.fl.price || a.fl.dur - b.fl.dur; });
+    gone.sort(function (a, b) { return a.fl.price - b.fl.price; });
+
+    // where every row is now, before it moves (reads the drawn spot, so a row mid-flight starts from there)
+    var before = new Map();
+    if (animate) rows.forEach(function (li, id) { if (li.isConnected) before.set(id, { r: reduce ? null : li.getBoundingClientRect(), list: li.parentNode === els.fit ? "fit" : "gone" }); });
+    rows.forEach(function (li) { li.getAnimations().forEach(function (a) { a.cancel(); }); });
+
+    fit.forEach(function (x) { var li = rows.get(x.fl.id); showAs(li, "fit"); els.fit.appendChild(li); });
+    gone.forEach(function (x) {
+      var li = rows.get(x.fl.id); showAs(li, "gone");
+      li.querySelector(".why").innerHTML = x.why.map(function (k, i) {
+        var words = whyWords(k, x.fl);
+        if (i === 0) words = words.charAt(0).toUpperCase() + words.slice(1);
+        return '<b class="' + (lastKeys.indexOf(k) >= 0 ? "now" : "") + '">' + esc(words) + "</b>";
+      }).join(", ");
+      li.dataset.why = x.why.join(" ");
+      els.gone.appendChild(li);
+    });
+
+    // counts and words
+    els.fitTitle.textContent = plural(fit.length, "flight fits", "flights fit");
+    els.goneCount.textContent = gone.length;
+    els.tabFit.textContent = fit.length + " fit";
+    els.tabGone.textContent = gone.length + " left the list";
+    if (els.main.classList.contains("searching")) searching(true); // keep the new counts for when the search ends
+    els.empty.hidden = fit.length > 0;
+    if (!fit.length) {
+      var most = Object.keys(c).sort(function (a, b) { return c[b] - c[a]; })[0];
+      els.emptyWhy.textContent = NAMES[most] + " removed " + plural(c[most], "flight", "flights") + ", the most of any filter.";
+      $("empty-back").disabled = set.current === 0;
+    }
+
+    // trace line: which change, and what it moved
+    var moved = 0, back = 0;
+    before.forEach(function (b, id) {
+      var nowList = rows.get(id).parentNode === els.fit ? "fit" : "gone";
+      if (b.list !== nowList) { if (nowList === "gone") moved++; else back++; }
+    });
+    if (!animate) { // first paint: count against no filters
+      moved = 0; back = 0;
+    }
+    var label = stepLabel(set.current ? set.steps[set.current - 1] : null, f);
+    var tail = "";
+    if (animate && (moved || back)) {
+      tail = [moved ? plural(moved, "flight left", "flights left") : "", back ? plural(back, "came back", "came back") : ""].filter(Boolean).join(", ");
+    } else if (!animate && set.current > 0) {
+      var p = set.steps[set.current - 1], pf = 0, nf = 0;
+      set.flights.forEach(function (fl) { var a = fails(p, fl).length === 0, b = fails(f, fl).length === 0; if (a && !b) pf++; if (!a && b) nf++; });
+      tail = [pf ? plural(pf, "flight left", "flights left") : "", nf ? plural(nf, "came back", "came back") : ""].filter(Boolean).join(", ");
+    }
+    if (!tail && set.current) tail = "The list did not change";
+    // each part of the tail stays on one line, so a count never sits alone at a line end
+    var tailHTML = tail.split(", ").map(function (t) { return '<span class="nw">' + esc(t) + "</span>"; }).join(", ");
+    els.what.innerHTML = (set.current ? "<b>" + esc(label) + "</b>" : esc(label)) + (tail ? ". " + tailHTML : "");
+    els.stepno.textContent = (set.current + 1) + " of " + set.steps.length;
+    els.back.disabled = set.current === 0;
+    els.forward.disabled = set.current === set.steps.length - 1;
+
+    if (animate && !reduce) flip(before);
+  }
+
+  function flip(before) {
+    var enters = 0;
+    rows.forEach(function (li, id) {
+      var b = before.get(id); if (!b || !li.isConnected) return;
+      var list = li.parentNode === els.fit ? "fit" : "gone", r = li.getBoundingClientRect();
+      if (b.list === list) {
+        var dy = b.r.top - r.top;
+        if (Math.abs(dy) > 1) li.animate([{ transform: "translateY(" + dy + "px)" }, { transform: "none" }], { duration: M.move.ms, easing: M.move.ease });
+      } else {
+        // it changed lists: it arrives from the side it came from
+        var dx = list === "gone" ? -32 : 32, delay = Math.min(enters, 8) * STAGGER;
+        enters++;
+        if (r.bottom < 0 || r.top > innerHeight) return;
+        li.animate([{ transform: "translateX(" + dx + "px) scale(.96)", opacity: 0 }, { transform: "none", opacity: 1 }], { duration: M.enter.ms, easing: M.enter.ease, delay: delay, fill: "backwards" });
+      }
+    });
+  }
+
+  /* ---------- hover: a filter lights the flights it removed; a removed flight lights its filters ---------- */
+  function light(keys, ids) {
+    [].forEach.call(document.querySelectorAll(".fgroup"), function (g) { g.classList.toggle("lit", keys.indexOf(g.dataset.key) >= 0); });
+    [].forEach.call(els.gone.querySelectorAll(".gone-row"), function (r) {
+      var why = (r.parentNode.dataset.why || "").split(" ");
+      r.classList.toggle("lit", ids === "byKey" && keys.some(function (k) { return why.indexOf(k) >= 0; }));
+    });
+  }
+  els.filters.addEventListener("pointerover", function (e) { var g = e.target.closest(".fgroup"); if (g) light([g.dataset.key], "byKey"); });
+  els.filters.addEventListener("pointerleave", function () { light([], null); });
+  els.gone.addEventListener("pointerover", function (e) { var li = e.target.closest("li"); if (li) light((li.dataset.why || "").split(" "), null); });
+  els.gone.addEventListener("pointerleave", function () { light([], null); });
+
+  /* ---------- phone: filters disclosure and list tabs ---------- */
+  els.filtersToggle.addEventListener("click", function () {
+    var open = els.filters.dataset.open !== "true";
+    els.filters.dataset.open = open ? "true" : "false";
+    els.filtersToggle.setAttribute("aria-expanded", open ? "true" : "false");
+  });
+  [els.tabFit, els.tabGone].forEach(function (b) {
+    b.addEventListener("click", function () {
+      els.main.dataset.tab = b.dataset.tab;
+      [els.tabFit, els.tabGone].forEach(function (o) { var on = o === b; o.setAttribute("aria-selected", on ? "true" : "false"); });
+    });
+  });
+
+  /* ---------- searching: a status row while fares come back, then rows arrive with no bounce ---------- */
+  var searchTimer = null;
+  // While fares come back, no count claims a list that is not on screen.
+  function searching(on) {
+    els.main.classList.toggle("searching", on);
+    if (on) {
+      [els.fitTitle, els.tabFit, els.tabGone].forEach(function (e) { delete e.dataset.done; });
+      els.fitTitle.dataset.done = els.fitTitle.textContent; els.fitTitle.textContent = "Flights";
+      els.tabFit.dataset.done = els.tabFit.textContent; els.tabFit.textContent = "Fit";
+      els.tabGone.dataset.done = els.tabGone.textContent; els.tabGone.textContent = "Left the list";
+    } else {
+      [els.fitTitle, els.tabFit, els.tabGone].forEach(function (e) { if (e.dataset.done) { e.textContent = e.dataset.done; delete e.dataset.done; } });
+    }
+  }
+  function search(then) {
+    clearTimeout(searchTimer);
+    if (!els.main.classList.contains("searching")) searching(true);
+    els.status.hidden = false;
+    els.statusText.textContent = "Checking " + plural(set.airlines.length, "airline", "airlines");
+    els.statusBar.style.transition = "none"; els.statusBar.style.transform = "scaleX(0)";
+    els.fit.style.visibility = "hidden"; els.gone.style.visibility = "hidden";
+    requestAnimationFrame(function () {
+      els.statusBar.style.transition = "transform 600ms linear"; els.statusBar.style.transform = "scaleX(1)";
+    });
+    searchTimer = setTimeout(function () {
+      els.status.hidden = true;
+      els.fit.style.visibility = ""; els.gone.style.visibility = "";
+      searching(false);
+      then();
+    }, 650);
+  }
+  function arrive() {
+    if (reduce) return;
+    [].slice.call(els.fit.children, 0, 10).concat([].slice.call(els.gone.children, 0, 10)).forEach(function (li, i) {
+      li.animate([{ opacity: 0, transform: "translateY(8px)" }, { opacity: 1, transform: "none" }], { duration: M.calm.ms, easing: M.calm.ease, delay: (i % 10) * STAGGER, fill: "backwards" });
+    });
+  }
+
+  /* ---------- load a data set (demo chrome) ---------- */
+  function load(name, withSearch) {
+    setName = name;
+    set = DATA[name]();
+    maxPrice = Math.max.apply(null, set.flights.map(function (f) { return f.price; }));
+    minPrice = Math.floor(Math.min.apply(null, set.flights.map(function (f) { return f.price; })) / 10) * 10;
+    // a step at "any price" means the most expensive fare
+    set.steps.forEach(function (s) { if (s.price > maxPrice) s.price = maxPrice; });
+    $("route-title").textContent = set.title;
+    $("trip-meta").textContent = set.meta;
+    document.title = set.title;
+    rows.forEach(function (li) { li.remove(); });
+    rows = new Map();
+    set.flights.forEach(function (fl) { rows.set(fl.id, makeRow(fl)); });
+    buildAirlines();
+    shownCounts = {};
+    root.classList.add("no-move");
+    update(set.current ? set.steps[set.current - 1] : null, false);
+    requestAnimationFrame(function () { requestAnimationFrame(function () { root.classList.remove("no-move"); }); });
+    [].forEach.call(document.querySelectorAll("[data-set]"), function (b) { b.setAttribute("aria-pressed", b.dataset.set === name ? "true" : "false"); });
+    if (withSearch) search(arrive);
+  }
+  [].forEach.call(document.querySelectorAll("[data-set]"), function (b) {
+    b.addEventListener("click", function () {
+      var u = new URL(location.href);
+      if (b.dataset.set === "demo") u.searchParams.delete("data"); else u.searchParams.set("data", b.dataset.set);
+      history.replaceState(null, "", u);
+      load(b.dataset.set, true);
+    });
+  });
+
+  load(setName, true);
+
+  window.flightSearch = {
+    snapshot: function () {
+      return { step: set.current + 1, of: set.steps.length, change: els.what.textContent, fit: els.fit.children.length, left: els.gone.children.length, stops: F().stops, price: F().price };
+    },
+    loading: function () { clearTimeout(searchTimer); if (!els.main.classList.contains("searching")) searching(true); els.status.hidden = false; els.statusText.textContent = "Checking " + plural(set.airlines.length, "airline", "airlines"); els.statusBar.style.transition = "none"; els.statusBar.style.transform = "scaleX(0.55)"; els.fit.style.visibility = "hidden"; els.gone.style.visibility = "hidden"; },
+    light: function (key) { light([key], "byKey"); }
+  };
+})();
+</script>
+<style>
+  .no-move *, .no-move *::before, .no-move *::after { transition: none !important; }
+</style>
+</body>
+</html>

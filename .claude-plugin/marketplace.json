@@ -1,0 +1,39 @@
+{
+  "name": "claude-env",
+  "owner": {
+    "name": "claude-env maintainers"
+  },
+  "plugins": [
+    {
+      "name": "ui-suite",
+      "source": "./plugins/ui-suite",
+      "description": "UI taste, lint, break-test and consistency skills, with the hooks that inject taste rules and gate unlinted pages"
+    },
+    {
+      "name": "motion",
+      "source": "./plugins/motion",
+      "description": "Study how a page or clip moves and rebuild the mechanism"
+    },
+    {
+      "name": "models",
+      "source": "./plugins/models",
+      "description": "Check 3D models and rooms for geometry and layout defects before they ship"
+    },
+    {
+      "name": "workflow",
+      "source": "./plugins/workflow",
+      "description": "Planning, review, documentation and hand-off skills for long agent-driven work"
+    },
+    {
+      "name": "figures",
+      "source": "./plugins/figures",
+      "description": "Isometric technical figures and product reveals built as interactive pages"
+    },
+    {
+      "name": "bnhoang2k",
+      "source": "./plugins/bnhoang2k",
+      "description": "Installs the whole claude-env set: ui-suite, motion, models, workflow and figures"
+    }
+  ],
+  "description": "Skills and hooks for UI taste, motion, 3D models, agent workflow and technical figures, installable as five groups or as one bundle"
+}

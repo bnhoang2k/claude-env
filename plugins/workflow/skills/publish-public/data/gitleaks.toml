@@ -1,0 +1,3 @@
+# Used by every gitleaks run. A config inside the scanned folder must never replace it.
+[extend]
+useDefault = true

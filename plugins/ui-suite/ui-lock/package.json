@@ -1,0 +1,13 @@
+{
+  "name": "ui-lock",
+  "private": true,
+  "type": "module",
+  "description": "Lint presets that enforce DESIGN.md's UI system.",
+  "devDependencies": {
+    "eslint": "10.12.0",
+    "typescript-eslint": "8.71.1",
+    "typescript": "6.0.3",
+    "@eslint-community/eslint-plugin-eslint-comments": "4.8.1",
+    "stylelint": "17.16.0"
+  }
+}

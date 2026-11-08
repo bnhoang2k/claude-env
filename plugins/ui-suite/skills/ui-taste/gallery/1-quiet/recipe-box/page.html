@@ -1,0 +1,670 @@
+<!doctype html>
+<html lang="en" data-rung="1" data-look="loud" data-motion="whimsical">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recipe box</title>
+<script>(function(){var q=new URLSearchParams(location.search).get("theme"),r=document.documentElement,m=matchMedia("(prefers-color-scheme: dark)");function a(){r.dataset.theme=(q==="light"||q==="dark")?q:(m.matches?"dark":"light")}a();m.addEventListener("change",a)})();</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=TikTok+Sans:wdth,wght@100..150,400..800&display=swap" rel="stylesheet">
+<style>
+/* ---------- tokens: type, space, radius, motion (layout) ---------- */
+:root {
+  --face: "TikTok Sans", system-ui, -apple-system, sans-serif;
+  --fs-meta: 13px; --fs-body: 16px; --fs-label: 14px; --fs-head: 20px; --fs-title: 48px; --fs-title-long: 32px; --fs-title-phone: 32px; --fs-title-phone-long: 24px;
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 24px; --sp-6: 32px; --sp-7: 40px;
+  --r-s: 6px; --r-m: 10px;
+  --list-w: clamp(280px, 26vw, 420px);
+  --row-h: 56px;
+  /* motion-kit whimsical: tap 0.15 s, bounce 0.35 on a touch, amount 0.95; set from JS as linear() springs */
+  --dur-tap: 150ms; --ease-tap: ease-out;
+  --dur-tapTouch: 300ms; --ease-tapTouch: cubic-bezier(.34, 1.56, .64, 1);
+  --press: .95; --press-row: .98;
+}
+
+/* ---------- tokens: colour, light (the cobalt field from the draw) ---------- */
+:root, [data-theme="light"] {
+  --field: #0034eb; --field-2: #002fd6; --field-ink: #ffffff; --field-muted: #c5d0ff; --field-line: #4f72f2;
+  --sel: #e9e34a; --sel-ink: #111111;
+  --card: #f5f6fa; --card-ink: #0b1442; --card-muted: #4a5385; --card-line: #dcdfeb; --card-hover: #e9ebf3;
+  --title: #0034eb; --num: #0034eb; --done: #8a8fae; --tip-bg: #0b1442; --tip-ink: #ffffff;
+  --focus-field: #e9e34a; --focus-card: #0034eb;
+  --skel-field: #2a55f0; --skel-card: #e3e6ef;
+}
+/* ---------- tokens: colour, dark (night cobalt, the card turns to ink) ---------- */
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --field: #08104a; --field-2: #0e1866; --field-ink: #ffffff; --field-muted: #b3bff2; --field-line: #2a3a8f;
+  --sel: #e9e34a; --sel-ink: #111111;
+  --card: #111b5c; --card-ink: #f4f5ff; --card-muted: #b3bff2; --card-line: #26337d; --card-hover: #18246e;
+  --title: #ffffff; --num: #9db1ff; --done: #7f89c4; --tip-bg: #f4f5ff; --tip-ink: #0b1442;
+  --focus-field: #e9e34a; --focus-card: #e9e34a;
+  --skel-field: #16217a; --skel-card: #1c2873;
+} }
+[data-theme="dark"] {
+  --field: #08104a; --field-2: #0e1866; --field-ink: #ffffff; --field-muted: #b3bff2; --field-line: #2a3a8f;
+  --sel: #e9e34a; --sel-ink: #111111;
+  --card: #111b5c; --card-ink: #f4f5ff; --card-muted: #b3bff2; --card-line: #26337d; --card-hover: #18246e;
+  --title: #ffffff; --num: #9db1ff; --done: #7f89c4; --tip-bg: #f4f5ff; --tip-ink: #0b1442;
+  --focus-field: #e9e34a; --focus-card: #e9e34a;
+  --skel-field: #16217a; --skel-card: #1c2873;
+}
+
+/* ---------- base ---------- */
+* { box-sizing: border-box; }
+html { background: var(--field); color: var(--field-ink); }
+[data-theme="light"] { color-scheme: light; }
+[data-theme="dark"] { color-scheme: dark; }
+body { margin: 0; font: 400 var(--fs-body)/1.45 var(--face); background: var(--field); color: var(--field-ink); -webkit-font-smoothing: antialiased; }
+button { font: inherit; color: inherit; }
+:focus { outline: none; }
+.num, .amt { font-variant-numeric: tabular-nums; }
+
+/* ---------- layout: list on the field, the open recipe as a card ---------- */
+.app { display: grid; grid-template-columns: var(--list-w) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); height: 100vh; height: 100dvh; }
+.app > * { min-height: 0; }
+.list { min-width: 0; display: flex; flex-direction: column; padding: var(--sp-5) var(--sp-4) 0 var(--sp-5); }
+.box-head { display: flex; flex-direction: column; gap: var(--sp-1); padding: 0 var(--sp-2) var(--sp-4); }
+.brand { margin: 0; white-space: nowrap; font-size: var(--fs-head); font-weight: 800; font-stretch: 125%; letter-spacing: -.01em; }
+.count { color: var(--field-muted); font-size: var(--fs-meta); min-width: 0; }
+
+/* themed search field */
+.field { position: relative; display: flex; align-items: center; margin-bottom: var(--sp-3); }
+.field svg { position: absolute; left: var(--sp-3); color: var(--field-muted); pointer-events: none; }
+.field input {
+  width: 100%; height: 40px; padding: 0 var(--sp-3) 0 40px; font: inherit; font-size: var(--fs-body); color: var(--field-ink);
+  background: var(--field-2); border: 1px solid var(--field-line); border-radius: var(--r-m); appearance: none;
+  transition: border-color var(--dur-tap) var(--ease-tap);
+}
+.field input::placeholder { color: var(--field-muted); }
+.field input:focus { border-color: var(--focus-field); }
+.field input::-webkit-search-cancel-button { display: none; }
+
+/* recipe rows: one fill marks the open recipe */
+.rows-wrap { flex: 1; min-height: 0; overflow-y: auto; margin: 0 calc(var(--sp-2) * -1); padding: 0 var(--sp-2) 72px; scrollbar-width: thin; scrollbar-color: var(--field-line) transparent; }
+#rows { list-style: none; margin: 0; padding: 0; }
+.row {
+  display: flex; flex-direction: column; justify-content: center; min-height: var(--row-h); padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-m); cursor: pointer; font-weight: 500;
+  transition: background-color var(--dur-tap) var(--ease-tap), color var(--dur-tap) var(--ease-tap), transform var(--dur-tapTouch) var(--ease-tapTouch);
+}
+.row + .row { margin-top: 2px; }
+.row:hover { background: var(--field-2); }
+.row:active { transform: scale(var(--press-row)); transition-duration: var(--dur-tap); transition-timing-function: var(--ease-tap); }
+.row:focus-visible { outline: 2px solid var(--focus-field); outline-offset: -2px; }
+.row[aria-selected="true"] { background: var(--sel); color: var(--sel-ink); font-weight: 750; }
+.row[aria-selected="true"]:focus-visible { outline-color: var(--sel-ink); }
+.r-name { font-size: var(--fs-body); line-height: 1.3; overflow-wrap: anywhere; }
+.r-meta { font-size: var(--fs-meta); font-weight: 400; color: var(--field-muted); overflow-wrap: anywhere; }
+.row[aria-selected="true"] .r-meta { color: #3a3a2a; }
+.row mark { background: none; color: inherit; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; text-decoration-color: var(--sel); }
+.row[aria-selected="true"] mark { text-decoration-color: var(--sel-ink); }
+.none { padding: var(--sp-3); color: var(--field-muted); font-size: var(--fs-label); overflow-wrap: anywhere; }
+
+/* ---------- the open recipe: a solid card ---------- */
+.reading { min-width: 0; padding: var(--sp-5) var(--sp-5) var(--sp-5) var(--sp-2); display: flex; }
+/* the card ends with its content, and scrolls inside the pane when the recipe is longer */
+.card {
+  flex: 0 1 auto; min-height: 0; min-width: 0; background: var(--card); color: var(--card-ink); border-radius: var(--r-m);
+  overflow-y: auto; padding: var(--sp-7); scrollbar-width: thin; scrollbar-color: var(--card-line) transparent;
+}
+.card h1 { margin: 0 0 var(--sp-4); font-size: var(--fs-title); line-height: 1.05; font-weight: 800; font-stretch: 125%; letter-spacing: -.02em; color: var(--title); overflow-wrap: anywhere; text-wrap: balance; }
+.card h1.long { font-size: var(--fs-title-long); }
+.facts { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-5); color: var(--card-muted); font-size: var(--fs-label); margin-bottom: var(--sp-6); }
+.facts .src { overflow-wrap: anywhere; min-width: 0; }
+.serves { display: inline-flex; align-items: center; gap: var(--sp-2); color: var(--card-ink); }
+.serves .lab { color: var(--card-muted); }
+.serves .num { min-width: 2ch; text-align: center; font-weight: 700; }
+.ib {
+  width: 32px; height: 32px; display: grid; place-items: center; padding: 0; cursor: pointer; flex-shrink: 0;
+  background: transparent; border: 1px solid var(--card-line); border-radius: var(--r-s); color: var(--card-ink);
+  transition: background-color var(--dur-tap) var(--ease-tap), transform var(--dur-tapTouch) var(--ease-tapTouch), opacity var(--dur-tap) var(--ease-tap);
+}
+.ib:hover { background: var(--card-hover); }
+.ib:active { transform: scale(var(--press)); transition-duration: var(--dur-tap); transition-timing-function: var(--ease-tap); }
+.ib:disabled { opacity: .4; cursor: default; }
+.ib svg { width: 14px; height: 14px; stroke: currentColor; stroke-width: 2; stroke-linecap: round; fill: none; }
+.card :focus-visible { outline: 2px solid var(--focus-card); outline-offset: 2px; }
+.reading { flex-direction: column; }
+.back-bar { display: none; }
+.back-bar .ib { color: var(--field-ink); border-color: var(--field-line); }
+.back-bar .ib:hover { background: var(--field-2); }
+.back-bar .ib:focus-visible { outline: 2px solid var(--focus-field); outline-offset: 2px; }
+.back-bar .tip { bottom: auto; top: calc(100% + 6px); left: 0; transform: none; }
+
+.cols { display: grid; grid-template-columns: minmax(240px, 5fr) minmax(0, 7fr); gap: var(--sp-7); align-items: start; }
+.card h2 { margin: 0 0 var(--sp-3); font-size: var(--fs-head); font-weight: 800; font-stretch: 125%; }
+.ings, .steps { list-style: none; margin: 0; padding: 0; }
+.ing, .step {
+  display: grid; width: 100%; text-align: left; background: none; border: 0; cursor: pointer; border-radius: var(--r-s);
+  transition: background-color var(--dur-tap) var(--ease-tap), color var(--dur-tap) var(--ease-tap), transform var(--dur-tapTouch) var(--ease-tapTouch);
+}
+.ing:hover, .step:hover { background: var(--card-hover); }
+.ing:active, .step:active { transform: scale(var(--press-row)); transition-duration: var(--dur-tap); transition-timing-function: var(--ease-tap); }
+/* ingredients flow in equal columns; one that needs more than two lines of a cell spans more cells (flowIngs) */
+.ings { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); column-gap: var(--sp-4); }
+.ings > li { min-width: 0; display: flex; }
+.ings.measuring .what { overflow-wrap: normal; }
+.ings.one-line .ing { flex: none; width: max-content; }
+.ings.one-line .what { white-space: nowrap; }
+.ing { display: flex; gap: var(--sp-2); align-items: baseline; min-height: 36px; padding: var(--sp-2); border-bottom: 1px solid var(--card-line); border-radius: 0; }
+.ing .amt { flex: none; white-space: nowrap; font-weight: 700; color: var(--card-ink); }
+.ing .amt:empty { display: none; }
+.ing .what { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.step { grid-template-columns: 40px minmax(0, 1fr); gap: var(--sp-2); padding: var(--sp-3) var(--sp-2); }
+.step .n { font-size: var(--fs-body); font-weight: 800; font-stretch: 125%; line-height: 1.2; color: var(--num); }
+.step .t { overflow-wrap: anywhere; }
+.ing[aria-pressed="true"], .step[aria-pressed="true"] { color: var(--done); }
+.ing[aria-pressed="true"] .amt, .step[aria-pressed="true"] .n { color: var(--done); }
+.ing[aria-pressed="true"] .what, .ing[aria-pressed="true"] .amt { text-decoration: line-through; text-decoration-thickness: 1.5px; }
+.quiet { color: var(--card-muted); font-size: var(--fs-label); padding: var(--sp-2); }
+
+/* tooltips for icon buttons: shown on hover and keyboard focus */
+.tipwrap { position: relative; display: inline-flex; }
+.tip {
+  position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); z-index: 5;
+  padding: 4px 8px; border-radius: var(--r-s); font-size: 12px; line-height: 1.3; white-space: nowrap; pointer-events: none;
+  background: var(--tip-bg); color: var(--tip-ink); visibility: hidden; opacity: 0;
+  transition: opacity var(--dur-tap) var(--ease-tap), visibility var(--dur-tap);
+}
+.tipwrap:hover .tip, .tipwrap :focus-visible + .tip { visibility: visible; opacity: 1; }
+
+/* empty and loading */
+.card.fill { flex: 1 1 auto; }
+.blank { display: grid; place-content: center; height: 100%; text-align: center; color: var(--card-muted); font-size: var(--fs-head); }
+.sk { display: block; border-radius: var(--r-s); background: var(--skel-card); }
+.row.sk-row { cursor: default; gap: var(--sp-2); }
+.row.sk-row:hover { background: none; }
+.sk-f { display: block; height: 12px; border-radius: var(--r-s); background: var(--skel-field); }
+.loading-note { color: var(--card-muted); font-size: var(--fs-label); margin-top: var(--sp-5); }
+
+/* ---------- demo data toggle (break-ui chrome, plain on purpose) ---------- */
+.demo {
+  position: fixed; left: 50%; bottom: 12px; transform: translateX(-50%); z-index: 20;
+  display: flex; gap: 8px; padding: 3px; border-radius: 9px; background: #e4e4e7; box-shadow: 0 1px 3px rgba(0, 0, 0, .2);
+  font: 500 12px/1 system-ui, -apple-system, sans-serif; max-width: calc(100vw - 24px);
+}
+.demo button { border: 0; background: none; color: #3f3f46; padding: 0 10px; height: 26px; border-radius: 6px; cursor: pointer; white-space: nowrap; font: inherit; }
+.demo button[aria-pressed="true"] { background: #ffffff; color: #18181b; box-shadow: 0 1px 2px rgba(0, 0, 0, .15); }
+@media (max-width: 360px) { .demo button { padding: 0 6px; } }
+
+/* the list fades at its bottom edge, so a row cut by the pane reads as more below */
+@media (min-width: 761px) {
+  /* the list pane clips its scrolled rows, so a row out of view counts as hidden, not as covered */
+  .list { overflow: hidden; }
+  .rows-wrap { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 56px), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 56px), transparent); }
+}
+
+/* ---------- narrower screens ---------- */
+@media (max-width: 1100px) {
+  .cols { grid-template-columns: minmax(0, 1fr); gap: var(--sp-5); }
+}
+
+/* ---------- phone ---------- */
+@media (max-width: 760px) {
+  .app { display: block; height: auto; }
+  .list { padding: var(--sp-4) var(--sp-4) 0; }
+  .rows-wrap { overflow: visible; padding-bottom: 72px; }
+  .reading { padding: var(--sp-4) var(--sp-4) 72px; display: block; }
+  .app:not([data-view="recipe"]) .reading { display: none; }
+  .app[data-view="recipe"] .list { display: none; }
+  .back-bar { display: flex; margin-bottom: var(--sp-3); }
+  .card { overflow: visible; padding: var(--sp-5) var(--sp-4) var(--sp-6); }
+  .card h1 { font-size: var(--fs-title-phone); }
+  .card h1.long { font-size: var(--fs-title-phone-long); }
+  .cols { grid-template-columns: minmax(0, 1fr); gap: var(--sp-5); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .row, .ib, .ing, .step, .field input { transition: none !important; }
+  .row:active, .ib:active, .ing:active, .step:active { transform: none; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="list" data-ui-pane="list" aria-label="Recipes">
+    <div class="box-head"><p class="brand">Recipe box</p><span class="count" id="count"></span></div>
+    <label class="field">
+      <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.75" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M10.5 10.5 14 14" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+      <input id="q" type="search" placeholder="Name or ingredient" aria-label="Find a recipe by name or ingredient" autocomplete="off" spellcheck="false">
+    </label>
+    <div class="rows-wrap" id="rows-wrap"><ul id="rows" role="listbox" aria-label="Recipes"></ul></div>
+  </aside>
+  <main class="reading" data-ui-pane="reading">
+    <div class="back-bar"><span class="tipwrap"><button class="ib" type="button" id="back" aria-label="All recipes" aria-describedby="tip-back"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M8.5 3 4.5 7l4 4"/></svg></button><span class="tip" role="tooltip" id="tip-back">All recipes</span></span></div>
+    <article class="card" id="card" aria-live="polite"></article>
+  </main>
+</div>
+
+<div class="demo" data-ui-chrome role="group" aria-label="Data set">
+  <button type="button" data-set="demo">Demo data</button>
+  <button type="button" data-set="worst">Worst case</button>
+  <button type="button" data-set="empty">Empty</button>
+  <button type="button" data-set="loading">Loading</button>
+</div>
+
+<script>
+(function () {
+  const root = document.documentElement;
+
+  /* ---------- motion: motion-kit whimsical, typed in (defaults.js) ---------- */
+  // tap: visualDuration 0.15, bounce 0.35, amount 0.95. Rung 1: only the touch answers,
+  // so the bounce lives on the press release and nothing else springs.
+  function spring(d, bounce) {
+    const w = (2 * Math.PI) / d, z = 1 - bounce;
+    const wd = w * Math.sqrt(Math.max(0, 1 - z * z));
+    const x = (t) => (z < 1 ? 1 - Math.exp(-z * w * t) * (Math.cos(wd * t) + ((z * w) / wd) * Math.sin(wd * t)) : 1 - Math.exp(-w * t) * (1 + w * t));
+    let T = 0;
+    for (let t = 0; t < 4; t += 0.001) if (Math.abs(1 - x(t)) > 0.002) T = t;
+    const pts = [];
+    for (let i = 0; i <= 40; i++) pts.push(i === 40 ? 1 : +x((i / 40) * T).toFixed(4));
+    return { ms: Math.round(T * 1000), ease: `linear(${pts.join(", ")})` };
+  }
+  const MOTION = { tap: [0.15, 0], tapTouch: [0.15, 0.35] };
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)");
+  function setMotion() {
+    for (const [k, [d, b]] of Object.entries(MOTION)) {
+      const s = spring(d, b);
+      root.style.setProperty(`--dur-${k}`, reduce.matches ? "0ms" : s.ms + "ms");
+      root.style.setProperty(`--ease-${k}`, s.ease);
+    }
+  }
+  setMotion();
+  reduce.addEventListener("change", setMotion);
+  const TAP_MS = 150;
+
+  /* ---------- data (a made-up example) ---------- */
+  const I = (q, u, n) => ({ q, u, n });
+  const DEMO = [
+    { id: "miso", name: "Miso butter noodles", min: 20, serves: 2, src: "From Aunt Lin's index card",
+      ings: [I(200, "g", "udon noodles"), I(2, "tbsp", "white miso"), I(30, "g", "butter"), I(1, "clove", "garlic, grated"), I(2, "", "spring onions"), I(1, "tsp", "chili flakes")],
+      steps: ["Boil the noodles until just tender, then save a cup of the cooking water.", "Melt the butter with the garlic over low heat.", "Whisk in the miso and a splash of noodle water until the sauce turns glossy.", "Toss the noodles through the sauce and finish with spring onion and chili."] },
+    { id: "chickpea", name: "Lemon chickpea stew", min: 35, serves: 4,
+      ings: [I(2, "cans", "chickpeas, drained"), I(1, "", "onion, diced"), I(3, "cloves", "garlic"), I(400, "ml", "vegetable stock"), I(1, "", "lemon, zest and juice"), I(100, "g", "spinach"), I(1, "tsp", "ground cumin")],
+      steps: ["Soften the onion in a little oil for 8 minutes.", "Add the garlic and cumin and cook for one minute.", "Pour in the stock and chickpeas and simmer for 15 minutes.", "Mash a third of the chickpeas against the pot to thicken.", "Stir in the spinach, lemon zest and juice, and season."] },
+    { id: "gnocchi", name: "Sheet-pan gnocchi", min: 30, serves: 3,
+      ings: [I(500, "g", "shelf gnocchi"), I(250, "g", "cherry tomatoes"), I(1, "", "red onion, in wedges"), I(2, "tbsp", "olive oil"), I(125, "g", "mozzarella"), I(null, "", "Basil, a handful")],
+      steps: ["Heat the oven to 220 °C.", "Toss the gnocchi, tomatoes and onion with the oil on a tray.", "Roast for 20 minutes, until the gnocchi are crisp at the edges.", "Tear the mozzarella over and return to the oven for 3 minutes.", "Scatter the basil and serve from the tray."] },
+    { id: "dal", name: "Weeknight dal", min: 40, serves: 4, src: "From the Thursday supper club",
+      ings: [I(250, "g", "red lentils"), I(1, "", "onion, sliced"), I(1, "tbsp", "ginger, grated"), I(1, "tsp", "turmeric"), I(400, "ml", "coconut milk"), I(1, "tbsp", "mustard seeds"), I(2, "tbsp", "ghee")],
+      steps: ["Rinse the lentils until the water runs clear.", "Simmer them with the turmeric and 750 ml water for 20 minutes.", "Stir in the coconut milk and keep warm.", "Fry the onion, ginger and mustard seeds in the ghee until the seeds pop.", "Pour the hot ghee over the dal just before serving."] },
+    { id: "rice", name: "Crispy rice salad", min: 25, serves: 2,
+      ings: [I(300, "g", "cooked rice, cold"), I(1, "", "cucumber"), I(2, "tbsp", "fish sauce"), I(1, "", "lime"), I(40, "g", "roasted peanuts"), I(null, "", "Mint and coriander, a handful")],
+      steps: ["Press the rice into a hot oiled pan and leave it to crisp for 8 minutes.", "Break it into shards.", "Mix the fish sauce and lime juice.", "Toss everything together with the cucumber, herbs and peanuts."] },
+    { id: "banana", name: "Brown butter banana bread", min: 70, serves: 8,
+      ings: [I(3, "", "very ripe bananas"), I(115, "g", "butter"), I(150, "g", "brown sugar"), I(2, "", "eggs"), I(190, "g", "plain flour"), I(1, "tsp", "baking soda")],
+      steps: ["Brown the butter until it smells nutty, then cool it a little.", "Mash the bananas and whisk in the butter, sugar and eggs.", "Fold in the flour and baking soda.", "Bake in a lined loaf tin at 175 °C for 55 minutes."] },
+    { id: "shakshuka", name: "Green shakshuka", min: 25, serves: 2,
+      ings: [I(4, "", "eggs"), I(200, "g", "spinach"), I(1, "", "leek, sliced"), I(100, "g", "feta"), I(1, "tsp", "cumin seeds"), I(1, "", "jalapeño")],
+      steps: ["Soften the leek and jalapeño in a wide pan.", "Add the cumin and spinach and stir until wilted.", "Make four hollows and crack in the eggs.", "Cover and cook until the whites set, then crumble over the feta."] },
+    { id: "tomato-egg", name: "Tomato egg stir-fry", min: 15, serves: 2,
+      ings: [I(4, "", "eggs"), I(3, "", "tomatoes, in wedges"), I(1, "tsp", "sugar"), I(2, "", "spring onions"), I(1, "tbsp", "neutral oil")],
+      steps: ["Scramble the eggs softly and set them aside.", "Cook the tomatoes with the sugar until they slump.", "Return the eggs, fold once, and top with spring onion."] },
+    { id: "tacos", name: "Black bean tacos", min: 25, serves: 4,
+      ings: [I(2, "cans", "black beans"), I(8, "", "corn tortillas"), I(1, "", "avocado"), I(1, "", "lime"), I(100, "g", "red cabbage, shredded"), I(1, "tsp", "chipotle paste")],
+      steps: ["Warm the beans with the chipotle and a splash of water.", "Mash the avocado with half the lime.", "Char the tortillas in a dry pan.", "Fill with beans, avocado and cabbage, and squeeze over the rest of the lime."] },
+    { id: "cookies", name: "Oat and miso cookies", min: 35, serves: 12,
+      ings: [I(120, "g", "rolled oats"), I(1, "tbsp", "white miso"), I(100, "g", "butter, soft"), I(90, "g", "sugar"), I(1, "", "egg"), I(120, "g", "plain flour"), I(100, "g", "dark chocolate, chopped")],
+      steps: ["Beat the butter, sugar and miso until pale.", "Beat in the egg.", "Fold in the oats, flour and chocolate.", "Roll into balls and bake at 180 °C for 11 minutes."] },
+    { id: "chicken", name: "Roast chicken thighs with lemon", min: 50, serves: 4, src: "From a Sunday market stall",
+      ings: [I(8, "", "chicken thighs"), I(1, "", "lemon, sliced"), I(4, "cloves", "garlic"), I(500, "g", "small potatoes, halved"), I(2, "sprigs", "rosemary")],
+      steps: ["Heat the oven to 200 °C.", "Toss everything with oil and salt in a roasting tin, skin side up.", "Roast for 40 minutes, until the skin is crisp.", "Rest for 5 minutes before serving."] },
+    { id: "sesame", name: "Cold sesame noodles", min: 15, serves: 2,
+      ings: [I(200, "g", "soba noodles"), I(2, "tbsp", "tahini"), I(1, "tbsp", "soy sauce"), I(1, "tsp", "toasted sesame oil"), I(1, "", "cucumber, in matchsticks")],
+      steps: ["Cook the soba and rinse under cold water.", "Whisk the tahini, soy and sesame oil with a little water.", "Toss the noodles in the sauce and pile the cucumber on top."] },
+  ];
+
+  // Worst case: realistic long, short, non-Latin, emoji, missing and extreme values (break-ui).
+  const WORST_HEAD = [
+    { id: "w1", name: "Grandma Aleksandra Wiśniewska-Kowalczyk's Sunday pierogi with caramelised onions, farmer's cheese and brown butter", min: 1440, serves: 24,
+      src: "From https://www.family-recipes-archive.example.com/collections/grandmothers/wisniewska-kowalczyk/pierogi-ruskie-sunday-edition",
+      ings: [I(2500, "g", "plain flour, plus more for the board"), I(12, "", "eggs"), I(1.5, "kg", "floury potatoes"), I(750, "g", "farmer's cheese (twaróg)"), I(0.125, "tsp", "white pepper"), I(null, "", "Extra-virgin cold-pressed Koroneiki olive oil from the Peloponnese, plus more for drizzling over the finished pierogi at the table")],
+      steps: ["Make the dough the night before: work the flour, eggs and 1.2 litres of warm water together until smooth, then knead for a full ten minutes, rest it under a damp cloth, knead again, and wrap it tightly so it does not dry out overnight in the fridge, because a dry dough cracks at the seams and the filling leaks into the water when you boil them.", "Boil and rice the potatoes.", "Fill, seal and boil in batches of twenty."] },
+    { id: "w2", name: "Phở bò Hà Nội", min: 240, serves: 6,
+      ings: [I(2, "kg", "xương bò (beef bones)"), I(1, "", "củ gừng, nướng"), I(5, "", "hoa hồi (star anise)"), I(400, "g", "bánh phở")],
+      steps: ["Blanch the bones, then simmer for four hours with the charred ginger and spices.", "Pour the boiling broth over the noodles and sliced beef."] },
+    { id: "w3", name: "親子丼 (oyakodon)", min: 20, serves: 1,
+      ings: [I(1, "", "鶏もも肉 (chicken thigh)"), I(2, "", "卵 (eggs)"), I(80, "ml", "だし (dashi)")],
+      steps: ["Simmer the chicken in the dashi.", "Pour in the beaten eggs and cover for 30 seconds."] },
+    { id: "w4", name: "Egg", serves: 1, ings: [I(1, "", "egg")], steps: [] },
+    { id: "w5", name: "🍋 Lemon curd", min: 25, serves: 99,
+      ings: [I(0.333, "", "lemon per serving, zested"), I(37.5, "g", "sugar"), I(0.5, "", "egg")],
+      steps: ["Whisk everything over a low heat until it coats a spoon."] },
+  ];
+  const A = ["Roasted", "Seared", "Slow-cooked", "Smoky", "Spiced", "Sticky", "Toasted", "Whipped", "Quick", "Rustic", "Simple", "Warm"];
+  const B = ["cauliflower", "leeks", "squash", "mushrooms", "aubergine", "carrots", "beans", "tofu", "salmon", "lamb", "fennel", "peppers"];
+  const FILL = [];
+  for (let i = 0; i < 55; i++) {
+    const a = A[i % A.length], b = B[(i * 5 + Math.floor(i / 12)) % B.length];
+    FILL.push({ id: "f" + i, name: `${a} ${b}`, min: 15 + ((i * 7) % 90), serves: 2 + (i % 5),
+      ings: [I(400, "g", b), I(2, "tbsp", "olive oil"), I(null, "", "Salt, to taste")], steps: ["Cook the " + b + " until tender.", "Season and serve."] });
+  }
+  const DATA = { demo: DEMO, worst: WORST_HEAD.concat(FILL), empty: [], loading: null };
+
+  /* ---------- state ---------- */
+  const params = new URLSearchParams(location.search);
+  let set = DATA.hasOwnProperty(params.get("data")) ? params.get("data") : "demo";
+  let recipes = [];
+  let selected = null, shownId = null;
+  let query = "";
+  const serves = new Map(), have = new Map(), done = new Map();
+
+  const $ = (s) => document.querySelector(s);
+  const rowsEl = $("#rows"), cardEl = $("#card"), qEl = $("#q"), countEl = $("#count"), wrap = $("#rows-wrap");
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  const fold = (s) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  const plural = new Intl.PluralRules("en");
+  const nf = new Intl.NumberFormat("en");
+
+  function sorted(list) { return list.slice().sort((a, b) => a.name.replace(/^\P{L}+/u, "").localeCompare(b.name.replace(/^\P{L}+/u, ""), "en")); }
+
+  function minutes(m) {
+    if (m == null) return "";
+    if (m < 60) return `${m} min`;
+    const h = Math.floor(m / 60), r = m % 60;
+    return r ? `${h} hr ${r} min` : `${h} hr`;
+  }
+
+  function highlight(text, q) {
+    if (!q) return esc(text);
+    const i = text.toLowerCase().indexOf(q.toLowerCase());
+    if (i < 0) return esc(text);
+    return esc(text.slice(0, i)) + "<mark>" + esc(text.slice(i, i + q.length)) + "</mark>" + esc(text.slice(i + q.length));
+  }
+
+  function matchOf(r, q) {
+    if (!q) return { ok: true };
+    const f = fold(q);
+    if (fold(r.name).includes(f)) return { ok: true, by: "name" };
+    const ing = r.ings.find((x) => fold(x.n).includes(f));
+    return ing ? { ok: true, by: "ing", ing } : { ok: false };
+  }
+
+  /* ---------- amounts ---------- */
+  const FR = [[0, ""], [0.125, "⅛"], [0.25, "¼"], [0.333, "⅓"], [0.5, "½"], [0.667, "⅔"], [0.75, "¾"], [1, ""]];
+  function amount(ing, factor) {
+    if (ing.q == null) return "";
+    const v = ing.q * factor;
+    let text;
+    if (ing.u === "g" || ing.u === "ml") {
+      const big = v >= 1000 && ing.u === "g" ? null : null;
+      text = nf.format(v >= 100 ? Math.round(v / 5) * 5 : Math.round(v)) + " " + ing.u;
+      void big;
+    } else if (ing.u === "kg") {
+      text = new Intl.NumberFormat("en", { maximumFractionDigits: 2 }).format(v) + " kg";
+    } else {
+      let whole = Math.floor(v), rest = v - whole, best = FR[0];
+      for (const f of FR) if (Math.abs(f[0] - rest) < Math.abs(best[0] - rest)) best = f;
+      if (best[0] === 1) { whole += 1; best = FR[0]; }
+      text = (whole ? nf.format(whole) : "") + best[1];
+      if (!text) text = "a pinch of";
+      if (ing.u) text += " " + ing.u;
+    }
+    return text;
+  }
+
+  /* ---------- render: list ---------- */
+  function syncCard() {
+    const r = recipes.find((x) => x.id === selected);
+    const want = r && matchOf(r, query).ok ? r.id : null;
+    if (want !== shownId) renderCard(true);
+  }
+  function visibleRecipes() { return recipes.filter((r) => matchOf(r, query).ok); }
+
+  function renderCount() {
+    if (set === "loading") { countEl.textContent = ""; return; }
+    const n = recipes.length;
+    countEl.textContent = `${nf.format(n)} ${plural.select(n) === "one" ? "recipe" : "recipes"} (a made-up example)`;
+  }
+
+  function renderList() {
+    // a listbox only while it holds options; a note or skeleton sits in a plain list
+    const opts = set !== "loading" && visibleRecipes().length > 0;
+    rowsEl.setAttribute("role", opts ? "listbox" : "list");
+    if (set === "loading") rowsEl.setAttribute("aria-hidden", "true"); else rowsEl.removeAttribute("aria-hidden");
+    if (set === "loading") {
+      rowsEl.innerHTML = Array.from({ length: 7 }, (_, i) => `<li class="row sk-row" aria-hidden="true"><span class="sk-f" style="width:${[70, 54, 82, 61, 75, 48, 66][i]}%"></span><span class="sk-f" style="width:30%;height:8px"></span></li>`).join("");
+      return;
+    }
+    const list = visibleRecipes();
+    if (!recipes.length) { rowsEl.innerHTML = `<li class="none">No recipes yet.</li>`; return; }
+    if (!list.length) { rowsEl.innerHTML = `<li class="none">No recipe uses “${esc(query)}”.</li>`; return; }
+    rowsEl.innerHTML = list.map((r) => {
+      const m = matchOf(r, query);
+      const parts = [];
+      if (r.min != null) parts.push(minutes(r.min));
+      if (m.by === "ing") parts.push("uses " + highlight(m.ing.n, query));
+      const meta = parts.length ? `<span class="r-meta">${parts.join(", ")}</span>` : "";
+      const sel = r.id === selected;
+      return `<li class="row" role="option" tabindex="${sel ? 0 : -1}" data-id="${esc(r.id)}" aria-selected="${sel}"${sel ? " data-ui-need" : ""}><span class="r-name">${m.by === "name" ? highlight(r.name, query) : esc(r.name)}</span>${meta}</li>`;
+    }).join("");
+    if (!list.some((r) => r.id === selected)) {
+      const first = rowsEl.querySelector(".row");
+      if (first) first.tabIndex = 0;
+    }
+  }
+
+  function markSelected() {
+    for (const row of rowsEl.querySelectorAll(".row[data-id]")) {
+      const on = row.dataset.id === selected;
+      row.setAttribute("aria-selected", on);
+      row.tabIndex = on ? 0 : -1;
+      if (on) row.setAttribute("data-ui-need", ""); else row.removeAttribute("data-ui-need");
+    }
+  }
+
+  /* ---------- render: the open recipe ---------- */
+  const minus = `<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3 7h8"/></svg>`;
+  const plus = `<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3 7h8M7 3v8"/></svg>`;
+
+  function renderCard(animate) {
+    if (set === "loading") {
+      cardEl.classList.add("fill");
+      cardEl.innerHTML = `<span class="sk" style="height:48px;width:62%;margin-bottom:16px"></span><span class="sk" style="height:14px;width:30%;margin-bottom:40px"></span>
+        <div class="cols"><div>${Array.from({ length: 6 }, () => `<span class="sk" style="height:14px;margin:14px 0"></span>`).join("")}</div>
+        <div>${Array.from({ length: 4 }, () => `<span class="sk" style="height:14px;margin:18px 0"></span><span class="sk" style="height:14px;width:70%"></span>`).join("")}</div></div>
+        <p class="loading-note" role="status">Opening your recipe box</p>`;
+      return;
+    }
+    const r = recipes.find((x) => x.id === selected);
+    // the card shows only a recipe the list shows; a search that hides it leaves the card blank
+    const hidden = r && !matchOf(r, query).ok;
+    shownId = r && !hidden ? r.id : null;
+    cardEl.classList.toggle("fill", !recipes.length);
+    if (!shownId) { cardEl.innerHTML = `<div class="blank">${!recipes.length ? "Your recipe box is empty." : hidden ? "No recipe open" : ""}</div>`; return; }
+    const n = serves.get(r.id) ?? r.serves;
+    const factor = n / r.serves;
+    const got = have.get(r.id) || new Set(), fin = done.get(r.id) || new Set();
+    const facts = [];
+    if (r.min != null) facts.push(`<span>${minutes(r.min)}</span>`);
+    facts.push(`<span class="serves"><span class="lab">Serves</span>
+      <span class="tipwrap"><button class="ib" type="button" data-act="less" aria-label="Fewer servings" aria-describedby="tip-less" ${n <= 1 ? "disabled" : ""}>${minus}</button><span class="tip" role="tooltip" id="tip-less">Fewer servings</span></span>
+      <span class="num" id="serves-n">${n}</span>
+      <span class="tipwrap"><button class="ib" type="button" data-act="more" aria-label="More servings" aria-describedby="tip-more" ${n >= 99 ? "disabled" : ""}>${plus}</button><span class="tip" role="tooltip" id="tip-more">More servings</span></span></span>`);
+    if (r.src) facts.push(`<span class="src">${esc(r.src)}</span>`);
+    const ings = r.ings.map((x, i) => `<li><button class="ing" type="button" data-ing="${i}" aria-pressed="${got.has(i)}"><span class="amt">${esc(amount(x, factor))}</span><span class="what">${esc(x.n)}</span></button></li>`).join("");
+    const steps = r.steps.length
+      ? r.steps.map((t, i) => `<li><button class="step" type="button" data-step="${i}" aria-pressed="${fin.has(i)}"><span class="n">${i + 1}</span><span class="t">${esc(t)}</span></button></li>`).join("")
+      : `<li class="quiet">No method written yet.</li>`;
+    cardEl.innerHTML = `<h1${[...r.name].length > 40 ? ' class="long"' : ""}>${esc(r.name)}</h1><div class="facts">${facts.join("")}</div>
+      <div class="cols"><section aria-label="Ingredients"><h2>Ingredients</h2><ul class="ings">${ings}</ul></section>
+      <section aria-label="Method"><h2>Method</h2><ol class="steps">${steps}</ol></section></div>`;
+    flowIngs();
+    if (animate && !reduce.matches) {
+      for (const a of cardEl.getAnimations()) a.cancel();
+      cardEl.animate([{ opacity: 0.2 }, { opacity: 1 }], { duration: TAP_MS, easing: "ease-out" });
+    }
+  }
+
+  function updateAmounts(r) {
+    const n = serves.get(r.id) ?? r.serves, factor = n / r.serves;
+    cardEl.querySelector("#serves-n").textContent = n;
+    cardEl.querySelector('[data-act="less"]').disabled = n <= 1;
+    cardEl.querySelector('[data-act="more"]').disabled = n >= 99;
+    cardEl.querySelectorAll(".ing").forEach((b) => {
+      const el = b.querySelector(".amt");
+      el.textContent = amount(r.ings[+b.dataset.ing], factor);
+      if (!reduce.matches) el.animate([{ opacity: 0.3 }, { opacity: 1 }], { duration: TAP_MS, easing: "ease-out" });
+    });
+    flowIngs();
+  }
+
+  /* ingredients: short ones share a row in equal cells. One that fits a cell in two lines
+     takes one cell; a longer one spans the cells its one line needs, up to the whole row,
+     where it wraps. A row cut short lets its last item reach the row end. */
+  let flowW = 0;
+  function flowIngs() {
+    const ul = cardEl.querySelector(".ings");
+    if (!ul) return;
+    const lis = [...ul.children];
+    for (const li of lis) li.style.gridColumnEnd = "";
+    ul.classList.add("measuring");
+    const fits = lis.map((li) => {
+      const b = li.firstElementChild, w = b.querySelector(".what");
+      const lh = parseFloat(getComputedStyle(w).lineHeight) || 24;
+      return b.scrollWidth <= b.clientWidth + 0.5 && w.scrollWidth <= w.clientWidth + 0.5 && w.getBoundingClientRect().height <= lh * 2 + 1;
+    });
+    const tracks = getComputedStyle(ul).gridTemplateColumns.split(" ").map(parseFloat);
+    const cols = tracks.length, track = tracks[0] || 1, gap = parseFloat(getComputedStyle(ul).columnGap) || 0;
+    ul.classList.add("one-line");
+    const need = lis.map((li) => li.firstElementChild.getBoundingClientRect().width);
+    ul.classList.remove("measuring", "one-line");
+    const spans = lis.map((li, i) => fits[i] ? 1 : Math.min(cols, Math.ceil((need[i] + gap) / (track + gap) - 0.01)));
+    let pos = 0, prev = -1;
+    const fill = () => { if (prev >= 0 && pos > 0 && pos < cols) spans[prev] += cols - pos; };
+    spans.forEach((k, i) => {
+      if (pos + k > cols) { fill(); pos = 0; }
+      pos += k; prev = i;
+      if (pos === cols) pos = 0;
+    });
+    fill();
+    lis.forEach((li, i) => { if (spans[i] > 1) li.style.gridColumnEnd = "span " + spans[i]; });
+    flowW = ul.clientWidth;
+  }
+  new ResizeObserver(() => { const ul = cardEl.querySelector(".ings"); if (ul && ul.clientWidth !== flowW) flowIngs(); }).observe(cardEl);
+  if (document.fonts) { document.fonts.ready.then(flowIngs); document.fonts.addEventListener("loadingdone", flowIngs); }
+
+  /* ---------- actions ---------- */
+  /* phone: the list and the open recipe are two views; back lands on the row they left */
+  const phone = matchMedia("(max-width: 760px)");
+  const app = document.querySelector(".app");
+  function openRecipe() {
+    if (!phone.matches || app.dataset.view === "recipe") return;
+    app.dataset.view = "recipe";
+    window.scrollTo(0, 0);
+    if (!reduce.matches) document.querySelector(".reading").animate([{ opacity: 0.2 }, { opacity: 1 }], { duration: TAP_MS, easing: "ease-out" });
+  }
+  function showList() {
+    app.dataset.view = "list";
+    const row = rowsEl.querySelector(".row[aria-selected=true]");
+    if (row) {
+      row.focus({ preventScroll: true });
+      const r = row.getBoundingClientRect();
+      window.scrollTo(0, Math.max(0, r.top + window.scrollY - innerHeight / 2 + r.height / 2));
+      if (!reduce.matches) document.querySelector(".list").animate([{ opacity: 0.2 }, { opacity: 1 }], { duration: TAP_MS, easing: "ease-out" });
+    }
+  }
+  document.getElementById("back").addEventListener("click", showList);
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && phone.matches && app.dataset.view === "recipe") showList(); });
+
+  function select(id, focus) {
+    if (id === selected) return;
+    selected = id;
+    markSelected();
+    renderCard(true);
+    cardEl.scrollTop = 0;
+    if (focus) {
+      const row = rowsEl.querySelector(`.row[data-id="${CSS.escape(id)}"]`);
+      if (row) { row.focus({ preventScroll: true }); keepInView(row); }
+    }
+  }
+
+  function keepInView(row) {
+    const top = row.offsetTop, bottom = top + row.offsetHeight;
+    if (top < wrap.scrollTop) wrap.scrollTop = top - 8;
+    else if (bottom > wrap.scrollTop + wrap.clientHeight - 72) wrap.scrollTop = bottom - wrap.clientHeight + 72;
+  }
+
+  rowsEl.addEventListener("click", (e) => {
+    const row = e.target.closest(".row[data-id]");
+    if (row) { select(row.dataset.id, false); openRecipe(); }
+  });
+  rowsEl.addEventListener("keydown", (e) => {
+    const row = e.target.closest(".row[data-id]");
+    if (!row) return;
+    const rows = [...rowsEl.querySelectorAll(".row[data-id]")];
+    const i = rows.indexOf(row);
+    let next = null;
+    if (e.key === "ArrowDown" || e.key === "j") next = rows[Math.min(rows.length - 1, i + 1)];
+    else if (e.key === "ArrowUp" || e.key === "k") next = rows[Math.max(0, i - 1)];
+    else if (e.key === "Home") next = rows[0];
+    else if (e.key === "End") next = rows[rows.length - 1];
+    else if (e.key === "Enter" || e.key === " ") { e.preventDefault(); select(row.dataset.id, false); openRecipe(); return; }
+    if (!next) return;
+    e.preventDefault();
+    if (next.dataset.id === selected) { next.focus({ preventScroll: true }); keepInView(next); }
+    else select(next.dataset.id, true);
+  });
+
+  qEl.addEventListener("input", () => {
+    query = qEl.value.trim();
+    renderList(); syncCard();
+  });
+  qEl.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") { qEl.value = ""; query = ""; renderList(); syncCard(); }
+    else if (e.key === "Enter" || e.key === "ArrowDown") {
+      const first = rowsEl.querySelector(".row[data-id]");
+      if (first) { e.preventDefault(); select(first.dataset.id, true); first.focus({ preventScroll: true }); }
+    }
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "/" && document.activeElement !== qEl) { e.preventDefault(); qEl.focus(); qEl.select(); }
+  });
+
+  cardEl.addEventListener("click", (e) => {
+    const r = recipes.find((x) => x.id === selected);
+    if (!r) return;
+    const btn = e.target.closest("button");
+    if (!btn) return;
+    if (btn.dataset.act) {
+      const n = serves.get(r.id) ?? r.serves;
+      serves.set(r.id, Math.max(1, Math.min(99, n + (btn.dataset.act === "more" ? 1 : -1))));
+      updateAmounts(r);
+    } else if (btn.dataset.ing != null || btn.dataset.step != null) {
+      const store = btn.dataset.ing != null ? have : done;
+      const key = +(btn.dataset.ing ?? btn.dataset.step);
+      const s = store.get(r.id) || new Set();
+      s.has(key) ? s.delete(key) : s.add(key);
+      store.set(r.id, s);
+      btn.setAttribute("aria-pressed", s.has(key));
+    }
+  });
+
+  /* ---------- the data boundary ---------- */
+  function load(name) {
+    set = name;
+    const src = DATA[name];
+    recipes = src ? sorted(src) : [];
+    selected = recipes.length ? recipes[0].id : null;
+    query = ""; qEl.value = "";
+    qEl.disabled = name === "loading";
+    serves.clear(); have.clear(); done.clear();
+    app.dataset.view = "list";
+    for (const b of document.querySelectorAll(".demo button")) b.setAttribute("aria-pressed", b.dataset.set === name);
+    renderCount(); renderList(); renderCard(false);
+    wrap.scrollTop = 0; cardEl.scrollTop = 0;
+  }
+  document.querySelector(".demo").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-set]");
+    if (!b || b.dataset.set === set) return;
+    const u = new URL(location.href);
+    if (b.dataset.set === "demo") u.searchParams.delete("data"); else u.searchParams.set("data", b.dataset.set);
+    history.replaceState(null, "", u);
+    load(b.dataset.set);
+  });
+  load(set);
+})();
+</script>
+</body>
+</html>

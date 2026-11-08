@@ -1,0 +1,961 @@
+<!doctype html>
+<html lang="en" data-rung="1" data-look="quiet" data-motion="sleek">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Saffron Bay Rides</title>
+<script>
+  // Theme before first paint: ?theme=light|dark wins, else the system setting.
+  (function () {
+    var p = new URLSearchParams(location.search).get("theme");
+    var mq = window.matchMedia("(prefers-color-scheme: dark)");
+    var set = function () { document.documentElement.setAttribute("data-theme", p === "light" || p === "dark" ? p : (mq.matches ? "dark" : "light")); };
+    set();
+    if (p !== "light" && p !== "dark") mq.addEventListener("change", set);
+  })();
+</script>
+<link rel="preconnect" href="https://api.fontshare.com">
+<link rel="preconnect" href="https://cdn.fontshare.com" crossorigin>
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600&display=swap">
+<style>
+/* Tokens, grouped by function. Draw: General Sans / General Sans, palette Candy chapters. */
+:root {
+  /* type */
+  --face: "General Sans", system-ui, sans-serif;
+  --t-meta: 13px;
+  --t-ui: 14px;
+  --t-pane: 18px;
+  --t-title: 24px;
+  --t-figure: 24px;
+  /* space */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  /* shape */
+  --r-bar: 3px;
+  --r-control: 6px;
+  --r-group: 8px;
+  --r-region: 10px;
+  --control: 32px;
+  --dot: 6px;
+  /* chart */
+  --plot-h: 480px;
+  --plot-head: 20px;
+  --xaxis-h: 28px;
+  --col-gap: 4px;
+  --side: 360px;
+  /* motion: motion-kit feel "sleek" (dist/src/core/defaults.js). Rung 1: bounce 0 everywhere. */
+  --tap-d: 100ms;
+  --tap-amount: 0.97;
+  --enter-d: 250ms;
+  --exit-d: 150ms;
+  --move-d: 250ms;
+  --stagger: 25ms;
+  --reduced-fade: 150ms;
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+}
+/* Light: the drawn palette as given. */
+:root[data-theme="light"] {
+  --bg: #ffd249;
+  --surface: #f5c63c;
+  --raised: #fff4cc;
+  --seg-on: #ffd249;
+  --ink: #0a0a0a;
+  --muted: #5e4a0a;
+  --accent: #f53fd6;
+  --accent-ink: #0a0a0a;
+  --line: rgba(10, 10, 10, 0.14);
+  --bar: rgba(94, 74, 10, 0.34);
+  --band-hover: rgba(10, 10, 10, 0.06);
+  --band-select: rgba(10, 10, 10, 0.12);
+  --track: rgba(10, 10, 10, 0.09);
+  --shadow: 0 1px 2px rgba(60, 40, 0, 0.18), 0 4px 12px rgba(60, 40, 0, 0.12);
+  color-scheme: light;
+}
+/* Dark: the same family at night. Warm brown-black ground, cream ink,
+   the yellow kept as the bar tint, the pink kept as the one accent. */
+:root[data-theme="dark"] {
+  --bg: #16120a;
+  --surface: #211a0e;
+  --raised: #2e2515;
+  --seg-on: #3a2f1a;
+  --ink: #fff1c4;
+  --muted: #c9ad62;
+  --accent: #ff5ee0;
+  --accent-ink: #0a0a0a;
+  --line: rgba(255, 241, 196, 0.13);
+  --bar: rgba(255, 210, 73, 0.36);
+  --band-hover: rgba(255, 241, 196, 0.06);
+  --band-select: rgba(255, 241, 196, 0.12);
+  --track: rgba(255, 241, 196, 0.08);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.35);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; }
+html { background: var(--bg); }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--face);
+  font-size: var(--t-ui);
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+  padding: var(--s-6);
+  min-height: 100vh;
+}
+button { font: inherit; color: inherit; }
+h1, h2, p { margin: 0; }
+.meta { color: var(--muted); font-size: var(--t-meta); }
+.num { font-variant-numeric: tabular-nums; }
+
+/* header */
+.top {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--s-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--s-5);
+}
+.title { min-width: 0; flex: 1 1 320px; }
+h1 { font-size: var(--t-title); font-weight: 600; line-height: 1.2; letter-spacing: -0.01em; overflow-wrap: anywhere; }
+.title .meta { margin-top: var(--s-1); overflow-wrap: anywhere; }
+
+/* segmented control: one selector style for the page */
+.seg {
+  display: inline-flex;
+  gap: var(--s-2);
+  padding: var(--s-1);
+  background: var(--track);
+  border-radius: var(--r-group);
+  flex: none;
+}
+.seg button {
+  height: var(--control);
+  padding: 0 var(--s-3);
+  border: 0;
+  border-radius: var(--r-control);
+  background: transparent;
+  color: var(--muted);
+  font-size: var(--t-ui);
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color var(--exit-d) var(--ease-out), color var(--exit-d) var(--ease-out), transform var(--tap-d) var(--ease-out);
+}
+.seg button:hover { color: var(--ink); }
+.seg button[aria-checked="true"] { background: var(--seg-on); color: var(--ink); }
+button:active { transform: scale(var(--tap-amount)); }
+button:focus-visible, .plot:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+/* summary */
+.stats {
+  display: flex;
+  gap: var(--s-6);
+  flex-wrap: wrap;
+  margin-bottom: var(--s-5);
+}
+.stat { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.stat .label { color: var(--muted); font-size: var(--t-meta); }
+.stat .value { font-size: var(--t-figure); font-weight: 500; line-height: 1.2; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+
+/* regions */
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--side);
+  gap: var(--s-4);
+  align-items: start;
+}
+.pane {
+  background: var(--surface);
+  border-radius: var(--r-region);
+  padding: var(--s-4) var(--s-5) var(--s-5);
+  min-width: 0;
+}
+.pane-head {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  min-height: var(--control);
+  margin-bottom: var(--s-3);
+  flex-wrap: wrap;
+}
+h2 { font-size: var(--t-pane); font-weight: 500; line-height: 1.3; }
+.legend { display: inline-flex; align-items: center; gap: var(--s-2); margin-left: auto; color: var(--muted); font-size: var(--t-meta); }
+.legend i { width: 10px; height: 10px; border-radius: 2px; background: var(--accent); flex: none; }
+
+/* chart */
+.chart {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: var(--s-3);
+}
+.yaxis { position: relative; height: var(--plot-h); color: var(--muted); font-size: var(--t-meta); font-variant-numeric: tabular-nums; text-align: right; }
+.yaxis .sizer { visibility: hidden; display: block; height: 0; overflow: hidden; }
+.yaxis .yarea { position: absolute; left: 0; right: 0; bottom: 0; top: var(--plot-head); }
+.yaxis .tick { position: absolute; right: 0; transform: translateY(50%); line-height: 1; white-space: nowrap; }
+.plot {
+  position: relative;
+  height: var(--plot-h);
+  cursor: pointer;
+  border-radius: var(--r-control);
+  touch-action: manipulation;
+}
+.area { position: absolute; left: 0; right: 0; bottom: 0; top: var(--plot-head); }
+.gline { position: absolute; left: 0; right: 0; height: 1px; background: var(--line); }
+.gline.base { background: var(--muted); opacity: 0.5; }
+.band { position: absolute; top: 0; bottom: 0; border-radius: var(--r-control); pointer-events: none; display: none; }
+.band.on { display: block; }
+.band.hover { background: var(--band-hover); }
+.band.select { background: var(--band-select); }
+.cols { position: absolute; inset: 0; display: flex; gap: var(--col-gap); }
+.col { position: relative; flex: 1 1 0; min-width: 0; display: flex; align-items: flex-end; }
+.bar {
+  position: relative;
+  width: 100%;
+  height: 0;
+  background: var(--bar);
+  border-radius: var(--r-bar) var(--r-bar) 0 0;
+  transition: height var(--exit-d) var(--ease-out), background-color var(--exit-d) var(--ease-out);
+}
+.col.busy .bar { background: var(--accent); }
+.dot {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 6px);
+  width: var(--dot);
+  height: var(--dot);
+  margin-left: calc(var(--dot) / -2);
+  border-radius: 50%;
+  background: var(--ink);
+  display: none;
+}
+.col.busy .dot { display: block; }
+.empty-msg { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-size: var(--t-ui); pointer-events: none; }
+.xaxis { grid-column: 2; position: relative; height: var(--xaxis-h); color: var(--muted); font-size: var(--t-meta); font-variant-numeric: tabular-nums; }
+.xaxis span { position: absolute; top: var(--s-2); transform: translateX(-50%); white-space: nowrap; line-height: 1; }
+.xaxis span.sel { color: var(--ink); font-weight: 600; }
+
+.tip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--s-2) var(--s-3);
+  background: var(--raised);
+  color: var(--ink);
+  border-radius: var(--r-control);
+  box-shadow: var(--shadow);
+  pointer-events: none;
+  white-space: nowrap;
+}
+.tip.on { display: flex; }
+.tip .t-time { color: var(--muted); font-size: var(--t-meta); }
+.tip .t-n { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* stations */
+.station-pane .pane-head .meta { font-variant-numeric: tabular-nums; }
+.clear-wrap { position: relative; display: inline-flex; flex: none; margin-left: auto; }
+.clear-wrap[aria-hidden="true"] { visibility: hidden; }
+.icon-btn {
+  width: 24px;
+  height: 24px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-control);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background-color var(--tap-d) var(--ease-out), color var(--tap-d) var(--ease-out), transform var(--tap-d) var(--ease-out);
+}
+.icon-btn:hover { background: var(--band-hover); color: var(--ink); }
+.icon-btn svg { width: 14px; height: 14px; }
+.hint {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 3;
+  padding: var(--s-1) var(--s-2);
+  background: var(--raised);
+  color: var(--ink);
+  font-size: var(--t-meta);
+  border-radius: var(--r-control);
+  box-shadow: var(--shadow);
+  white-space: nowrap;
+  pointer-events: none;
+  display: none;
+}
+.icon-btn:hover + .hint, .icon-btn:focus-visible + .hint { display: block; }
+.stations {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  height: calc(var(--plot-h) + var(--xaxis-h));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.stations li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 72px minmax(3ch, auto);
+  align-items: center;
+  column-gap: var(--s-3);
+  padding: var(--s-2) 0;
+  border-bottom: 1px solid var(--line);
+}
+/* while rows sit below the fold, the bottom edge fades so no row ends at a hard cut */
+.stations.more { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 32px), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 32px), transparent); }
+.stations .name { min-width: 0; overflow-wrap: anywhere; text-align: left; text-wrap: pretty; }
+.stations .name.missing { color: var(--muted); font-style: italic; }
+.stations .count { font-variant-numeric: tabular-nums; color: var(--muted); text-align: right; }
+.stations .track { height: 4px; }
+.stations .sbar { display: block; height: 4px; border-radius: 2px; background: var(--bar); min-width: 2px; }
+.stations li.none { display: block; border: 0; color: var(--muted); padding-top: var(--s-4); }
+body.ready .stations.fresh li { animation: fade var(--exit-d) var(--ease-out); }
+@keyframes fade { from { opacity: 0.35; } to { opacity: 1; } }
+
+/* loading: a still placeholder, nothing pulses */
+body.loading .value { color: transparent; background: var(--track); border-radius: var(--r-control); min-width: 72px; }
+body.loading .bar { background: var(--track); }
+body.loading .stations li .name, body.loading .stations li .count { color: transparent; background: var(--track); border-radius: 4px; }
+
+/* demo / worst toggle: test chrome, not part of the design */
+.chrome {
+  display: flex;
+  width: max-content;
+  max-width: 100%;
+  margin: var(--s-6) auto 0;
+  gap: 8px;
+  padding: 4px;
+  background: #e4e4e7;
+  border-radius: 8px;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+.chrome button {
+  height: 28px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #3f3f46;
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.chrome button[aria-checked="true"] { background: #ffffff; color: #18181b; }
+
+@media (max-width: 1300px) {
+  .xaxis span.minor3:not(.sel) { display: none; }
+  .xaxis span.near { display: none; }
+}
+@media (max-width: 900px) {
+  body { padding: var(--s-4); }
+  :root { --plot-h: 240px; --side: 100%; --col-gap: 2px; }
+  .grid { grid-template-columns: minmax(0, 1fr); }
+  .seg { width: 100%; }
+  .seg button { flex: 1 1 0; padding: 0 var(--s-2); }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-4); }
+  .pane { padding: var(--s-3) var(--s-4) var(--s-4); }
+  .stations { height: auto; }
+  .stations.long { max-height: 480px; }
+}
+@media (max-width: 480px) {
+  .stations li { grid-template-columns: minmax(0, 1fr) 40px minmax(3ch, auto); }
+  .xaxis span.minor:not(.sel) { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0s !important; animation-duration: 0s !important; }
+  button:active { transform: none; }
+  body.ready .stations.fresh li { animation: fade var(--reduced-fade) linear !important; }
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="title">
+    <h1 id="city">Saffron Bay Bike Share</h1>
+    <p class="meta" id="day">Tuesday 14 October, one day of trips (a made-up example)</p>
+  </div>
+  <div class="seg" role="radiogroup" aria-label="Riders" id="rider" data-ui-actions>
+    <button type="button" role="radio" aria-checked="true" data-rider="all">All riders</button>
+    <button type="button" role="radio" aria-checked="false" data-rider="member">Members</button>
+    <button type="button" role="radio" aria-checked="false" data-rider="casual">Casual</button>
+  </div>
+</header>
+
+<section class="stats" aria-label="Day summary" data-ui-stack>
+  <div class="stat"><span class="label">Trips</span><span class="value" id="s-trips" data-ui-number></span></div>
+  <div class="stat"><span class="label">Busiest hour</span><span class="value" id="s-busiest" data-ui-number></span></div>
+  <div class="stat"><span class="label">Median ride</span><span class="value" id="s-median" data-ui-number></span></div>
+  <div class="stat"><span class="label">Stations used</span><span class="value" id="s-stations" data-ui-number></span></div>
+</section>
+
+<main class="grid">
+  <section class="pane chart-pane" aria-labelledby="chart-title">
+    <div class="pane-head">
+      <h2 id="chart-title">Trips per hour</h2>
+      <span class="legend" id="legend-busy"><i></i>Busiest hours</span>
+    </div>
+    <div class="chart">
+      <div class="yaxis" id="yaxis" aria-hidden="true"></div>
+      <div class="plot" id="plot" tabindex="0" role="slider" aria-label="Hour of the day" aria-valuemin="0" aria-valuemax="23">
+        <div class="area" id="area">
+          <div id="glines"></div>
+          <div class="band hover" id="band-hover"></div>
+          <div class="band select" id="band-select"></div>
+          <div class="cols" id="cols"></div>
+        </div>
+        <div class="empty-msg" id="empty" hidden></div>
+        <div class="tip" id="tip" aria-hidden="true"><span class="t-time" id="tip-time"></span><span class="t-n" id="tip-n"></span></div>
+      </div>
+      <div class="xaxis" id="xaxis" aria-hidden="true"></div>
+    </div>
+  </section>
+
+  <section class="pane station-pane" aria-labelledby="station-title">
+    <div class="pane-head">
+      <h2 id="station-title">Start stations</h2>
+      <span class="meta" id="station-scope">All day</span>
+      <span class="clear-wrap" id="all-day-wrap" aria-hidden="true">
+        <button type="button" class="icon-btn" id="all-day" aria-label="Show all day" aria-describedby="all-day-hint" tabindex="-1"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/></svg></button>
+        <span class="hint" role="tooltip" id="all-day-hint">Show all day</span>
+      </span>
+    </div>
+    <ol class="stations" id="stations"></ol>
+  </section>
+</main>
+
+<div class="chrome" data-ui-chrome role="radiogroup" aria-label="Data set">
+  <button type="button" role="radio" data-kind="demo" aria-checked="true">Demo data</button>
+  <button type="button" role="radio" data-kind="worst" aria-checked="false">Worst case</button>
+</div>
+
+<script>
+/* ============================================================
+   DATA: made-up trips. Pure; knows nothing about drawing.
+   A dataset is { city, day, stations: [{id, name}], trips: [{id, start, from, to, minutes, rider}] }
+   start is minutes after midnight; rider is "member", "casual" or missing.
+   ============================================================ */
+const Data = (() => {
+  function rng(seed) {
+    return function () {
+      seed = (seed + 0x6d2b79f5) | 0;
+      let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function pick(r, items, weight) {
+    let total = 0;
+    for (const it of items) total += weight(it);
+    let x = r() * total;
+    for (const it of items) { x -= weight(it); if (x <= 0) return it; }
+    return items[items.length - 1];
+  }
+
+  const STATIONS = [
+    { id: "lq", name: "Lantern Quay", kind: "work" },
+    { id: "fs", name: "Fig Street", kind: "home" },
+    { id: "om", name: "Old Mill", kind: "home" },
+    { id: "hs", name: "Harbor Steps", kind: "work" },
+    { id: "cp", name: "Copperline Park", kind: "fun" },
+    { id: "jm", name: "Juniper Market", kind: "fun" },
+    { id: "np", name: "North Pier", kind: "work" },
+    { id: "gr", name: "Glasshouse Row", kind: "work" },
+    { id: "tl", name: "Tannery Lane", kind: "home" },
+    { id: "ss", name: "Saffron Square", kind: "work" },
+    { id: "wb", name: "Weir Bridge", kind: "home" },
+    { id: "oh", name: "Orchard Hill", kind: "home" },
+    { id: "bg", name: "Botanic Gate", kind: "fun" },
+    { id: "ch", name: "Chandler Hall", kind: "fun" },
+  ];
+  const MEMBER = [2, 1, 1, 1, 2, 7, 20, 52, 74, 41, 23, 20, 25, 23, 21, 27, 46, 70, 52, 31, 20, 14, 8, 4];
+  const CASUAL = [3, 2, 1, 1, 1, 2, 4, 8, 12, 17, 25, 33, 41, 45, 47, 43, 37, 31, 26, 20, 14, 10, 7, 4];
+
+  function originWeight(hour) {
+    if (hour >= 6 && hour <= 10) return { home: 4, work: 1, fun: 0.6 };
+    if (hour >= 16 && hour <= 19) return { home: 1, work: 4, fun: 1.4 };
+    if (hour >= 11 && hour <= 15) return { home: 1, work: 1.6, fun: 3 };
+    return { home: 1, work: 1, fun: 2 };
+  }
+
+  function demo() {
+    const r = rng(20261014);
+    const trips = [];
+    let id = 1;
+    for (let hour = 0; hour < 24; hour++) {
+      const w = originWeight(hour);
+      for (const [rider, profile, scale] of [["member", MEMBER, 2], ["casual", CASUAL, 1.2]]) {
+        const n = Math.round(profile[hour] * scale * (0.85 + 0.3 * r()));
+        for (let k = 0; k < n; k++) {
+          const from = pick(r, STATIONS, (s) => w[s.kind]);
+          const to = pick(r, STATIONS, (s) => (s.id === from.id ? 0 : 1 / w[s.kind]));
+          const minutes = rider === "member" ? 6 + Math.floor(r() * 16) : 12 + Math.floor(r() * 38);
+          trips.push({ id: id++, start: hour * 60 + Math.floor(r() * 60), from: from.id, to: to.id, minutes, rider });
+        }
+      }
+    }
+    return { city: "Saffron Bay Bike Share", day: "Tuesday 14 October, one day of trips (a made-up example)", stations: STATIONS.map(({ id, name }) => ({ id, name })), trips };
+  }
+
+  // The worst realistic day: long, unbreakable, right-to-left, CJK, emoji, one-letter,
+  // missing and duplicate station names; markup in a name; 300 stations; a tie for the
+  // busiest hour at five-digit counts; an hour with exactly 1 trip; most hours empty;
+  // trips with no rider type, an unknown station, and a 1,284 hour rental.
+  function worst() {
+    const r = rng(7);
+    const named = [
+      "Northeast Waterfront Intermodal Transit Center, Upper Level Gate B (temporary location during construction)",
+      "Station_Northeast_Waterfront_Intermodal_Transit_Center_UpperLevel_GateB",
+      "محطة الميناء الشمالية",
+      "北港駅前広場",
+      "Seán O'Brien-Ó Súilleabháin Memorial Plaza",
+      "🚲 Bike Barn 🌉",
+      "Q",
+      "",
+      "<script>alert(1)<\/script>",
+      "Harbor Steps",
+      "Harbor Steps",
+    ];
+    const stations = named.map((name, i) => ({ id: "w" + i, name }));
+    for (let i = stations.length; i < 300; i++) stations.push({ id: "w" + i, name: "Kiosk " + (i + 1) + ", Tannery Lane" });
+    const trips = [];
+    let id = 1;
+    const add = (hour, n, rider) => {
+      for (let k = 0; k < n; k++) {
+        const from = k < 6000 ? stations[k % 11] : stations[Math.floor(r() * stations.length)];
+        trips.push({ id: id++, start: hour * 60 + Math.floor(r() * 60), from: from.id, to: stations[(k + 3) % stations.length].id, minutes: 4 + Math.floor(r() * 30), rider });
+      }
+    };
+    add(8, 48000, "member");
+    add(17, 30000, "member");
+    add(17, 18000, "casual");
+    add(3, 1, "casual");
+    add(12, 2, undefined);
+    add(23, 9999, "casual");
+    trips.push({ id: id++, start: 14 * 60 + 5, from: "gone-1", to: "w0", minutes: 77040, rider: undefined });
+    trips.push({ id: id++, start: 14 * 60 + 9, from: "w6", to: "w6", minutes: 0, rider: "member" });
+    return {
+      city: "Saffron Bay and Greater Lantern Quay Metropolitan Cycling Cooperative",
+      day: "Saturday 31 October, the city marathon closed the harbor docks (a made-up example)",
+      stations,
+      trips,
+    };
+  }
+
+  function empty() {
+    const d = demo();
+    return { ...d, trips: [] };
+  }
+
+  return {
+    load(kind) {
+      if (kind === "worst") return worst();
+      if (kind === "empty") return empty();
+      return demo(); // "demo" and "loading" share the demo set
+    },
+  };
+})();
+
+/* ============================================================
+   DERIVE: pure reads of a dataset. No DOM.
+   ============================================================ */
+const Derive = {
+  riders(trips, rider) {
+    return rider === "all" ? trips : trips.filter((t) => t.rider === rider);
+  },
+  hourCounts(trips) {
+    const c = new Array(24).fill(0);
+    for (const t of trips) c[Math.floor(t.start / 60)]++;
+    return c;
+  },
+  // Up to three busiest hours, each with at least half the peak; a tie goes to the earlier hour.
+  busiest(counts, n = 3) {
+    const max = Math.max(...counts);
+    return new Set(
+      counts.map((c, h) => [c, h]).filter(([c]) => c > 0 && c >= max / 2)
+        .sort((a, b) => b[0] - a[0] || a[1] - b[1]).slice(0, n).map(([, h]) => h)
+    );
+  },
+  topHours(counts) {
+    const max = Math.max(...counts);
+    return max > 0 ? counts.map((c, h) => (c === max ? h : -1)).filter((h) => h >= 0) : [];
+  },
+  stationCounts(trips, hour) {
+    const m = new Map();
+    for (const t of trips) {
+      if (hour != null && Math.floor(t.start / 60) !== hour) continue;
+      m.set(t.from, (m.get(t.from) || 0) + 1);
+    }
+    return [...m.entries()].sort((a, b) => b[1] - a[1]);
+  },
+  median(trips) {
+    if (!trips.length) return null;
+    const m = trips.map((t) => t.minutes).sort((a, b) => a - b);
+    const mid = m.length >> 1;
+    return m.length % 2 ? m[mid] : Math.round((m[mid - 1] + m[mid]) / 2);
+  },
+  // A rounded top for the y axis with 4 even steps.
+  niceTop(max) {
+    if (max <= 0) return 4;
+    const raw = max / 4;
+    const p = Math.pow(10, Math.floor(Math.log10(raw)));
+    const step = [1, 1.5, 2, 2.5, 3, 4, 5, 10].map((f) => f * p).find((s) => s >= raw && Number.isInteger(s)) || Math.ceil(raw);
+    return step * 4;
+  },
+};
+
+/* ============================================================
+   FORMAT: words and numbers on screen.
+   ============================================================ */
+const nf = new Intl.NumberFormat("en-US");
+const plural = new Intl.PluralRules("en-US");
+const Fmt = {
+  n: (x) => nf.format(x),
+  trips: (x) => nf.format(x) + (plural.select(x) === "one" ? " trip" : " trips"),
+  hour: (h) => String(h).padStart(2, "0") + ":00",
+  range: (h) => Fmt.hour(h) + " to " + (h === 23 ? "midnight" : Fmt.hour(h + 1)),
+  minutes: (m) => (m == null ? "None" : m < 60 ? m + " min" : Math.floor(m / 60) + " h " + (m % 60) + " min"),
+};
+
+/* ============================================================
+   STATE: what the person chose. Changes only through commit().
+   ============================================================ */
+const params = new URLSearchParams(location.search);
+const startKind = ["worst", "empty", "loading"].includes(params.get("data")) ? params.get("data") : "demo";
+const S = { kind: startKind, rider: "all", hour: null, hover: null, cursor: null, focused: false };
+let D = Data.load(startKind);
+
+function commit(patch) {
+  Object.assign(S, patch);
+  render();
+}
+
+/* ============================================================
+   VIEW: draws state. Reads Data and Derive, never writes them.
+   ============================================================ */
+const $ = (id) => document.getElementById(id);
+const el = {
+  city: $("city"), day: $("day"), rider: $("rider"), plot: $("plot"), area: $("area"), cols: $("cols"),
+  glines: $("glines"), yaxis: $("yaxis"), xaxis: $("xaxis"), empty: $("empty"), tip: $("tip"),
+  tipTime: $("tip-time"), tipN: $("tip-n"), bandHover: $("band-hover"), bandSelect: $("band-select"),
+  stations: $("stations"), scope: $("station-scope"), allDay: $("all-day"),
+  sTrips: $("s-trips"), sBusiest: $("s-busiest"), sMedian: $("s-median"), sStations: $("s-stations"),
+};
+
+const cols = [];
+for (let h = 0; h < 24; h++) {
+  const col = document.createElement("div");
+  col.className = "col";
+  const bar = document.createElement("div");
+  bar.className = "bar";
+  const dot = document.createElement("span");
+  dot.className = "dot";
+  bar.appendChild(dot);
+  col.appendChild(bar);
+  el.cols.appendChild(col);
+  cols.push({ col, bar });
+}
+const xlabels = [];
+for (let h = 0; h < 24; h++) {
+  const s = document.createElement("span");
+  s.textContent = Fmt.hour(h);
+  if (h % 3) s.classList.add("minor3");
+  if (h % 6) s.classList.add("minor");
+  s.style.left = ((h + 0.5) / 24) * 100 + "%";
+  el.xaxis.appendChild(s);
+  xlabels.push(s);
+}
+
+let view = null; // the numbers the last render drew, for hover and tooltips
+
+function stationName(id) {
+  const s = D.stations.find((x) => x.id === id);
+  if (!s) return { text: "Unknown station", missing: true };
+  if (!s.name.trim()) return { text: "Unnamed station", missing: true };
+  return { text: s.name, missing: false };
+}
+
+function render() {
+  const loading = S.kind === "loading";
+  document.body.classList.toggle("loading", loading);
+  document.body.setAttribute("aria-busy", String(loading));
+  el.city.textContent = D.city;
+  el.day.textContent = D.day;
+
+  for (const b of el.rider.querySelectorAll("button")) b.setAttribute("aria-checked", String(b.dataset.rider === S.rider));
+  for (const b of document.querySelectorAll(".chrome button")) b.setAttribute("aria-checked", String(b.dataset.kind === (S.kind === "worst" ? "worst" : "demo")));
+
+  const trips = Derive.riders(D.trips, S.rider);
+  const counts = loading ? [3, 2, 1, 1, 1, 2, 4, 6, 8, 6, 5, 5, 6, 6, 5, 6, 7, 8, 7, 5, 4, 3, 2, 2] : Derive.hourCounts(trips);
+  const top = Derive.niceTop(Math.max(...counts));
+  const busy = loading ? new Set() : Derive.busiest(counts);
+  view = { trips, counts, top, busy };
+
+  // y axis and grid lines
+  el.glines.textContent = "";
+  el.yaxis.textContent = "";
+  const sizer = document.createElement("span");
+  sizer.className = "sizer";
+  sizer.textContent = loading ? "" : Fmt.n(top);
+  el.yaxis.appendChild(sizer);
+  const yarea = document.createElement("div");
+  yarea.className = "yarea";
+  el.yaxis.appendChild(yarea);
+  for (let i = 0; i <= 4; i++) {
+    const line = document.createElement("div");
+    line.className = "gline" + (i === 0 ? " base" : "");
+    line.style.bottom = (i / 4) * 100 + "%";
+    const flat = !loading && counts.every((c) => c === 0);
+    // a day with no trips keeps only the base line, so the empty message never sits on a grid line
+    if (!(flat && i > 0)) el.glines.appendChild(line);
+    if (loading || (flat && i > 0)) continue;
+    const t = document.createElement("span");
+    t.className = "tick";
+    t.textContent = Fmt.n((top / 4) * i);
+    t.style.bottom = (i / 4) * 100 + "%";
+    yarea.appendChild(t);
+  }
+
+  // bars
+  cols.forEach(({ col, bar }, h) => {
+    // any hour with trips keeps a visible sliver, so 1 trip never reads as none
+    bar.style.height = counts[h] > 0 ? "max(2px, " + (counts[h] / top) * 100 + "%)" : "0%";
+    if (loading) bar.style.height = "16%"; // one flat height, so the placeholder never reads as a day of data
+    const isBusy = busy.has(h);
+    col.classList.toggle("busy", isBusy);
+    if (isBusy) col.setAttribute("data-ui-need", "");
+    else col.removeAttribute("data-ui-need");
+  });
+
+  const none = !loading && trips.length === 0;
+  el.empty.hidden = !none;
+  $("legend-busy").style.visibility = loading || none ? "hidden" : "";
+  el.empty.textContent = D.trips.length === 0 ? "No trips on this day" : S.rider === "member" ? "No member trips on this day" : "No casual trips on this day";
+
+  // summary
+  const hours = Derive.topHours(counts);
+  el.sTrips.textContent = Fmt.n(trips.length);
+  el.sBusiest.textContent = hours.length ? hours.map(Fmt.hour).join(", ") : "None";
+  el.sMedian.textContent = Fmt.minutes(Derive.median(trips));
+  el.sStations.textContent = Fmt.n(new Set(trips.map((t) => t.from)).size);
+
+  // selection
+  const sel = S.hour;
+  el.bandSelect.classList.toggle("on", sel != null);
+  if (sel != null) placeBand(el.bandSelect, sel);
+  xlabels.forEach((s, h) => {
+    s.classList.toggle("sel", h === sel);
+    // a selected label hides the tick labels it would collide with
+    s.classList.toggle("near", sel != null && h !== sel && Math.abs(h - sel) <= 2);
+  });
+  el.scope.textContent = sel == null ? "All day" : Fmt.range(sel);
+  $("all-day-wrap").setAttribute("aria-hidden", String(sel == null));
+  el.allDay.tabIndex = sel == null ? -1 : 0;
+  el.plot.setAttribute("aria-valuenow", String(sel ?? S.cursor ?? 0));
+
+  renderStations(trips, sel, loading);
+  paintHover();
+}
+
+function renderStations(trips, hour, loading) {
+  const list = el.stations;
+  list.textContent = "";
+  list.classList.remove("fresh");
+  void list.offsetWidth;
+  list.classList.add("fresh");
+  if (loading) {
+    for (let i = 0; i < 6; i++) {
+      const li = document.createElement("li");
+      li.innerHTML = '<span class="name">Station name</span><span class="track"><span class="sbar" style="width:' + (90 - i * 12) + '%"></span></span><span class="count">000</span>';
+      list.appendChild(li);
+    }
+    return;
+  }
+  const rows = Derive.stationCounts(trips, hour);
+  if (!rows.length) {
+    const li = document.createElement("li");
+    li.className = "none";
+    li.textContent = hour == null ? "No trips started anywhere" : "No trips started in this hour";
+    list.appendChild(li);
+    return;
+  }
+  const max = rows[0][1];
+  list.classList.toggle("long", rows.length > 14);
+  for (const [id, n] of rows) {
+    const li = document.createElement("li");
+    const name = document.createElement("span");
+    const nm = stationName(id);
+    name.className = "name" + (nm.missing ? " missing" : "");
+    name.dir = "auto";
+    /* a break chance after each underscore, so a code-style name wraps at its parts, not mid-word */
+    nm.text.split(/(?<=_)/).forEach((part, k) => { if (k) name.appendChild(document.createElement("wbr")); name.appendChild(document.createTextNode(part)); });
+    const count = document.createElement("span");
+    count.className = "count";
+    count.textContent = Fmt.n(n);
+    const track = document.createElement("span");
+    track.className = "track";
+    const bar = document.createElement("span");
+    bar.className = "sbar";
+    bar.style.width = (n / max) * 100 + "%";
+    track.appendChild(bar);
+    li.append(name, track, count);
+    list.appendChild(li);
+  }
+}
+
+function placeBand(band, h) {
+  const w = el.cols.clientWidth;
+  const gap = parseFloat(getComputedStyle(el.cols).columnGap) || 0;
+  const cw = (w - gap * 23) / 24;
+  band.style.left = h * (cw + gap) - gap / 2 + "px";
+  band.style.width = cw + gap + "px";
+}
+
+function shownHour() {
+  if (S.hover != null) return S.hover;
+  if (S.focused && S.cursor != null) return S.cursor;
+  return null;
+}
+
+function paintHover() {
+  const h = shownHour();
+  const on = h != null && S.kind !== "loading";
+  el.bandHover.classList.toggle("on", on && h !== S.hour);
+  el.tip.classList.toggle("on", on);
+  if (!on) return;
+  placeBand(el.bandHover, h);
+  el.tipTime.textContent = Fmt.range(h);
+  el.tipN.textContent = Fmt.trips(view.counts[h]);
+  // above the bar, inside the plot
+  const plotW = el.plot.clientWidth;
+  const tipW = el.tip.offsetWidth;
+  const tipH = el.tip.offsetHeight;
+  const colRect = cols[h].col.getBoundingClientRect();
+  const barRect = cols[h].bar.getBoundingClientRect();
+  const plotRect = el.plot.getBoundingClientRect();
+  const centre = colRect.left + colRect.width / 2 - plotRect.left;
+  // Sit above every bar the tip covers, never over a bar, an outline or a busiest-hour dot:
+  // try centred on the column, then beside it on the right, then on the left.
+  const tops = cols.map(({ col, bar, ghost }) => {
+    const r = col.getBoundingClientRect();
+    let t = bar.getBoundingClientRect().top;
+    if (ghost && ghost.classList.contains("on")) t = Math.min(t, ghost.getBoundingClientRect().top);
+    if (col.classList.contains("busy")) t -= 14;
+    return { l: r.left - plotRect.left, r: r.right - plotRect.left, t: t - plotRect.top };
+  });
+  const room = (x) => { let t = Infinity; for (const c of tops) if (c.r > x && c.l < x + tipW) t = Math.min(t, c.t); return t - tipH - 8; };
+  const side = colRect.width / 2 + 8;
+  const tries = [centre - tipW / 2, centre + side, centre - side - tipW].map((x) => Math.max(0, Math.min(plotW - tipW, x)));
+  let left = tries[0], top = -Infinity;
+  for (const x of tries) {
+    const t = room(x);
+    if (t >= 0) { left = x; top = t; break; }
+    if (t > top) { left = x; top = t; }
+  }
+  if (top < 0) {
+    // a narrow chart: find the clear spot nearest the column, else the one that covers least
+    let best = null, least = { x: left, t: top };
+    for (let x = 0; x <= plotW - tipW; x += 4) {
+      const t = room(x);
+      if (t >= 0 && (!best || Math.abs(x + tipW / 2 - centre) < Math.abs(best.x + tipW / 2 - centre))) best = { x, t };
+      if (t > least.t) least = { x, t };
+    }
+    const pick = best || least;
+    left = pick.x; top = pick.t;
+  }
+  top = Math.max(0, top);
+  el.tip.style.transform = "translate(" + Math.round(left) + "px," + Math.round(top) + "px)";
+  el.plot.setAttribute("aria-valuetext", Fmt.range(h) + ", " + Fmt.trips(view.counts[h]));
+}
+
+/* ============================================================
+   INPUT
+   ============================================================ */
+function hourAt(clientX) {
+  const r = el.cols.getBoundingClientRect();
+  return Math.max(0, Math.min(23, Math.floor(((clientX - r.left) / r.width) * 24)));
+}
+el.plot.addEventListener("pointermove", (e) => {
+  const h = hourAt(e.clientX);
+  if (h !== S.hover) { S.hover = h; paintHover(); }
+});
+el.plot.addEventListener("pointerleave", () => { S.hover = null; paintHover(); });
+el.plot.addEventListener("click", (e) => {
+  if (S.kind === "loading") return;
+  const h = hourAt(e.clientX);
+  S.cursor = h;
+  commit({ hour: h === S.hour ? null : h });
+});
+el.plot.addEventListener("focus", () => {
+  S.focused = true;
+  if (S.cursor == null) S.cursor = S.hour ?? ([...view.busy][0] ?? 0);
+  paintHover();
+});
+el.plot.addEventListener("blur", () => { S.focused = false; paintHover(); });
+el.plot.addEventListener("keydown", (e) => {
+  const c = S.cursor ?? 0;
+  const moves = { ArrowLeft: c - 1, ArrowRight: c + 1, ArrowDown: c - 1, ArrowUp: c + 1, Home: 0, End: 23 };
+  if (e.key in moves) {
+    e.preventDefault();
+    S.cursor = Math.max(0, Math.min(23, moves[e.key]));
+    S.hover = null;
+    paintHover();
+  } else if (e.key === "Enter" || e.key === " ") {
+    e.preventDefault();
+    commit({ hour: S.cursor === S.hour ? null : S.cursor });
+  } else if (e.key === "Escape" && S.hour != null) {
+    commit({ hour: null });
+  }
+});
+el.rider.addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-rider]");
+  if (b && b.dataset.rider !== S.rider) commit({ rider: b.dataset.rider });
+});
+el.allDay.addEventListener("click", () => commit({ hour: null }));
+document.querySelector(".chrome").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-kind]");
+  if (!b) return;
+  const url = new URL(location.href);
+  if (b.dataset.kind === "worst") url.searchParams.set("data", "worst");
+  else url.searchParams.delete("data");
+  history.replaceState(null, "", url);
+  D = Data.load(b.dataset.kind);
+  commit({ kind: b.dataset.kind, hour: null, cursor: null });
+});
+/* Fade the station list's bottom edge while rows sit below it. */
+const stationEdge = () => { const l = el.stations; l.classList.toggle("more", l.scrollHeight - l.clientHeight - l.scrollTop > 1); };
+el.stations.addEventListener("scroll", stationEdge, { passive: true });
+new MutationObserver(() => requestAnimationFrame(stationEdge)).observe(el.stations, { childList: true, subtree: true });
+stationEdge();
+if (document.fonts) document.fonts.ready.then(stationEdge);
+window.addEventListener("resize", () => {
+  stationEdge();
+  if (S.hour != null) placeBand(el.bandSelect, S.hour);
+  paintHover();
+});
+
+/* Read-only handle for checks and later rungs. */
+window.bikeShare = {
+  get state() { return { kind: S.kind, rider: S.rider, hour: S.hour }; },
+  get data() { return D; },
+  derive: Derive,
+};
+
+render();
+// Rows fade only after a touch, never on first paint.
+requestAnimationFrame(() => document.body.classList.add("ready"));
+</script>
+</body>
+</html>

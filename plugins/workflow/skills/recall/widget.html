@@ -1,0 +1,71 @@
+<style>
+.rc{padding:.5rem 0 1rem;font-size:14px;line-height:1.55;color:var(--text-primary)}
+.rc .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.rc-hd{display:flex;align-items:baseline;gap:6px 12px;flex-wrap:wrap;margin:0 0 1rem}
+.rc-hd h3{margin:0;font-size:18px;font-weight:500}
+.rc-m{font-family:var(--font-mono);font-size:12px;color:var(--text-secondary)}
+.rc-dt{margin-left:auto;font-size:12px;color:var(--text-muted)}
+.rc-lb{font-size:13px;color:var(--text-secondary);margin:1.25rem 0 .5rem}
+.rc-pr{border:.5px solid var(--border);border-radius:10px}
+.rc-pr>div{display:grid;grid-template-columns:20px minmax(0,1fr) auto;gap:12px;align-items:start;padding:12px 14px}
+.rc-pr>div+div{border-top:.5px solid var(--border)}
+.rc-n{font-size:15px;font-weight:500;color:var(--text-muted)}
+.rc-pr>div:first-child .rc-n{color:var(--text-accent)}
+.rc-w{font-size:15px;font-weight:500}
+.rc-y{font-size:13px;color:var(--text-secondary)}
+.rc-x{font-size:12px;color:var(--text-muted);display:flex;gap:12px;flex-wrap:wrap;margin-top:2px}
+.rc button{font-size:13px;white-space:nowrap}
+.rc ul{list-style:none;margin:0;padding:0}
+.rc li{display:flex;gap:10px;align-items:baseline;padding:3px 0}
+.rc li>span:nth-child(2){flex:1;min-width:0}
+.rc-d{flex:none;width:7px;height:7px;border-radius:50%;background:var(--text-muted);transform:translateY(-1px)}
+.rc-d.done{background:var(--text-success)}.rc-d.active{background:var(--text-accent)}.rc-d.blocked{background:var(--text-danger)}.rc-d.waiting{background:var(--text-warning)}
+.rc-tb{display:flex;flex-wrap:wrap;gap:2px 4px;margin-top:1.25rem;border-bottom:.5px solid var(--border)}
+.rc-tb button{border:none;border-radius:0;background:none;display:flex;align-items:baseline;gap:6px;padding:8px 10px;color:var(--text-secondary);box-shadow:inset 0 -2px 0 transparent;transition:box-shadow .18s cubic-bezier(.22,1,.36,1),color .18s}
+.rc-tb button:hover{background:none;color:var(--text-primary)}
+.rc-tb button[aria-expanded=true]{color:var(--text-primary);box-shadow:inset 0 -2px 0 var(--text-primary)}
+.rc-pn{padding:12px 0 4px}
+.rc-g{font-size:13px;font-weight:500;margin:6px 0 2px}
+.rc-c{font-family:var(--font-mono);font-size:12px;color:var(--text-muted)}
+.rc-q{border:none;padding:0 2px;color:var(--text-secondary);background:none}
+@media (prefers-reduced-motion:reduce){.rc-tb button{transition:none}}
+</style>
+<div class="rc" id="rc"></div>
+<script>
+const D=/*__DATA__*/null;
+(()=>{
+const E=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const SW={done:'Done',active:'In progress',blocked:'Blocked',waiting:'Waiting on you'};
+const SZ={S:'Small',M:'Medium',L:'Large'};
+const go=t=>{if(typeof sendPrompt==='function')sendPrompt(t)};
+const root=document.getElementById('rc');
+if(!D){root.innerHTML='<p class="rc-y">No briefing data was passed in.</p>';return}
+const dot=s=>`<span class="rc-d ${E(s)}" title="${E(SW[s]||s)}"><span class="sr">${E(SW[s]||s)}</span></span>`;
+const items=a=>`<ul>${a.map(x=>`<li title="${E(x.src)}">${dot(x.state)}<span>${E(x.text)}</span></li>`).join('')}</ul>`;
+const T=[];const fold=(label,n,body)=>{if(n)T.push({label,n,body})};
+let h=`<h2 class="sr">Briefing for ${E(D.project)}: ${(D.priorities||[]).length} priorities, ${(D.blockers||[]).length} blockers.</h2>`;
+h+=`<div class="rc-hd"><h3>${E(D.project)}</h3>${D.branch?`<span class="rc-m">${E(D.branch)}</span>`:''}${D.phase?`<span class="rc-y">${E(D.phase)}</span>`:''}<span class="rc-dt">${E(D.date)}</span></div>`;
+if(D.sister)h+=`<p class="rc-y" style="margin:-.5rem 0 0">${E(D.sister)}</p>`;
+const P=D.priorities||[];
+if(P.length){h+=`<p class="rc-lb">Priority today</p><div class="rc-pr">`+P.map((p,i)=>`<div title="${E(p.src)}"><span class="rc-n">${i+1}</span><div><div class="rc-w">${E(p.what)}</div><div class="rc-y">${E(p.why)}</div>${p.size?`<div class="rc-x"><span${p.approach?` title="Approach: ${E(p.approach)}"`:''}>${E(SZ[p.size]||p.size)} job</span></div>`:''}</div><button data-a="${i}">Do this ↗</button></div>`).join('')+`</div>`}
+const B=D.blockers||[];
+if(B.length)h+=`<p class="rc-lb">Blocked or waiting on you</p>`+items(B);
+const R=D.recent||[];
+fold('Recent work',R.reduce((n,g)=>n+(g.commits||[]).length,0),R.map(g=>`<p class="rc-g">${E(g.feature)}</p><ul>${(g.commits||[]).map(c=>`<li><span class="rc-c">${E(c.sha)}</span><span>${E(c.msg)}</span></li>`).join('')}</ul>`).join(''));
+fold('In flight',(D.active||[]).length,items(D.active||[]));
+fold('Research',(D.research||[]).length,items(D.research||[]));
+const Q=D.questions||[];
+fold('Open questions',Q.length,`<ul>${Q.map((q,i)=>`<li title="${E(q.src)}"><span class="rc-d"></span><span>${E(q.text)}</span><button class="rc-q" data-q="${i}" aria-label="Talk through this question">Talk it through ↗</button></li>`).join('')}</ul>`);
+const I=D.ideas||[];
+fold('Ideas',I.length,`<ul>${I.map(x=>`<li title="${E(x.src)}"><span class="rc-d"></span><span>${E(x.text)}</span>${x.ice!=null?`<span class="rc-c" title="ICE score">${E(Number(x.ice).toFixed(1))}</span>`:''}</li>`).join('')}</ul>`);
+const F=D.flags||[];
+fold('Suggested phase-status updates',F.length,`<ul>${F.map(f=>`<li title="${E(f.src)}"><span class="rc-d"></span><span>${E(f.text)}</span></li>`).join('')}</ul>`);
+if(T.length)h+=`<div class="rc-tb" role="group" aria-label="More">${T.map((t,i)=>`<button data-t="${i}" aria-expanded="false" aria-controls="rc-pn">${E(t.label)}<span class="rc-c">${t.n}</span></button>`).join('')}</div><div class="rc-pn" id="rc-pn" hidden></div>`;
+root.innerHTML=h;
+const pn=root.querySelector('#rc-pn');
+root.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+if(b.dataset.t!=null){const on=b.getAttribute('aria-expanded')!=='true';root.querySelectorAll('[data-t]').forEach(x=>x.setAttribute('aria-expanded','false'));if(on){b.setAttribute('aria-expanded','true');pn.innerHTML=T[+b.dataset.t].body;pn.hidden=false}else{pn.hidden=true;pn.innerHTML=''}}
+else if(b.dataset.a!=null){const i=+b.dataset.a;go(`recall: approve action ${i+1} (${P[i].what})`)}
+else if(b.dataset.q!=null){go(`recall: talk through open question: ${Q[+b.dataset.q].text}`)}});
+})();
+</script>

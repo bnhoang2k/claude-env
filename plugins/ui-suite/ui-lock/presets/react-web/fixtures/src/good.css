@@ -1,0 +1,4 @@
+.a { color: var(--color-text); background: transparent; border-color: currentColor; }
+.e { font-family: var(--font-body); font-size: inherit; }
+/* stylelint-disable-next-line color-no-hex -- print stylesheet needs pure black */
+.d { color: #000; }

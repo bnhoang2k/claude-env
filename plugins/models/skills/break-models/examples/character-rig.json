@@ -1,0 +1,52 @@
+{
+  "_what": "A rigged stylized character (character.glb). Loops and starts come from character-clips.json. Seated clips start or end off the floor on purpose. The spoon is scaled to 0 outside eat, but the rest pose shows it, so its overlap with the body is allowed. clip_props and props_file make look.py show held props and give checks.py each loop's start.",
+  "origin_skip": [
+    "CharacterRig"
+  ],
+  "front_marker": [
+    "Character_Eyes"
+  ],
+  "overlap_ok": [
+    "Prop.001+Prop_Spoon"
+  ],
+  "feet": [
+    "ankle.L",
+    "ankle.R"
+  ],
+  "bones": [
+    "hand.L",
+    "hand.R",
+    "ankle.L",
+    "ankle.R"
+  ],
+  "reach": [
+    "hand.L",
+    "hand.R"
+  ],
+  "standing": [
+    "idle",
+    "wave",
+    "tap",
+    "phone_look",
+    "take_ticket",
+    "cook",
+    "point",
+    "oversee",
+    "serve"
+  ],
+  "loops": [
+    "eat",
+    "idle",
+    "walk",
+    "tap",
+    "tap_seated",
+    "phone_look",
+    "cook",
+    "point",
+    "oversee",
+    "carry"
+  ],
+  "crease": 25,
+  "clip_props": "assets/character-clips.json",
+  "props_file": "assets/props.glb"
+}

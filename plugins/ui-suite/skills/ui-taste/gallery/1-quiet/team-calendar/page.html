@@ -1,0 +1,862 @@
+<!doctype html>
+<html lang="en" data-rung="1" data-look="bold" data-motion="sleek">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Studio Calendar</title>
+<script>
+  (function () {
+    var p = new URLSearchParams(location.search).get("theme");
+    var mq = window.matchMedia("(prefers-color-scheme: dark)");
+    var set = function () { document.documentElement.setAttribute("data-theme", p === "light" || p === "dark" ? p : (mq.matches ? "dark" : "light")); };
+    set();
+    if (p !== "light" && p !== "dark") mq.addEventListener("change", set);
+  })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,500;6..96,600&family=Jost:wght@400;500;600&display=swap">
+<style>
+/* Tokens, grouped by function. Palette: Cobalt on sand (light is the drawn one). */
+:root {
+  /* type */
+  --face-ui: "Jost", system-ui, sans-serif;
+  --face-display: "Bodoni Moda", Georgia, serif;
+  --t-meta: 13px;
+  --t-ui: 14px;
+  --t-day: 24px;
+  --t-title: 40px;
+  /* space */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  /* shape */
+  --r-control: 8px;
+  --r-block: 6px;
+  --hour: 64px;
+  --gutter: 56px;
+  /* motion: motion-kit feel "sleek", bounce 0 at rung 1 */
+  --tap-d: 100ms;
+  --tap-amount: 0.97;
+  --enter-d: 250ms;
+  --exit-d: 150ms;
+  --move-d: 250ms;
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+}
+:root[data-theme="light"] {
+  --bg: #e6dbc7;
+  --surface: #ddd0b9;
+  --today: #d6c7ab;
+  --line: #cbbda3;
+  --line-soft: #d9ccb5;
+  --ink: #062b8a;
+  --muted: #2b4893;
+  --accent: #062b8a;
+  --accent-ink: #e6dbc7;
+  --hover: #ddd0b9;
+  --block-mix: 24%;
+  /* people: one hue each, named by the legend */
+  --p1: #062b8a; --p2: #a8431f; --p3: #56661a; --p4: #7b2f6b; --p5: #0f6b67; --p6: #8a5a00;
+  --p7: #3b3f9e; --p8: #9c2f45; --p9: #2f6b2a; --p10: #5a4a8a; --p11: #6b4a2a; --p12: #1f5f8a;
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  --bg: #0a1533;
+  --surface: #111e44;
+  --today: #16265a;
+  --line: #24356a;
+  --line-soft: #1a2a5a;
+  --ink: #efe6d4;
+  --muted: #aab4d6;
+  --accent: #e6dbc7;
+  --accent-ink: #0a1533;
+  --hover: #15244f;
+  --block-mix: 42%;
+  --p1: #93acff; --p2: #f0a07f; --p3: #c3d27a; --p4: #e29ad0; --p5: #79d3cc; --p6: #e8c06a;
+  --p7: #a9adf5; --p8: #f29aac; --p9: #9bd690; --p10: #c4b2f2; --p11: #d9b48c; --p12: #8cc8f0;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { background: var(--bg); }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--face-ui);
+  font-size: var(--t-ui);
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+}
+button { font: inherit; color: inherit; }
+
+.shell { display: block; }
+
+/* header */
+.bar {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) minmax(min-content, 520px);
+  grid-template-areas: "title studio nav" "people people detail";
+  align-items: baseline;
+  column-gap: var(--s-4);
+  row-gap: var(--s-3);
+  padding: var(--s-5) var(--s-6) var(--s-3);
+}
+.title { grid-area: title; white-space: nowrap; }
+h1 { margin: 0; font-family: var(--face-display); font-weight: 500; font-size: var(--t-title); line-height: 1.1; letter-spacing: -0.01em; }
+.studio { grid-area: studio; color: var(--muted); font-size: var(--t-ui); overflow-wrap: anywhere; min-width: 0; text-wrap: balance; }
+.nav { grid-area: nav; display: flex; align-items: center; gap: var(--s-2); align-self: center; justify-self: end; }
+.btn {
+  min-height: 32px; padding: 0 var(--s-3);
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--ink); border-radius: var(--r-control);
+  background: transparent; font-size: var(--t-ui); font-weight: 500; cursor: pointer;
+  transition: background-color var(--tap-d) var(--ease-out), color var(--tap-d) var(--ease-out), transform var(--tap-d) var(--ease-out);
+}
+.btn:hover { background: var(--hover); }
+.btn[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.icon-btn { width: 32px; padding: 0; }
+.icon-btn svg { width: 16px; height: 16px; }
+
+.people { grid-area: people; display: flex; flex-wrap: wrap; gap: var(--s-2); margin: 0; padding: 0; list-style: none; min-width: 0; }
+.person {
+  display: inline-flex; align-items: center; gap: var(--s-2);
+  min-height: 28px; padding: 0 var(--s-2);
+  border: 0; border-radius: var(--r-control); background: transparent;
+  font-size: var(--t-ui); cursor: pointer; text-align: left;
+  transition: opacity var(--tap-d) var(--ease-out), background-color var(--tap-d) var(--ease-out), transform var(--tap-d) var(--ease-out);
+}
+.person:hover { background: var(--hover); }
+.person .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--c); flex: none; transition: background-color var(--tap-d) var(--ease-out), box-shadow var(--tap-d) var(--ease-out); }
+.person[aria-pressed="false"] { color: var(--muted); }
+.person[aria-pressed="false"] .dot { background: transparent; box-shadow: inset 0 0 0 1.5px var(--c); }
+.person .nm { overflow-wrap: anywhere; }
+
+.detail { grid-area: detail; margin: 0; align-self: center; justify-self: end; min-height: 20px; max-height: 60px; overflow-y: auto; overscroll-behavior: contain; max-width: 520px; text-align: right; color: var(--ink); font-size: var(--t-ui); transition: opacity var(--exit-d) var(--ease-out); overflow-wrap: anywhere; }
+.detail .when { color: var(--muted); }
+.detail:empty { opacity: 0; }
+
+.btn:active, .person:active, .ev:active { transform: scale(var(--tap-amount)); }
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+/* calendar */
+.cal { display: block; padding: 0 var(--s-6) 72px; }
+.pin { position: sticky; top: 0; z-index: 3; background: var(--bg); }
+.cols { display: grid; grid-template-columns: var(--gutter) var(--first, minmax(0, 1fr)) repeat(calc(var(--days) - 1), minmax(0, 1fr)); }
+.heads { border-bottom: 1px solid var(--line); }
+.head { padding: var(--s-2) var(--s-3) var(--s-2); display: flex; align-items: baseline; gap: var(--s-2); min-width: 0; }
+.head .wd { font-size: var(--t-meta); color: var(--muted); text-transform: none; }
+.head .num { font-family: var(--face-display); font-size: var(--t-day); font-weight: 500; line-height: 1.1; font-variant-numeric: lining-nums; }
+.head.is-today { background: var(--today); border-radius: var(--r-block) var(--r-block) 0 0; }
+.head.is-today .num { font-weight: 600; }
+
+.allday { border-bottom: 1px solid var(--line); min-height: 8px; max-height: 122px; overflow-y: auto; overscroll-behavior: contain; }
+.allday .tint { grid-column: 2; grid-row: 1; background: var(--today); }
+.allday .lane { grid-row: 1; position: relative; display: grid; grid-template-columns: var(--first, minmax(0, 1fr)) repeat(calc(var(--days) - 1), minmax(0, 1fr)); grid-column: 2 / -1; gap: 8px 0; padding: 8px 0; }
+.away {
+  display: block;
+  min-height: 28px; margin: 0 var(--s-1); padding: 5px var(--s-2);
+  line-height: 18px;
+  border-radius: var(--r-block);
+  background: color-mix(in srgb, var(--c) var(--block-mix), var(--bg));
+  font-size: var(--t-meta); min-width: 0;
+  cursor: pointer; border: 0; text-align: left; color: var(--ink);
+  transition: opacity var(--exit-d) var(--ease-out), transform var(--tap-d) var(--ease-out);
+}
+.away .dot, .ev .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c); flex: none; display: inline-block; }
+/* the dot sits inline on the first line, as in an event block, so the label has the bar's whole width */
+.away .dot { margin-right: 5px; vertical-align: 1px; }
+.away .lbl { overflow-wrap: break-word; min-width: 0; }
+
+.scroller { position: relative; }
+.allday.overflows { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 20px), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 20px), transparent); }
+.allday.overflows.at-end { -webkit-mask-image: none; mask-image: none; }
+.grid { position: relative; height: calc(var(--hours) * var(--hour)); }
+.gutter { position: relative; }
+.hour-label { position: absolute; right: var(--s-2); margin-top: -8px; font-size: var(--t-meta); color: var(--muted); font-variant-numeric: tabular-nums; line-height: 16px; }
+.day { position: relative; border-left: 1px solid var(--line-soft); min-width: 0; transition: opacity var(--move-d) var(--ease-out); }.day.is-today { background: var(--today); }
+.rule { position: absolute; left: var(--gutter); right: 0; height: 1px; background: var(--line-soft); pointer-events: none; }
+
+.ev {
+  position: absolute;
+  display: flex; flex-direction: column; justify-content: flex-start; align-items: stretch;
+  padding: 3px 6px 3px 6px;
+  border: 0; border-radius: var(--r-block);
+  background: color-mix(in srgb, var(--c) var(--block-mix), var(--bg));
+  color: var(--ink);
+  text-align: left; font-size: var(--t-meta); line-height: 18px;
+  overflow: hidden; cursor: pointer; min-width: 0;
+  transition: opacity var(--exit-d) var(--ease-out), box-shadow var(--tap-d) var(--ease-out), transform var(--tap-d) var(--ease-out);
+}
+.ev:hover { box-shadow: inset 0 0 0 1px var(--c); }
+.ev.selected, .away.selected { box-shadow: inset 0 0 0 2px var(--ink); }
+
+.ev .t { display: block; font-weight: 600; line-height: 18px; overflow-wrap: normal; }
+.ev .t .dot { margin-right: 5px; vertical-align: 1px; }
+.ev .m { display: block; line-height: 18px; color: var(--ink); font-weight: 400; font-variant-numeric: tabular-nums; overflow-wrap: break-word; }
+.ev.short .m { display: none; }
+.ev.nodot .t .dot { display: none; }
+.ev .t, .ev .m { flex: none; hyphens: manual; }
+/* an event with later events on top of it: its color block runs underneath for its whole time. The button is
+   only its title area at the top; the block below is drawing, and a click on what shows of it selects the event */
+.ev.lead { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+.ev.lead, .ev.lead:hover, .ev.lead.selected { box-shadow: none; }
+.under {
+  position: absolute; display: block; cursor: pointer;
+  background: color-mix(in srgb, var(--c) var(--block-mix), var(--bg));
+  border-radius: var(--r-block);
+  transition: opacity var(--exit-d) var(--ease-out), box-shadow var(--tap-d) var(--ease-out);
+}
+.under:hover, .ev.lead:hover + .under { box-shadow: inset 0 0 0 1px var(--c); }
+.ev.lead.selected + .under { box-shadow: inset 0 0 0 2px var(--ink); }
+/* a block on top of another: a thin edge in the column's own background shows where it covers the one below */
+.day { --col-bg: var(--bg); isolation: isolate; }
+.day.is-today { --col-bg: var(--today); }
+.ev.on-top, .under.on-top { box-shadow: 0 0 0 2px var(--col-bg); }
+.ev.on-top:hover, .under.on-top:hover, .ev.lead:hover + .under.on-top { box-shadow: 0 0 0 2px var(--col-bg), inset 0 0 0 1px var(--c); }
+.ev.on-top.selected, .ev.lead.selected + .under.on-top { box-shadow: 0 0 0 2px var(--col-bg), inset 0 0 0 2px var(--ink); }
+.ev.lead.on-top, .ev.lead.on-top:hover, .ev.lead.on-top.selected { box-shadow: none; }
+/* a narrow phone: the days as a list */
+.agenda { display: grid; gap: var(--s-3); }
+.cal.list .pin, .cal.list .grid, .cal:not(.list) .agenda { display: none; }
+.aday { display: grid; gap: var(--s-2); padding: var(--s-2); border-radius: var(--r-block); }
+.aday.is-today { background: var(--today); }
+.aday .head { flex-direction: row; align-items: baseline; gap: var(--s-2); padding: 0 var(--s-1); background: none; }
+.aday .ev { position: relative; min-height: 28px; }
+.aday .away { margin: 0; }
+.ev.probe { visibility: hidden; pointer-events: none; left: 0; top: 0; }
+.hidden-person { opacity: 0; visibility: hidden; transition: opacity var(--exit-d) var(--ease-out), visibility 0s linear var(--exit-d); }
+.enter { animation: fadein var(--enter-d) var(--ease-out) 1; }
+@keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
+
+/* demo-only data switch (break-ui), plain chrome */
+.chrome {
+  position: fixed; left: 50%; bottom: 12px; transform: translateX(-50%);
+  display: flex; gap: 8px; padding: 4px;
+  background: #e9e9ec; border: 1px solid #d4d4d8; border-radius: 10px;
+  font-family: system-ui, sans-serif; font-size: 13px; z-index: 10;
+}
+.chrome button { white-space: nowrap; min-height: 28px; padding: 0 12px; border: 0; border-radius: 7px; background: transparent; color: #333336; cursor: pointer; font-size: 13px; font-family: system-ui, sans-serif; }
+.chrome button[aria-pressed="true"] { background: #ffffff; color: #111113; }
+
+/* mid widths: the title and the arrows leave too little room beside them, so the studio line, the legend
+   and the detail line each take a full row */
+@media (max-width: 1100px) {
+  .bar { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "title nav" "studio studio" "people people" "detail detail"; }
+  .detail { justify-self: start; text-align: left; max-width: none; }
+}
+@media (max-width: 760px) {
+  :root { --gutter: 44px; --t-title: 32px; }
+  .bar { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "title title" "studio nav" "people people" "detail detail"; align-items: center; padding: var(--s-4) var(--s-4) var(--s-2); row-gap: var(--s-2); }
+  .people { column-gap: 0; row-gap: 0; max-height: 56px; overflow-y: auto; overscroll-behavior: contain; }
+  .detail { justify-self: start; text-align: left; min-height: 40px; }
+  .cal { padding: 0 var(--s-4) 64px; }
+  .head { padding: var(--s-2) 6px; flex-direction: column; gap: 0; }
+}
+/* small phones: the arrows take their own row, so the studio line keeps the full width */
+@media (max-width: 380px) {
+  .bar { grid-template-areas: "title title" "studio studio" "nav nav" "people people" "detail detail"; }
+  .nav { justify-self: start; }
+  .away { margin: 0 2px; padding-left: 6px; padding-right: 6px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0ms !important; transition-delay: 0ms !important; animation: none !important; }
+  .btn:active, .person:active, .ev:active { transform: none !important; }
+}
+</style>
+</head>
+<body>
+<div class="shell">
+  <header class="bar">
+    <h1 id="month" class="title">October 2026</h1>
+    <span class="studio"><span id="studio">Fernwood Studio</span> (a made-up example)</span>
+    <div class="nav" data-ui-actions>
+      <button type="button" class="btn icon-btn" id="prev" aria-label="Earlier days" title="Earlier days" aria-describedby="tip-prev"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3.5 5.5 8l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <span role="tooltip" id="tip-prev" hidden>Earlier days</span>
+      <button type="button" class="btn" id="today" aria-pressed="true">Today</button>
+      <button type="button" class="btn icon-btn" id="next" aria-label="Later days" title="Later days" aria-describedby="tip-next"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3.5 10.5 8 6 12.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <span role="tooltip" id="tip-next" hidden>Later days</span>
+    </div>
+    <ul class="people" id="people" aria-label="People"></ul>
+    <p class="detail" id="detail" aria-live="polite"></p>
+  </header>
+
+  <main class="cal" id="cal">
+    <div class="pin">
+      <div class="cols heads" id="heads"></div>
+      <div class="cols allday" id="allday"></div>
+    </div>
+    <div class="scroller" id="scroller">
+      <div class="cols grid" id="grid"></div>
+      <div class="agenda" id="agenda"></div>
+    </div>
+  </main>
+</div>
+
+<div class="chrome" data-ui-chrome role="group" aria-label="Data set">
+  <button type="button" data-set="demo">Demo data</button>
+  <button type="button" data-set="worst">Worst case</button>
+  <button type="button" data-set="empty">Empty</button>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var START = 8, END = 20;               // visible hours
+  var today = new Date(); today.setHours(0, 0, 0, 0);
+  function addDays(d, n) { var x = new Date(d); x.setDate(x.getDate() + n); return x; }
+  var wdFmt = new Intl.DateTimeFormat("en-US", { weekday: "short" });
+  var monthFmt = new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" });
+  var longFmt = new Intl.DateTimeFormat("en-US", { weekday: "long", month: "short", day: "numeric" });
+  function hm(h) { var hh = Math.floor(h), mm = Math.round((h - hh) * 60); return String(hh).padStart(2, "0") + ":" + String(mm).padStart(2, "0"); }
+
+  // ---- data sets: people, a weekly rhythm of timed events, and away days ----
+  // An event is [person, startHour, endHour, title]; a week entry holds day offsets 0..6 from today.
+  var DEMO = {
+    studio: "Fernwood Studio",
+    people: ["Mira Castellanos", "Theo Brandt", "Ines Okafor", "Kofi Mensah", "Sana Iqbal"],
+    week: [
+      [[0, 9, 10.5, "Client review, Halden Books"], [1, 10, 11.5, "Type workshop"], [3, 13, 17, "Booking site build"], [4, 14, 15, "Dentist"]],
+      [[0, 11, 12, "Hiring call"], [1, 9, 17, "Photo shoot at Pier 7"], [4, 10, 12, "Sketch session"], [3, 15, 16, "Code review"]],
+      [[0, 13, 14.5, "Budget check"], [1, 10, 11, "Proof check"], [4, 16, 17.5, "Print pickup"], [2, 9.5, 10.5, "Supplier call"]],
+      [[0, 9, 10, "Studio planning"], [2, 11, 12.5, "Vendor call"], [1, 14, 16, "Client presentation"], [3, 10, 11, "Launch prep"]],
+      [[2, 10, 11, "Invoices"], [3, 13, 14, "Release check"], [0, 15, 16.5, "Portfolio review"]],
+      [[1, 10, 12, "Moodboards"], [3, 9, 9.5, "Server update"]],
+      [[0, 10, 11, "Week ahead"], [4, 13, 15, "Ink tests"], [2, 16, 17, "Shipping"]]
+    ],
+    away: [[2, 0, 2, "Ines away"], [3, 3, 1, "Kofi off"], [4, 5, 4, "Sana away"]]
+  };
+  var WORST = {
+    studio: "Fernwood and Daughters Independent Animation and Illustration Studio Collective",
+    people: ["Aleksandra Wiśniewska-Kowalczyk", "Jo", "Nguyễn Thị Phương Thảo", "Bartholomew Fitzgerald-Montgomery III", "สมชาย ใจดี", "李", "Theo Brandt", "Ines Okafor", "Kofi Mensah", "Sana Iqbal", "Mira Castellanos", "Priya Raghunathan-Venkatesan"],
+    week: [
+      [[0, 10, 11, "Quarterly-retrospective-with-Northwind-Industries-Holdings"], [1, 10, 11, "Sync 🎨"], [2, 10, 11, "Họp với khách hàng về bản thiết kế mới"], [3, 10, 11, "Client call"], [4, 10.25, 11.5, "ประชุมทีม"], [5, 6, 23, "Render farm babysitting, overnight"], [6, 14, 14.25, "Call"], [11, 15, 18, "Contract review with Northwind Industries Holdings legal team and the studio accountant"], [1, 16, 17, "Print check"]],
+      [[7, 9, 17, "Photo shoot at Pier 7"], [8, 9, 9.25, "1:1"], [9, 13, 14, "Code review"]],
+      [[10, 12, 13, "Budget check"], [3, 7, 7.5, "Courier drop-off"]],
+      [], [[0, 22, 23.5, "Late export"]], [], []
+    ],
+    away: [[2, 0, 3, "Ines away"], [0, 0, 12, "Aleksandra Wiśniewska-Kowalczyk on parental leave"], [8, 1, 2, "Kofi off"], [3, 0, 1, "Bartholomew Fitzgerald-Montgomery III at a conference"], [4, -3, 30, "สมชาย sabbatical"]]
+  };
+  var EMPTY = { studio: "Fernwood Studio", people: ["Mira Castellanos", "Theo Brandt", "Ines Okafor", "Kofi Mensah", "Sana Iqbal"], week: [[], [], [], [], [], [], []], away: [] };
+  var SETS = { demo: DEMO, worst: WORST, empty: EMPTY };
+
+  var params = new URLSearchParams(location.search);
+  var setName = SETS[params.get("data")] ? params.get("data") : "demo";
+  var data, hidden = {}, offset = 0, selected = null, registry = {};
+
+  var $ = function (id) { return document.getElementById(id); };
+  var heads = $("heads"), allday = $("allday"), grid = $("grid"), scroller = $("scroller"), detail = $("detail");
+  var phone = window.matchMedia("(max-width: 760px)");
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
+  // phones show two days. Wider screens show 7, 5 or 4, the most that keep a day column at least DAY_MIN px wide
+  // (today counts 1.4 columns), so a stack of titles in today's column reads in whole lines.
+  var DAY_MIN = 150, shownWidth = 0;
+  // a phone shows two day columns while each later day can be PHONE_DAY_MIN px wide; a narrower phone lists the days
+  var PHONE_DAY_MIN = 122, LIST_DAYS = 3;
+  function listMode() { return phone.matches && (document.documentElement.clientWidth - 2 * 16 - 44) / 2.4 < PHONE_DAY_MIN; }
+  function dayCount() {
+    if (listMode()) return LIST_DAYS;
+    if (phone.matches) return 2;
+    var room = document.documentElement.clientWidth - 2 * 32 - 56;
+    return [7, 5].find(function (n) { return room / (n + 0.4) >= DAY_MIN; }) || 4;
+  }
+  function color(i) { return "var(--p" + ((i % 12) + 1) + ")"; }
+
+  function eventsOn(dayOffset) {
+    var w = data.week[((dayOffset % 7) + 7) % 7] || [];
+    // an event wholly before or after the shown hours sits as a one-hour block at that edge, with its real times
+    return w.map(function (e) {
+      var ev = { p: e[0], s0: e[1], e0: e[2], title: e[3] };
+      if (e[1] >= END) { ev.s = END - 1; ev.e = END; ev.e0 = Math.max(e[2], e[1]); ev.edge = true; }
+      else if (Math.max(e[2], e[1] + 0.5) <= START) { ev.s = START; ev.e = START + 1; ev.edge = true; }
+      else { ev.s = Math.max(START, e[1]); ev.e = Math.min(END, Math.max(e[2], e[1] + 0.5)); }
+      return ev;
+    });
+  }
+  function eventsRaw(dayOffset) {
+    var w = data.week[((dayOffset % 7) + 7) % 7] || [];
+    return w.map(function (e) { return { p: e[0], s0: e[1], e0: e[2], title: e[3] }; })
+            .sort(function (a, b) { return a.s0 - b.s0 || b.e0 - a.e0; });
+  }
+
+  // overlapping events in one day fall into clusters; each cluster gets lanes
+  function clusterize(evs) {
+    evs.sort(function (a, b) { return a.s - b.s || b.e - a.e; });
+    var out = [], cur = null, end = -1;
+    evs.forEach(function (ev) {
+      if (!cur || ev.s >= end) { cur = []; out.push(cur); end = ev.e; } else end = Math.max(end, ev.e);
+      cur.push(ev);
+    });
+    return out;
+  }
+  function assignLanes(c) {
+    c.sort(function (a, b) { return a.s - b.s || b.e - a.e; });
+    var lanes = [];
+    c.forEach(function (ev) {
+      var i = 0; while (lanes[i] !== undefined && lanes[i] > ev.s) i++;
+      lanes[i] = ev.e; ev.lane = i;
+    });
+    return lanes.length;
+  }
+
+  function el(tag, cls, text) { var x = document.createElement(tag); if (cls) x.className = cls; if (text != null) x.textContent = text; return x; }
+
+  function renderPeople() {
+    var ul = $("people"); ul.textContent = "";
+    data.people.forEach(function (name, i) {
+      var li = el("li");
+      var b = el("button", "person");
+      b.type = "button"; b.style.setProperty("--c", color(i));
+      var say = function () { b.setAttribute("aria-pressed", String(!hidden[i])); b.title = (hidden[i] ? "Show " : "Hide ") + name; };
+      say();
+      b.appendChild(el("span", "dot"));
+      b.appendChild(el("span", "nm", name));
+      b.addEventListener("click", function () {
+        hidden[i] = !hidden[i];
+        say();
+        document.querySelectorAll('[data-person="' + i + '"]').forEach(function (n) { n.classList.toggle("hidden-person", !!hidden[i]); });
+        if (selected && selected.p === i && hidden[i]) select(null);
+      });
+      li.appendChild(b); ul.appendChild(li);
+    });
+  }
+
+  function describe(ev, dayDate) {
+    if (ev.allDay) return [data.people[ev.p], ev.title, ev.range];
+    return [data.people[ev.p], ev.title, longFmt.format(dayDate) + ", " + hm(ev.s0) + " to " + hm(ev.e0)];
+  }
+  function select(item) {
+    document.querySelectorAll(".selected").forEach(function (n) { n.classList.remove("selected"); });
+    selected = item;
+    detail.textContent = "";
+    if (!item) return;
+    item.node.classList.add("selected");
+    var d = item.desc;
+    detail.appendChild(document.createTextNode(d[1] + ", " + d[0] + ", "));
+    detail.appendChild(el("span", "when", d[2]));
+  }
+
+  function render(animate) {
+    var n = dayCount();
+    shownWidth = document.documentElement.clientWidth;
+    var cal = $("cal"), list = listMode();
+    cal.classList.toggle("list", list);
+    cal.style.setProperty("--days", n);
+    if (offset === 0) cal.style.setProperty("--first", "minmax(0, 1.4fr)"); else cal.style.removeProperty("--first");
+    grid.style.setProperty("--hours", END - START);
+    var first = addDays(today, offset);
+    $("month").textContent = monthFmt.format(addDays(first, Math.floor(n / 2)));
+    $("today").setAttribute("aria-pressed", String(offset === 0));
+    var keepKey = selected && selected.key;
+    select(null);
+    registry = {};
+
+    if (list) {
+      heads.textContent = ""; allday.textContent = ""; grid.textContent = "";
+      renderList(n, first, animate);
+      if (keepKey && registry[keepKey]) select(registry[keepKey]);
+      return;
+    }
+    $("agenda").textContent = "";
+
+    // day heads
+    heads.textContent = "";
+    heads.appendChild(el("div"));
+    for (var d = 0; d < n; d++) {
+      var date = addDays(first, d), isToday = offset + d === 0;
+      var h = el("div", "head" + (isToday ? " is-today" : ""));
+      if (isToday) h.setAttribute("aria-current", "date");
+      h.appendChild(el("span", "wd", wdFmt.format(date)));
+      h.appendChild(el("span", "num", String(date.getDate())));
+      heads.appendChild(h);
+    }
+
+    // all-day lane: away days
+    allday.textContent = "";
+    allday.appendChild(el("div"));
+    if (offset === 0) allday.appendChild(el("div", "tint"));
+    var lane = el("div", "lane");
+    var row = 1;
+    data.away.forEach(function (a) {
+      var from = a[1] - offset, to = a[1] + a[2] - offset; // [from, to) in visible columns
+      if (to <= 0 || from >= n) return;
+      var c0 = Math.max(0, from), c1 = Math.min(n, to);
+      var b = el("button", "away" + (hidden[a[0]] ? " hidden-person" : "") + (animate && !reduce.matches ? " enter" : ""));
+      b.type = "button";
+      b.dataset.person = a[0];
+      b.style.setProperty("--c", color(a[0]));
+      b.style.gridColumn = (c0 + 1) + " / " + (c1 + 1);
+      b.style.gridRow = String(row++);
+      b.appendChild(el("span", "dot"));
+      b.appendChild(el("span", "lbl", a[3]));
+      var startD = addDays(today, a[1]), endD = addDays(today, a[1] + a[2] - 1);
+      var shortFmt = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" });
+      var item = { p: a[0], node: b, key: "away|" + a.join("|"), desc: [data.people[a[0]], a[3], a[2] > 1 ? shortFmt.format(startD) + " to " + shortFmt.format(endD) : longFmt.format(startD)] };
+      registry[item.key] = item;
+      b.addEventListener("click", function (e) { e.stopPropagation(); select(selected && selected.node === b ? null : item); });
+      lane.appendChild(b);
+    });
+    allday.appendChild(lane);
+    allday.scrollTop = 0;
+    allday.classList.toggle("overflows", allday.scrollHeight > allday.clientHeight + 1);
+    allday.classList.remove("at-end");
+
+    // hour grid
+    grid.textContent = "";
+    grid.style.removeProperty("height");
+    var hourPx = parseFloat(getComputedStyle(grid).getPropertyValue("--hour")) || 48;
+    var gut = el("div", "gutter");
+    for (var hr = START + 1; hr < END; hr++) {
+      var lab = el("span", "hour-label", hm(hr));
+      lab.style.top = (hr - START) * hourPx + "px";
+      gut.appendChild(lab);
+      var rule = el("div", "rule"); rule.style.top = (hr - START) * hourPx + "px";
+      grid.appendChild(rule);
+    }
+    grid.insertBefore(gut, grid.firstChild);
+    var low = 0;
+    for (var dd = 0; dd < n; dd++) {
+      var dayOffset = offset + dd, dayDate = addDays(today, dayOffset);
+      var col = el("div", "day" + (dayOffset === 0 ? " is-today" : ""));
+      col.setAttribute("aria-label", longFmt.format(dayDate));
+      col.setAttribute("role", "group");
+      grid.appendChild(col);
+      low = Math.max(low, placeDay(col, eventsOn(dayOffset), dayOffset, dayDate, hourPx, animate));
+    }
+    // a crowded day can stack its rows past the last hour; the grid grows to hold them
+    if (low + 4 > grid.clientHeight) grid.style.height = Math.ceil(low + 4) + "px";
+    if (keepKey && registry[keepKey]) select(registry[keepKey]);
+  }
+
+  // ---- a narrow phone lists the days: today first and tinted, then the next days, each event a block with its time ----
+  function eventButton(ev, dayOffset, dayDate, animate) {
+    var b = el("button", "ev" + (animate && !reduce.matches ? " enter" : ""));
+    b.type = "button";
+    if (dayOffset === 0) b.setAttribute("data-ui-need", "");
+    if (hidden[ev.p]) b.classList.add("hidden-person");
+    b.dataset.person = ev.p;
+    b.style.setProperty("--c", color(ev.p));
+    var t = el("span", "t");
+    t.appendChild(el("span", "dot"));
+    t.appendChild(el("span", "txt", ev.title));
+    b.appendChild(t);
+    b.appendChild(el("span", "m", metaText(ev)));
+    var item = { p: ev.p, node: b, key: ["ev", dayOffset, ev.p, ev.s0, ev.title].join("|"), desc: describe(ev, dayDate) };
+    b.title = item.desc[1] + ", " + item.desc[0] + ", " + item.desc[2];
+    registry[item.key] = item;
+    b.addEventListener("click", function (e) { e.stopPropagation(); select(selected && selected.node === b ? null : item); });
+    return b;
+  }
+  function renderList(n, first, animate) {
+    var box = $("agenda"); box.textContent = "";
+    var shortFmt = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" });
+    for (var d = 0; d < n; d++) {
+      var dayOffset = offset + d, dayDate = addDays(first, d), isToday = dayOffset === 0;
+      var sec = el("section", "aday" + (isToday ? " is-today" : ""));
+      sec.setAttribute("aria-label", longFmt.format(dayDate));
+      var h = el("div", "head" + (isToday ? " is-today" : ""));
+      if (isToday) h.setAttribute("aria-current", "date");
+      h.appendChild(el("span", "wd", wdFmt.format(dayDate)));
+      h.appendChild(el("span", "num", String(dayDate.getDate())));
+      sec.appendChild(h);
+      data.away.forEach(function (a) {
+        if (dayOffset < a[1] || dayOffset >= a[1] + a[2]) return;
+        var b = el("button", "away" + (hidden[a[0]] ? " hidden-person" : "") + (animate && !reduce.matches ? " enter" : ""));
+        b.type = "button"; b.dataset.person = a[0];
+        b.style.setProperty("--c", color(a[0]));
+        b.appendChild(el("span", "dot"));
+        b.appendChild(el("span", "lbl", a[3]));
+        var startD = addDays(today, a[1]), endD = addDays(today, a[1] + a[2] - 1);
+        var item = { p: a[0], node: b, key: "away|" + a.join("|") + "|" + dayOffset, desc: [data.people[a[0]], a[3], a[2] > 1 ? shortFmt.format(startD) + " to " + shortFmt.format(endD) : longFmt.format(startD)] };
+        registry[item.key] = item;
+        b.addEventListener("click", function (e) { e.stopPropagation(); select(selected && selected.node === b ? null : item); });
+        sec.appendChild(b);
+      });
+      eventsRaw(dayOffset).forEach(function (ev) { sec.appendChild(eventButton(ev, dayOffset, dayDate, animate)); });
+      box.appendChild(sec);
+    }
+  }
+
+  // ---- placing a day's blocks: every title reads in whole lines, never clipped, dropped, folded or squeezed ----
+  // A title fits a block when it does not overflow it and does not stack a word or two a line
+  // (three or more lines at under READ characters a line). A cluster of overlapping events tries, in order:
+  // 1. every lane side by side;
+  // 2. a cascade: the events that start first sit underneath at full width, in their own color, for their
+  //    whole time. Events that start later sit on top of them, one step (a third of the column) in from the
+  //    left, so the title and color of the event below stay visible down its left side. Events that start at
+  //    the same time sit side by side. A later event that overlaps one on top indents by the same step again;
+  // 3. fewer lanes side by side plus one stack lane, when the events in the stack lane do not overlap in time;
+  // 4. the last resort: one full-width stack lane.
+  // A stack lane holds its events as rows in start order, each its own block with its title and time. A row
+  // sits at its start time when it can, else just below the row before it. A block drawn below its start time
+  // always shows its time. A block is never drawn shorter than its real time. No two buttons overlap: an event
+  // with others on top keeps only its title area as its button, and the rest of its color block is drawing.
+  var READ = 16, LANE_MIN = 48, GAP = 8, LEVELS = 3;
+  var probe = null;
+  function lineCount(node) {
+    var r = document.createRange(); r.selectNodeContents(node);
+    var tops = {};
+    Array.prototype.forEach.call(r.getClientRects(), function (q) { if (q.width > 0.5 && q.height > 0.5) tops[Math.round(q.top)] = 1; });
+    return Object.keys(tops).length;
+  }
+  function readable(node, text) {
+    // words joined by hyphens break at the hyphens, so they count as words here
+    if (!node || text.trim().split(/[\s-]+/).length < 3) return true;
+    var lines = lineCount(node);
+    return lines <= 2 || text.length / lines >= READ;
+  }
+  function metaText(ev) { return data.people[ev.p].split(" ")[0] + ", " + hm(ev.s0) + " to " + hm(ev.e0); }
+  // the block an event needs at width w: does its title read, and how tall is it (with the time line, if asked)
+  function measure(col, ev, w, withMeta) {
+    if (!probe) {
+      probe = el("button", "ev probe");
+      probe.setAttribute("aria-hidden", "true"); probe.tabIndex = -1;
+      probe.appendChild(el("span", "t")); probe.appendChild(el("span", "m"));
+    }
+    if (probe.parentNode !== col) col.appendChild(probe);
+    probe.style.width = w + "px"; probe.style.height = "auto";
+    var t = probe.firstChild, m = probe.lastChild, txt = el("span", "txt", ev.title);
+    t.textContent = ""; t.appendChild(el("span", "dot")); t.appendChild(txt);
+    m.textContent = withMeta ? metaText(ev) : "";
+    // the dot never sits alone on a line above its title: in a block too narrow for both, the dot goes
+    if (dotAlone(t)) t.firstChild.style.display = "none";
+    var ok = t.scrollWidth <= t.clientWidth + 0.5 && readable(txt.firstChild, ev.title);
+    if (withMeta && !readable(m.firstChild, m.textContent)) { m.textContent = ""; }
+    return { ok: ok, h: Math.max(24, probe.offsetHeight) };
+  }
+  function dotAlone(t) {
+    var txt = t.querySelector(".txt"), r = txt && txt.getClientRects()[0];
+    return !!r && r.top - t.firstChild.getBoundingClientRect().top >= 9;
+  }
+  function fits(col, ev, w, h) { var r = measure(col, ev, w, false); return r.ok && r.h <= h; }
+  function overlaps(a, b) { return a.s < b.e && b.s < a.e; }
+  function yOf(hour, hourPx) { return (hour - START) * hourPx + 4; }
+  function blockH(ev, hourPx) { return Math.max(24, (Math.min(END, ev.edge ? ev.e : ev.e0) - ev.s) * hourPx - 8); }
+  // the lowest point a placed item reaches, its color block underneath included
+  function bottom(it) { return it.y + Math.max(it.h, it.fullH || 0); }
+  function apart(a, b) { return bottom(a) <= b.y || bottom(b) <= a.y; }
+
+  // L main lanes side by side; when L < n, one stack lane after them (stackW px wide when stackW > 0).
+  // L = 0 is one full-width stack lane.
+  function tryLanes(col, c, hourPx, x0, avail, n, L, stackW) {
+    var cols = L === n ? n : L + 1, wMain, wLast;
+    if (L === 0) wMain = wLast = avail;
+    else if (stackW > 0) { wMain = (avail - stackW - GAP * L) / L; wLast = stackW; }
+    else wMain = wLast = (avail - GAP * (cols - 1)) / cols;
+    var xs = [], ws = [];
+    for (var k = 0; k < cols; k++) { ws.push(k < L ? wMain : wLast); xs.push(x0 + k * (wMain + GAP)); }
+    var items = [], ok = true;
+    c.forEach(function (ev) { if (ev.lane < L) items.push({ ev: ev, lane: ev.lane, y: yOf(ev.s, hourPx), h: blockH(ev, hourPx) }); });
+    if (L < n) {
+      var rows = c.filter(function (ev) { return ev.lane >= L; }).sort(function (a, b) { return a.s - b.s || b.e - a.e; });
+      var floor = -Infinity;
+      rows.forEach(function (ev, i) {
+        var m = measure(col, ev, wLast, true);
+        if (!m.ok) ok = false;
+        // beside main lanes, a stack lane holds only events that do not overlap in time
+        if (L > 0 && rows.slice(0, i).some(function (o) { return overlaps(o, ev); })) ok = false;
+        var start = yOf(ev.s, hourPx), top = Math.max(start, floor);
+        // a row keeps its whole time span; when it cannot start on time, it moves down, never shrinks
+        var h = Math.max(m.h, blockH(ev, hourPx));
+        items.push({ ev: ev, lane: L, y: top, h: h, moved: top > start + 0.5 });
+        floor = top + h + GAP;
+      });
+    }
+    items.forEach(function (it) {
+      it.span = 1;
+      if (it.lane < L || L === n) {
+        for (var k = it.lane + 1; k < cols; k++) {
+          if (items.some(function (o) { return o.lane === k && !apart(it, o); })) break;
+          it.span++;
+        }
+      }
+      it.x = xs[it.lane];
+      it.w = xs[it.lane + it.span - 1] + ws[it.lane + it.span - 1] - it.x;
+      // a title that cannot read in a side-by-side lane rules this try out
+      if ((it.lane < L || L === n) && !fits(col, it.ev, it.w, it.h)) ok = false;
+    });
+    return { ok: ok, items: items };
+  }
+  // move a placed group down, all together, so it starts at floor or below; returns the floor for what comes next.
+  function settle(col, items, floor) {
+    var top = Math.min.apply(null, items.map(function (it) { return it.y; }));
+    var shift = Math.max(0, floor - top);
+    items.forEach(function (it) { if (shift > 0.5) { it.y += shift; it.moved = true; } });
+    items.forEach(function (it) { if (it.moved || it.ev.edge) showTime(col, it, items); });
+    return Math.max.apply(null, items.map(bottom)) + GAP;
+  }
+  // a block that is not at its own time (moved down, or an event outside the shown hours) grows to show its
+  // time line, when no other button in its group is in the way
+  function showTime(col, it, items) {
+    if (it.lead) return;
+    var need = measure(col, it.ev, it.w, true).h;
+    if (need <= it.h) return;
+    var g = { y: it.y, h: need, x: it.x, w: it.w };
+    var clear = items.every(function (o) {
+      return o === it || o.x >= g.x + g.w || o.x + o.w <= g.x || g.y + g.h + GAP <= o.y || o.y + o.h + GAP <= g.y;
+    });
+    if (clear) it.h = need;
+  }
+  // the cascade (layout 2). Returns the placed items, or null when a title would not read.
+  // Events that start together sit side by side underneath; when they cannot, the longest goes underneath
+  // alone and the others sit on top of it, just below its title.
+  function cascade(col, c, hourPx, x0, avail, z, step) {
+    var s0 = c[0].s, together = c.filter(function (ev) { return ev.s === s0; });
+    return cascadeOn(col, c, together, hourPx, x0, avail, z, step) ||
+      (together.length > 1 ? cascadeOn(col, c, [c[0]], hourPx, x0, avail, z, step) : null);
+  }
+  function cascadeOn(col, c, first, hourPx, x0, avail, z, step) {
+    var rest = c.filter(function (ev) { return first.indexOf(ev) < 0; });
+    if (!rest.length) return null;
+    var k = first.length, w = (avail - GAP * (k - 1)) / k, items = [];
+    for (var i = 0; i < k; i++) {
+      var ev = first[i], full = blockH(ev, hourPx);
+      var it = { ev: ev, lane: i, span: 1, x: x0 + i * (w + GAP), w: w, y: yOf(ev.s, hourPx), h: full, z: z };
+      var later = rest.filter(function (o) { return overlaps(o, ev); });
+      if (later.length) {
+        // its button is the title area above the first event on top; that event moves down if the title needs more
+        var next = Math.min.apply(null, later.map(function (o) { return o.s; }));
+        var need = measure(col, ev, w, false);
+        var band = Math.max((next - ev.s) * hourPx - GAP, need.h);
+        if (!need.ok || band > full) return null;
+        it.h = band; it.lead = true; it.fullH = full;
+      } else if (!fits(col, ev, w, full)) return null;
+      items.push(it);
+    }
+    var leads = items.slice(), floor = -Infinity;
+    var subs = clusterize(rest);
+    for (var j = 0; j < subs.length; j++) {
+      var sub = subs[j];
+      var got = plan(col, sub, hourPx, x0 + step, avail - step, z + 1, step);
+      if (!got.ok) return null;
+      leads.forEach(function (l) {
+        if (l.lead && sub.some(function (o) { return overlaps(o, l.ev); })) floor = Math.max(floor, l.y + l.h + GAP);
+      });
+      floor = settle(col, got.items, floor);
+      items = items.concat(got.items);
+    }
+    return items;
+  }
+  function plan(col, c, hourPx, x0, avail, z, step) {
+    var how = "lanes";
+    var done = function (items, ok) { items.forEach(function (it) { if (it.z == null) it.z = z; }); return { ok: ok, items: items, how: how }; };
+    var n = assignLanes(c), r = tryLanes(col, c, hourPx, x0, avail, n, n, 0);
+    if (r.ok) return done(r.items, true);
+    if (c.length > 1 && z + 1 < LEVELS && avail - step >= LANE_MIN) {
+      var u = cascade(col, c, hourPx, x0, avail, z, step);
+      if (u) { how = "cascade"; return done(u, true); }
+      n = assignLanes(c); // the cascade gave its parts lanes of their own
+    }
+    how = "stack";
+    for (var L = n - 1; L >= 1; L--) {
+      r = tryLanes(col, c, hourPx, x0, avail, n, L, 0); if (r.ok) return done(r.items, true);
+      // main lanes shrink to the narrowest width that still reads, so the stack lane is as wide as it can be
+      var best = null;
+      for (var sw = LANE_MIN; (avail - sw - GAP * L) / L >= LANE_MIN; sw += GAP) {
+        r = tryLanes(col, c, hourPx, x0, avail, n, L, sw);
+        if (r.ok) best = r;
+      }
+      if (best) return done(best.items, true);
+    }
+    r = tryLanes(col, c, hourPx, x0, avail, n, 0, 0);
+    return done(r.items, r.ok);
+  }
+  function placeDay(col, evs, dayOffset, dayDate, hourPx, animate) {
+    var avail = col.clientWidth - 8, floor = -Infinity;
+    clusterize(evs).forEach(function (cluster) {
+      // the cascade steps in a third of the column. When a title cannot read at that width, a quarter is tried
+      // before the events fall back to a stack.
+      var got = plan(col, cluster, hourPx, 4, avail, 0, Math.round(avail / 3));
+      if (got.how === "stack") {
+        var narrow = plan(col, cluster, hourPx, 4, avail, 0, Math.round(avail / 4));
+        if (narrow.how === "cascade") got = narrow;
+      }
+      var items = got.items;
+      floor = settle(col, items, floor);
+      items.forEach(function (it) {
+        var ev = it.ev, b = eventButton(ev, dayOffset, dayDate, animate);
+        b.style.left = it.x + "px";
+        b.style.width = it.w + "px";
+        b.style.top = it.y + "px";
+        b.style.height = it.h + "px";
+        b.style.zIndex = String(2 * it.z + 1);
+        if (it.z > 0) b.classList.add("on-top");
+        col.appendChild(b);
+        if (it.lead) {
+          // the color block underneath, for the event's whole time. It is drawing, not a second control;
+          // a click on what shows of it selects the event, as its title area does.
+          b.classList.add("lead");
+          var under = el("span", "under" + (it.z > 0 ? " on-top" : "") + (hidden[ev.p] ? " hidden-person" : "") + (animate && !reduce.matches ? " enter" : ""));
+          under.setAttribute("aria-hidden", "true");
+          under.dataset.person = ev.p;
+          under.style.setProperty("--c", color(ev.p));
+          under.style.left = it.x + "px";
+          under.style.width = it.w + "px";
+          under.style.top = it.y + "px";
+          under.style.height = it.fullH + "px";
+          under.style.zIndex = String(2 * it.z);
+          under.addEventListener("click", function (e) { e.stopPropagation(); b.click(); });
+          col.appendChild(under);
+        }
+      });
+    });
+    if (probe && probe.parentNode) probe.remove();
+    // the time line yields first when a block is short or too thin to read it; the title never does.
+    // A block drawn below its start time keeps its time line whenever it has the room.
+    col.querySelectorAll(".ev").forEach(function (b) {
+      var t = b.querySelector(".t"), m = b.querySelector(".m");
+      b.classList.remove("nodot");
+      b.classList.toggle("nodot", dotAlone(t));
+      b.classList.remove("short");
+      var room = b.clientHeight - 6;
+      b.classList.toggle("short", t.offsetHeight + m.offsetHeight > room || !readable(m.firstChild, m.textContent));
+    });
+    return floor - GAP;
+  }
+
+  function load(name) {
+    setName = name; data = SETS[name]; hidden = {}; offset = 0;
+    $("studio").textContent = data.studio;
+    renderPeople();
+    render(false);
+    document.querySelectorAll(".chrome button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.set === name)); });
+  }
+
+  allday.addEventListener("scroll", function () {
+    allday.classList.toggle("at-end", allday.scrollTop + allday.clientHeight >= allday.scrollHeight - 1);
+  }, { passive: true });
+  $("prev").addEventListener("click", function () { offset -= dayCount(); render(true); });
+  $("next").addEventListener("click", function () { offset += dayCount(); render(true); });
+  $("today").addEventListener("click", function () { if (offset !== 0) { offset = 0; render(true); } });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") select(null); });
+  $("cal").addEventListener("click", function () { select(null); });
+  phone.addEventListener("change", function () { render(false); });
+  var resizeQueued = false;
+  window.addEventListener("resize", function () {
+    if (resizeQueued) return;
+    resizeQueued = true;
+    // blocks are placed in px from the column width, so any width change places them again
+    requestAnimationFrame(function () { resizeQueued = false; if (document.documentElement.clientWidth !== shownWidth) render(false); });
+  });
+
+  document.querySelectorAll(".chrome button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var p = new URLSearchParams(location.search);
+      if (b.dataset.set === "demo") p.delete("data"); else p.set("data", b.dataset.set);
+      var q = p.toString();
+      history.replaceState(null, "", location.pathname + (q ? "?" + q : ""));
+      load(b.dataset.set);
+    });
+  });
+
+  load(setName);
+  // block fit is measured with the real faces, so place again once they load
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { render(false); });
+})();
+</script>
+</body>
+</html>

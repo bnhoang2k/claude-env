@@ -1,0 +1,6 @@
+[
+  { "name": "personal name", "pattern": "\\b(sam|rivera)\\b", "flags": "i" },
+  { "name": "personal email", "pattern": "sam\\.rivera@example\\.com", "flags": "i" },
+  { "name": "private repo", "pattern": "my-private-repo", "flags": "i" },
+  { "name": "notes path", "pattern": "private-notes", "flags": "i" }
+]

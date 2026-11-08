@@ -1,0 +1,484 @@
+<!doctype html>
+<html lang="en" data-rung="1" data-look="quiet" data-motion="calm">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Departures</title>
+<script>(function(){var q=new URLSearchParams(location.search).get("theme"),r=document.documentElement,m=matchMedia("(prefers-color-scheme: dark)");function a(){r.dataset.theme=(q==="light"||q==="dark")?q:(m.matches?"dark":"light")}a();m.addEventListener("change",a)})();</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=STIX+Two+Text:ital,wght@0,400..700;1,400&display=swap" rel="stylesheet">
+<style>
+/* ---------- tokens: type, space, radius, motion (layout) ---------- */
+:root {
+  --face: "STIX Two Text", Georgia, serif;
+  --fs-meta: 13px; --fs-ui: 14px; --fs-row: 16px; --fs-head: 20px; --fs-title: 32px;
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 24px; --sp-6: 32px;
+  --r-s: 6px; --r-m: 8px;
+  --rail-w: 248px; --trip-w: 380px;
+  --row-h: 40px;
+  /* motion-kit calm: tap 0.15 s, bounce 0, amount 0.97; set from JS */
+  --dur-tap: 150ms; --ease-tap: ease-out; --press: .97;
+}
+/* ---------- tokens: colour, light (bone, green, chocolate) ---------- */
+:root, [data-theme="light"] {
+  --bg: #e5e1d8; --surface: #dad5ca; --hover: #e0dcd3; --line: #c9c1b3;
+  --ink: #2a1d17; --muted: #64554b; --past: #64554b;
+  --accent: #456f3a; --accent-ink: #ffffff; --focus: #456f3a;
+  --skel: #d6d0c4; --tip-bg: #2a1d17; --tip-ink: #ece6da;
+}
+/* ---------- tokens: colour, dark (chocolate room, bone type) ---------- */
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #1c1511; --surface: #2a211b; --hover: #221a15; --line: #3b3029;
+  --ink: #ece6da; --muted: #b3a597; --past: #b3a597;
+  --accent: #8fbf7e; --accent-ink: #13210e; --focus: #8fbf7e;
+  --skel: #2b231d; --tip-bg: #ece6da; --tip-ink: #2a1d17;
+} }
+[data-theme="dark"] {
+  --bg: #1c1511; --surface: #2a211b; --hover: #221a15; --line: #3b3029;
+  --ink: #ece6da; --muted: #b3a597; --past: #b3a597;
+  --accent: #8fbf7e; --accent-ink: #13210e; --focus: #8fbf7e;
+  --skel: #2b231d; --tip-bg: #ece6da; --tip-ink: #2a1d17;
+}
+
+/* ---------- base ---------- */
+* { box-sizing: border-box; }
+html { background: var(--bg); color: var(--ink); }
+[data-theme="light"] { color-scheme: light; }
+[data-theme="dark"] { color-scheme: dark; }
+body { margin: 0; font: 400 var(--fs-row)/1.4 var(--face); background: var(--bg); color: var(--ink); -webkit-font-smoothing: antialiased; }
+button { font: inherit; color: inherit; }
+:focus { outline: none; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; border-radius: var(--r-s); }
+.tn { font-variant-numeric: tabular-nums lining-nums; }
+
+/* ---------- layout: stops rail, departures, the trip ---------- */
+.app { display: grid; grid-template-columns: var(--rail-w) minmax(0, 1fr) var(--trip-w); min-height: 100vh; min-height: 100dvh; }
+.rail { border-right: 1px solid var(--line); padding: var(--sp-5) var(--sp-3); display: flex; flex-direction: column; gap: var(--sp-4); min-width: 0; }
+.city { padding: 0 var(--sp-3); }
+.city b { display: block; font-size: var(--fs-head); font-weight: 600; }
+.city span { color: var(--muted); font-size: var(--fs-meta); }
+.stops { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.stop {
+  display: flex; flex-direction: column; width: 100%; text-align: left; padding: var(--sp-2) var(--sp-3); min-height: 48px; justify-content: center;
+  background: none; border: 0; border-radius: var(--r-m); cursor: pointer;
+  transition: background-color var(--dur-tap) var(--ease-tap), transform var(--dur-tap) var(--ease-tap);
+}
+.stop:hover { background: var(--hover); }
+.stop:active { transform: scale(var(--press)); }
+.stop[aria-pressed="true"] { background: var(--surface); font-weight: 600; }
+.stop .nm { font-size: var(--fs-row); overflow-wrap: anywhere; }
+.stop .ln { font-size: var(--fs-meta); color: var(--muted); font-weight: 400; overflow-wrap: anywhere; }
+
+.board { min-width: 0; display: flex; flex-direction: column; padding: var(--sp-5) var(--sp-6) 0; container: board / inline-size; }
+.head { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: var(--sp-3) var(--sp-5); padding-bottom: var(--sp-4); }
+/* the stepper keeps one place: top right, beside the first line of the stop name, however long the name runs */
+.head .leave { margin-top: 3px; }
+.head h1 { margin: 0; font-size: var(--fs-title); font-weight: 600; line-height: 1.15; overflow-wrap: anywhere; min-width: 0; }
+.head .when { color: var(--muted); font-size: var(--fs-ui); margin-top: var(--sp-1); }
+
+/* leaving: one stepper, Now resets it */
+.leave { display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-ui); flex-shrink: 0; }
+.leave .lab { color: var(--muted); }
+.leave .t { min-width: 5ch; text-align: center; font-size: var(--fs-row); font-weight: 600; }
+.ib, .tb {
+  height: 32px; display: inline-grid; place-items: center; padding: 0; cursor: pointer; flex-shrink: 0;
+  background: transparent; border: 1px solid var(--line); border-radius: var(--r-s); color: var(--ink); font-size: var(--fs-ui);
+  transition: background-color var(--dur-tap) var(--ease-tap), transform var(--dur-tap) var(--ease-tap), opacity var(--dur-tap) var(--ease-tap);
+}
+.ib { width: 32px; }
+.tb { padding: 0 var(--sp-3); }
+.ib:hover, .tb:hover { background: var(--hover); }
+.ib:active, .tb:active { transform: scale(var(--press)); }
+.ib:disabled, .tb:disabled { opacity: .45; cursor: default; transform: none; }
+.ib svg { width: 14px; height: 14px; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; fill: none; }
+
+/* departures table: header pinned, body scrolls inside the board */
+.scroll { padding-bottom: 72px; }
+table { width: 100%; border-collapse: collapse; table-layout: fixed; font-variant-numeric: tabular-nums lining-nums; }
+td.r-time, th.r-time, td.r-line, th.r-line { text-align: right; }
+thead th { background: var(--bg); text-align: left; font-weight: 400; font-size: var(--fs-meta); color: var(--muted); padding: var(--sp-2) var(--sp-3); border-bottom: 1px solid var(--line); }
+col.c-time { width: 96px; } col.c-line { width: 88px; } col.c-stand { width: 96px; } col.c-in { width: 120px; }
+.r-in, th.r-in { text-align: right; }
+.r-in { white-space: nowrap; }
+tbody tr { cursor: pointer; transition: background-color var(--dur-tap) var(--ease-tap), color var(--dur-tap) var(--ease-tap); }
+tbody td { padding: var(--sp-1) var(--sp-3); height: var(--row-h); border-bottom: 1px solid var(--line); vertical-align: middle; overflow-wrap: break-word; }
+.r-line, .r-stand { white-space: nowrap; }
+.r-sub { display: none; font-size: var(--fs-meta); color: var(--muted); font-weight: 400; }
+.r-wait { display: none; font-size: var(--fs-ui); }
+tbody tr:hover { background: var(--hover); }
+tbody tr.sel { background: var(--surface); }
+tbody tr:focus-visible { outline-offset: -2px; }
+.r-time { position: relative; padding-left: 28px; }
+.late { color: var(--muted); font-size: var(--fs-meta); white-space: nowrap; }
+/* the next departure: bold, with the one green dot */
+tr.next { font-weight: 700; }
+tr.next .r-time::before { content: ""; position: absolute; left: 10px; top: 50%; width: 8px; height: 8px; margin-top: -4px; border-radius: 50%; background: var(--accent); }
+.none { padding: var(--sp-5) var(--sp-3); color: var(--muted); font-size: var(--fs-ui); }
+
+/* the board shapes itself by its own width, so phone, tablet and a squeezed desktop all read in full lines */
+@container board (max-width: 660px) {
+  /* five columns leave the destination too thin: line and stand fold under it */
+  col.c-line, col.c-stand, th.r-line, th.r-stand, td.r-line, td.r-stand { display: none; }
+  .r-sub { display: block; }
+}
+@container board (max-width: 520px) {
+  /* the stop name takes the full width; the stepper gets its own row under the date */
+  .head { grid-template-columns: minmax(0, 1fr); }
+  .head .leave { margin-top: 0; }
+}
+
+/* ---------- the trip: a line with its stops ---------- */
+.trip { border-left: 1px solid var(--line); padding: var(--sp-5) var(--sp-5) 72px; min-width: 0; }
+.trip h2 { margin: 0; font-size: var(--fs-head); font-weight: 600; line-height: 1.25; overflow-wrap: anywhere; }
+.trip .sub { color: var(--muted); font-size: var(--fs-ui); margin: var(--sp-1) 0 var(--sp-5); overflow-wrap: anywhere; text-wrap: pretty; }
+.line { list-style: none; margin: 0; padding: 0; position: relative; }
+.line li { position: relative; display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; gap: var(--sp-3); align-items: start; padding: var(--sp-2) 0; min-height: 40px; }
+.line li .t { padding-top: 2px; }
+.line li > .track { position: absolute; left: 11px; top: 0; bottom: 0; width: 2px; background: var(--ink); }
+.line li:first-child > .track { top: calc(var(--sp-2) + 11px); }
+.line li:last-child > .track { bottom: auto; height: calc(var(--sp-2) + 11px); }
+.line li:only-child > .track { display: none; }
+.line li .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--bg); border: 2px solid var(--ink); justify-self: center; margin-top: 5px; position: relative; z-index: 1; }
+.line li.passed { color: var(--past); }
+.line li.passed > .track { background: var(--line); }
+.line li.passed .dot { border-color: var(--past); }
+.line li.here { font-weight: 700; }
+.line li.here .dot { margin-top: 3px; width: 16px; height: 16px; background: var(--accent); border-color: var(--accent); }
+.line li .s { overflow-wrap: anywhere; }
+.line li .t { font-size: var(--fs-ui); color: var(--muted); }
+.line li.here .t { color: var(--ink); }
+
+/* tooltips for icon buttons: shown on hover and keyboard focus */
+.tipwrap { position: relative; display: inline-flex; }
+.tip {
+  position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); z-index: 5;
+  padding: 4px 8px; border-radius: var(--r-s); font-size: 12px; line-height: 1.3; white-space: nowrap; pointer-events: none;
+  background: var(--tip-bg); color: var(--tip-ink); visibility: hidden; opacity: 0;
+  transition: opacity var(--dur-tap) var(--ease-tap), visibility var(--dur-tap);
+}
+.tipwrap:hover .tip, .tipwrap :focus-visible + .tip { visibility: visible; opacity: 1; }
+
+/* loading */
+.sk { display: block; height: 12px; border-radius: var(--r-s); background: var(--skel); }
+tr.sk-row { cursor: default; }
+tr.sk-row:hover { background: none; }
+
+/* ---------- demo data toggle (break-ui chrome, plain on purpose) ---------- */
+.demo {
+  position: fixed; left: 50%; bottom: 12px; transform: translateX(-50%); z-index: 20;
+  display: flex; gap: 8px; padding: 3px; border-radius: 9px; background: #e4e4e7; box-shadow: 0 1px 3px rgba(0, 0, 0, .2);
+  font: 500 12px/1 system-ui, -apple-system, sans-serif; max-width: calc(100vw - 24px);
+}
+.demo button { border: 0; background: none; color: #3f3f46; padding: 0 10px; height: 26px; border-radius: 6px; cursor: pointer; white-space: nowrap; font: inherit; }
+.demo button[aria-pressed="true"] { background: #ffffff; color: #18181b; box-shadow: 0 1px 2px rgba(0, 0, 0, .15); }
+@media (max-width: 360px) { .demo { gap: 2px; } .demo button { padding: 0 6px; } }
+
+/* ---------- narrower screens ---------- */
+@media (max-width: 1100px) {
+  .app { grid-template-columns: var(--rail-w) minmax(0, 1fr); grid-template-rows: auto; height: auto; }
+  .trip { grid-column: 2; border-left: 0; border-top: 1px solid var(--line); padding: var(--sp-5) var(--sp-6) 72px; }
+}
+@media (max-width: 760px) {
+  .app { display: block; }
+  .rail { border-right: 0; padding: var(--sp-4) var(--sp-4) 0; gap: var(--sp-3); overflow: visible; }
+  .city { padding: 0 var(--sp-1); }
+  .city b { display: inline; font-size: var(--fs-row); }
+  .stops { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-2); }
+  .stop { min-height: 44px; padding: var(--sp-1) var(--sp-3); border: 1px solid var(--line); }
+  .stop[aria-pressed="true"] { border-color: var(--surface); }
+  .stops li { display: grid; }
+  .stop .ln { display: none; }
+  .board { padding: var(--sp-4) var(--sp-4) 0; }
+  .head h1 { font-size: 24px; }
+  col.c-time { width: 72px; } col.c-in { width: 76px; }
+  thead th, tbody td { padding: 0 var(--sp-2); }
+  thead th { padding-top: var(--sp-2); padding-bottom: var(--sp-2); }
+  .r-time { padding-left: 22px; }
+  tr.next .r-time::before { left: 6px; }
+  .scroll { padding-bottom: var(--sp-5); }
+  .r-in { white-space: normal; }
+  .trip { padding: var(--sp-5) var(--sp-4) 80px; border-top: 1px solid var(--line); }
+}
+@media (max-width: 380px) {
+  /* two stop buttons a row leave a long stop name about 13 characters a line */
+  .stops { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 360px) {
+  /* the wait folds under the time, so the destination keeps full lines */
+  col.c-in, th.r-in, td.r-in { display: none; }
+  col.c-time { width: 84px; }
+  .r-wait { display: block; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .stop, .ib, .tb, tbody tr { transition: none !important; }
+  .stop:active, .ib:active, .tb:active { transform: none; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <nav class="rail" aria-label="Stops">
+    <div class="city"><b>Corran Transit</b> <span>(a made-up example)</span></div>
+    <ul class="stops" id="stops"></ul>
+  </nav>
+  <main class="board">
+    <div class="head">
+      <div><h1 id="stop-name"></h1><div class="when tn" id="when"></div></div>
+      <div class="leave" id="leave">
+        <span class="lab">Leaving</span>
+        <span class="tipwrap"><button class="ib" type="button" data-step="-10" aria-label="Ten minutes earlier" aria-describedby="tip-earlier"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3 7h8"/></svg></button><span class="tip" role="tooltip" id="tip-earlier">Ten minutes earlier</span></span>
+        <span class="t tn" id="leave-t"></span>
+        <span class="tipwrap"><button class="ib" type="button" data-step="10" aria-label="Ten minutes later" aria-describedby="tip-later"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3 7h8M7 3v8"/></svg></button><span class="tip" role="tooltip" id="tip-later">Ten minutes later</span></span>
+        <button class="tb" type="button" data-step="now">Now</button>
+      </div>
+    </div>
+    <table class="cols-head" aria-label="Departure columns">
+      <colgroup><col class="c-time"><col class="c-line"><col><col class="c-stand"><col class="c-in"></colgroup>
+      <thead><tr><th class="r-time">Time</th><th class="r-line">Line</th><th>Toward</th><th class="r-stand">Stand</th><th class="r-in">In</th></tr></thead>
+    </table>
+    <div class="scroll" id="scroll">
+      <table aria-label="Departures">
+        <colgroup><col class="c-time"><col class="c-line"><col><col class="c-stand"><col class="c-in"></colgroup>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </main>
+  <aside class="trip" id="trip" aria-label="The selected trip"></aside>
+</div>
+
+<div class="demo" data-ui-chrome role="group" aria-label="Data set">
+  <button type="button" data-set="demo">Demo data</button>
+  <button type="button" data-set="worst">Worst case</button>
+  <button type="button" data-set="empty">Empty</button>
+  <button type="button" data-set="loading">Loading</button>
+</div>
+
+<script>
+(function () {
+  const root = document.documentElement;
+
+  /* ---------- motion: motion-kit calm, typed in (defaults.js) ---------- */
+  // tap: visualDuration 0.15, bounce 0, amount 0.97. Rung 1: motion only confirms a touch.
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)");
+  const TAP_MS = 150;
+  function setMotion() { root.style.setProperty("--dur-tap", reduce.matches ? "0ms" : TAP_MS + "ms"); }
+  setMotion();
+  reduce.addEventListener("change", setMotion);
+
+  /* ---------- data (a made-up example) ---------- */
+  // A pattern runs one way along a line. stops: [stop id, minutes from the first stop, stand].
+  const hm = (h, m) => h * 60 + m;
+  const DEMO = {
+    day: "Thursday", now: hm(8, 41),
+    stops: [
+      { id: "harbor", name: "Harbor & 5th" },
+      { id: "mill", name: "Mill Street" },
+      { id: "union", name: "Union Station" },
+      { id: "market", name: "Market Hall" },
+    ],
+    names: { north: "Northgate", harbor: "Harbor & 5th", mill: "Mill Street", union: "Union Station", market: "Market Hall", ferry: "Ferry Terminal", west: "Westfield", river: "Riverside", air: "Airport", uni: "University" },
+    patterns: [
+      { line: "4", first: hm(5, 32), every: 10, last: hm(23, 2), stops: [["north", 0, "A"], ["mill", 6, "A"], ["harbor", 11, "A"], ["union", 15, "C"], ["market", 19, "B"], ["ferry", 24, "1"]], late: { [hm(8, 32)]: 3 } },
+      { line: "4", first: hm(5, 40), every: 10, last: hm(23, 10), stops: [["ferry", 0, "1"], ["market", 5, "A"], ["union", 9, "D"], ["harbor", 13, "B"], ["mill", 18, "B"], ["north", 24, "2"]] },
+      { line: "12", first: hm(6, 3), every: 15, last: hm(22, 3), stops: [["west", 0, "1"], ["mill", 7, "C"], ["harbor", 12, "C"], ["river", 18, "A"], ["air", 31, "3"]] },
+      { line: "12", first: hm(6, 10), every: 15, last: hm(22, 10), stops: [["air", 0, "3"], ["river", 13, "B"], ["harbor", 19, "D"], ["mill", 24, "D"], ["west", 31, "1"]] },
+      { line: "7", first: hm(6, 0), every: 12, last: hm(23, 36), stops: [["union", 0, "T1"], ["market", 4, "T"], ["harbor", 9, "T"], ["uni", 16, "T"]] },
+      { line: "7", first: hm(6, 5), every: 12, last: hm(23, 41), stops: [["uni", 0, "T"], ["harbor", 7, "T"], ["market", 12, "T"], ["union", 16, "T2"]] },
+    ],
+  };
+
+  // Worst case (break-ui): a long stop name, a long destination, long line codes, non-Latin names,
+  // a departure leaving now, one in 1 minute, times past midnight, a 95-minute delay and a busy stop.
+  const WORST = {
+    day: "Saturday", now: hm(23, 48),
+    stops: [
+      { id: "mlk", name: "Martin Luther King Jr. Boulevard & Northwestern Memorial Hospital Transfer Plaza" },
+      { id: "saf", name: "Šafaříkova" },
+      { id: "tky", name: "東京駅八重洲口 (Yaesu Exit)" },
+      { id: "x", name: "X" },
+    ],
+    names: { mlk: "Martin Luther King Jr. Boulevard & Northwestern Memorial Hospital Transfer Plaza", saf: "Šafaříkova", tky: "東京駅八重洲口 (Yaesu Exit)", x: "X",
+      aep: "Aeropuerto Internacional Benito Juárez Terminal 2 via Circuito Interior", end: "Depot", ub: "Ulaanbaatar Central" },
+    patterns: [
+      { line: "N104X", first: hm(23, 48), every: 2, last: hm(25, 30), stops: [["mlk", 0, "Bay 14"], ["saf", 9, "A"], ["tky", 21, "B"], ["aep", 58, "T2"]], late: { [hm(23, 50)]: 95, [hm(23, 56)]: 25 } },
+      { line: "1", first: hm(23, 49), every: 30, last: hm(26, 0), stops: [["x", 0, "A"], ["mlk", 4, "C"], ["end", 9, "1"]] },
+      { line: "Express", first: hm(23, 40), every: 60, last: hm(26, 0), stops: [["saf", 0, "B"], ["mlk", 13, "Bay 2"], ["ub", 200, "1"]] },
+    ],
+  };
+  const EMPTY = { day: "Thursday", now: hm(23, 58), stops: DEMO.stops, names: DEMO.names, patterns: DEMO.patterns };
+  const DATA = { demo: DEMO, worst: WORST, empty: EMPTY, loading: DEMO };
+  const WINDOW = 90; // minutes of departures looked at after the leaving time
+  const SHOW = 14; // rows that fit one view; later ones come from stepping the leaving time
+
+  /* ---------- state ---------- */
+  const params = new URLSearchParams(location.search);
+  let set = DATA.hasOwnProperty(params.get("data")) ? params.get("data") : "demo";
+  let data, stopId, leaving, selectedKey = null;
+
+  const $ = (s) => document.querySelector(s);
+  const rowsEl = $("#rows"), tripEl = $("#trip"), stopsEl = $("#stops"), scrollEl = $("#scroll");
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  const clock = (m) => { const d = ((m % 1440) + 1440) % 1440; return String(Math.floor(d / 60)).padStart(2, "0") + ":" + String(d % 60).padStart(2, "0"); };
+  const plural = new Intl.PluralRules("en");
+  function wait(min) {
+    if (min <= 0) return "Now";
+    // a no-break space keeps "21 min" whole, so a narrow In column breaks only between hours and minutes
+    if (min < 60) return `${min} min`;
+    const h = Math.floor(min / 60), r = min % 60;
+    return r ? `${h} hr ${r} min` : `${h} hr`;
+  }
+
+  /* ---------- departures at a stop ---------- */
+  function departures(stop, from) {
+    const out = [];
+    data.patterns.forEach((p, pi) => {
+      const k = p.stops.findIndex((s) => s[0] === stop);
+      if (k < 0 || k === p.stops.length - 1) return; // the last stop has no departures on this pattern
+      const off = p.stops[k][1];
+      for (let start = p.first; start <= p.last; start += p.every) {
+        const late = (p.late && p.late[start]) || 0;
+        const sched = start + off, at = sched + late;
+        if (at < from || at > from + WINDOW) continue;
+        out.push({ key: pi + ":" + start, p, pi, k, start, sched, at, late, toward: data.names[p.stops[p.stops.length - 1][0]], stand: p.stops[k][2] });
+      }
+    });
+    return out.sort((a, b) => a.at - b.at || a.p.line.localeCompare(b.p.line)).slice(0, SHOW);
+  }
+
+  /* ---------- render ---------- */
+  function renderStops() {
+    stopsEl.innerHTML = data.stops.map((s) => {
+      const lines = [...new Set(data.patterns.filter((p) => p.stops.some((x, i) => x[0] === s.id && i < p.stops.length - 1)).map((p) => p.line))];
+      return `<li><button class="stop" type="button" data-stop="${esc(s.id)}" aria-pressed="${s.id === stopId}"><span class="nm">${esc(s.name)}</span><span class="ln">${lines.length ? (lines.length === 1 ? "Line " : "Lines ") + esc(lines.join(", ")) : "No lines"}</span></button></li>`;
+    }).join("");
+  }
+
+  function renderHead() {
+    const stop = data.stops.find((s) => s.id === stopId);
+    $("#stop-name").textContent = set === "loading" ? "" : stop ? stop.name : "";
+    $("#when").textContent = set === "loading" ? "" : `${data.day}, ${clock(data.now)}`;
+    $("#leave-t").textContent = clock(leaving);
+    $('[data-step="-10"]').disabled = leaving <= data.now || set === "loading";
+    $('[data-step="10"]').disabled = leaving >= data.now + 180 || set === "loading";
+    $('[data-step="now"]').disabled = leaving === data.now || set === "loading";
+  }
+
+  let list = [];
+  function renderRows(animate) {
+    if (set === "loading") {
+      rowsEl.innerHTML = Array.from({ length: 8 }, (_, i) => `<tr class="sk-row" aria-hidden="true"><td class="r-time"><span class="sk" style="width:44px"></span></td><td class="r-line"><span class="sk" style="width:20px;margin-left:auto"></span></td><td><span class="sk" style="width:${[52, 38, 60, 44, 56, 40, 48, 36][i]}%"></span></td><td class="r-stand"><span class="sk" style="width:20px"></span></td><td><span class="sk" style="width:40px;margin-left:auto"></span></td></tr>`).join("");
+      return;
+    }
+    list = departures(stopId, leaving);
+    if (!list.some((d) => d.key === selectedKey)) selectedKey = list.length ? list[0].key : null;
+    if (!list.length) {
+      rowsEl.innerHTML = `<tr><td colspan="5" class="none" style="height:auto;border:0">No more departures from this stop today.</td></tr>`;
+    } else {
+      rowsEl.innerHTML = list.map((d, i) => {
+        const next = i === 0;
+        const time = `<span class="tn">${clock(d.at)}</span>`;
+        return `<tr data-key="${d.key}" tabindex="${d.key === selectedKey ? 0 : -1}" class="${next ? "next" : ""}${d.key === selectedKey ? " sel" : ""}" aria-selected="${d.key === selectedKey}"${next ? " data-ui-need" : ""}>
+          <td class="r-time">${time}<span class="r-wait tn">${wait(d.at - leaving)}</span></td><td class="r-line">${esc(d.p.line)}</td><td>${esc(d.toward)}${d.late ? ` <span class="late">${esc(wait(d.late))} late</span>` : ""}<span class="r-sub">Line ${esc(d.p.line)}, stand ${esc(d.stand)}</span></td><td class="r-stand">${esc(d.stand)}</td><td class="r-in tn">${wait(d.at - leaving)}</td></tr>`;
+      }).join("");
+    }
+    if (animate && !reduce.matches) {
+      for (const a of rowsEl.getAnimations()) a.cancel();
+      rowsEl.animate([{ opacity: 0.25 }, { opacity: 1 }], { duration: TAP_MS, easing: "ease-out" });
+    }
+  }
+
+  function renderTrip(animate) {
+    if (set === "loading") {
+      tripEl.innerHTML = `<span class="sk" style="height:20px;width:70%;margin-bottom:12px"></span><span class="sk" style="width:45%;margin-bottom:32px"></span>${Array.from({ length: 5 }, () => `<span class="sk" style="margin:22px 0;width:80%"></span>`).join("")}<p class="sub" role="status">Getting the timetable</p>`;
+      return;
+    }
+    const d = list.find((x) => x.key === selectedKey);
+    if (!d) { tripEl.innerHTML = ""; return; }
+    const here = data.stops.find((s) => s.id === stopId);
+    const stops = d.p.stops.map((s, i) => {
+      const at = d.start + s[1] + d.late;
+      const cls = i < d.k ? "passed" : i === d.k ? "here" : "";
+      return `<li class="${cls}"><span class="track" aria-hidden="true"></span><span class="dot" aria-hidden="true"></span><span class="s">${esc(data.names[s[0]])}</span><span class="t tn">${clock(at)}</span></li>`;
+    }).join("");
+    const ride = d.p.stops[d.p.stops.length - 1][1] - d.p.stops[d.k][1];
+    tripEl.innerHTML = `<h2>Line ${esc(d.p.line)} toward ${esc(d.toward)}</h2>
+      <p class="sub">Leaves ${esc(here.name)} at <span class="tn">${clock(d.at)}</span>, ${wait(ride)} to the end of the line</p>
+      <ol class="line" aria-label="Stops on this trip">${stops}</ol>`;
+    if (animate && !reduce.matches) {
+      for (const a of tripEl.getAnimations()) a.cancel();
+      tripEl.animate([{ opacity: 0.25 }, { opacity: 1 }], { duration: TAP_MS, easing: "ease-out" });
+    }
+  }
+
+  function markSelected() {
+    for (const tr of rowsEl.querySelectorAll("tr[data-key]")) {
+      const on = tr.dataset.key === selectedKey;
+      tr.classList.toggle("sel", on);
+      tr.setAttribute("aria-selected", on);
+      tr.tabIndex = on ? 0 : -1;
+    }
+  }
+
+  /* ---------- actions ---------- */
+  rowsEl.addEventListener("click", (e) => {
+    const tr = e.target.closest("tr[data-key]");
+    if (!tr || tr.dataset.key === selectedKey) return;
+    selectedKey = tr.dataset.key;
+    markSelected();
+    renderTrip(true);
+  });
+  rowsEl.addEventListener("keydown", (e) => {
+    const tr = e.target.closest("tr[data-key]");
+    if (!tr) return;
+    const rows = [...rowsEl.querySelectorAll("tr[data-key]")];
+    const i = rows.indexOf(tr);
+    const next = e.key === "ArrowDown" ? rows[i + 1] : e.key === "ArrowUp" ? rows[i - 1] : null;
+    if (!next) return;
+    e.preventDefault();
+    selectedKey = next.dataset.key;
+    markSelected();
+    renderTrip(true);
+    next.focus();
+  });
+  stopsEl.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-stop]");
+    if (!b || b.dataset.stop === stopId || set === "loading") return;
+    stopId = b.dataset.stop;
+    selectedKey = null;
+    for (const x of stopsEl.querySelectorAll("[data-stop]")) x.setAttribute("aria-pressed", x.dataset.stop === stopId);
+    renderHead(); renderRows(true); renderTrip(true);
+    scrollEl.scrollTop = 0;
+  });
+  $("#leave").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-step]");
+    if (!b || b.disabled) return;
+    leaving = b.dataset.step === "now" ? data.now : Math.max(data.now, Math.min(data.now + 180, leaving + Number(b.dataset.step)));
+    renderHead(); renderRows(true); renderTrip(true);
+    scrollEl.scrollTop = 0;
+  });
+
+  /* ---------- the data boundary ---------- */
+  function load(name) {
+    set = name;
+    data = DATA[name];
+    stopId = data.stops[0].id;
+    leaving = data.now;
+    selectedKey = null;
+    for (const b of document.querySelectorAll(".demo button")) b.setAttribute("aria-pressed", b.dataset.set === name);
+    renderStops(); renderHead(); renderRows(false); renderTrip(false);
+    scrollEl.scrollTop = 0;
+  }
+  document.querySelector(".demo").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-set]");
+    if (!b || b.dataset.set === set) return;
+    const u = new URL(location.href);
+    if (b.dataset.set === "demo") u.searchParams.delete("data"); else u.searchParams.set("data", b.dataset.set);
+    history.replaceState(null, "", u);
+    load(b.dataset.set);
+  });
+  load(set);
+})();
+</script>
+</body>
+</html>

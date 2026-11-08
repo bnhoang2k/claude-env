@@ -1,0 +1,36 @@
+# {{PROJECT_NAME}} design
+
+How {{PROJECT_NAME}}'s screens look and behave. This file outranks the user's global ui-taste (`~/.claude/taste/`); its `## UI taste` section lists where this repo bends those rules. It is the only UI rules file in this repo.
+
+## UI system
+
+Tools read this table. Paths are relative to this file. One row per field.
+
+| Field | Value |
+|---|---|
+| Stack | {{UI_STACK}} |
+| Token home | <!-- fill: the one file for color, spacing, type and motion --> |
+| Component home | <!-- fill: the one folder of shared blocks --> |
+| Catalog | <!-- fill: where the user approves blocks (Storybook, Xcode Previews, a gallery page) --> |
+| Preset | none |
+
+Lint enforces two rules through the ui-lock preset for this stack (`ui-lock.py install`):
+
+- **R1.** No raw values (colors, sizes, fonts) outside the token home.
+- **R2.** No raw controls (buttons, inputs, selects) outside the component home.
+
+A lint disable needs a written reason. The `unify-ui` skill lists every disable and finds the drift lint cannot see.
+
+## Look
+
+<!-- fill: the look in a few lines: theme, type, density, motion. -->
+
+## Components
+
+<!-- fill: the shared blocks and the one job each does. -->
+
+## UI taste
+
+Exceptions to the user's ui-taste rules, pasted by its hook. Max 1,000 characters.
+
+- None yet.

@@ -1,0 +1,8 @@
+{
+  "name": "motion",
+  "description": "Study how a page or clip moves and rebuild the mechanism",
+  "version": "0.2.10",
+  "author": {
+    "name": "claude-env maintainers"
+  }
+}

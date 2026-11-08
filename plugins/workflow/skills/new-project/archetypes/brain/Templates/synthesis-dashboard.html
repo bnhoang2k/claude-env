@@ -1,0 +1,426 @@
+<!doctype html>
+<!--
+  Synthesis Dashboard Template — {{VAULT_NAME}}
+  ============================================
+
+  USE:
+    1. Copy this file to `Phases/Phase N/Research/x.y - Problem Name/synthesis.html`.
+    2. Replace every <!-- TODO --> marker with content for the current audit round.
+    3. Update the <title>, header crumbs, h1, subtitle, header badges.
+    4. Update the meta-block (status / phase / round / updated / reports / verifier).
+    5. Recount the stats in the verdict-hero (block-ship / high / medium / low).
+    6. Action cards: one per finding, ranked by severity. Severity stripe class = `block | high | med | low`.
+    7. Tables and sections expand or shrink with content — keep the structure.
+    8. DO NOT introduce external CSS/JS, mermaid diagrams, or framework dependencies.
+    9. If a fully-populated synthesis.html already exists elsewhere in this vault, use it
+       as a live reference for how these sections read once filled in.
+
+  Rules: see `{{BRAIN_PATH}}/Phases/CLAUDE.md` § "Synthesis Docs".
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title><!-- TODO: Phase N.V — [Topic] Synthesis · {{PROJECT_NAME}} --></title>
+<style>
+  :root {
+    --bg: #fafafa;
+    --surface: #ffffff;
+    --text: #18181b;
+    --text-muted: #71717a;
+    --border: #e5e5e5;
+    --border-strong: #d4d4d8;
+    --accent: {{PALETTE_ACCENT}};
+    --code-bg: #f4f4f5;
+
+    --block: #dc2626;
+    --high: #ea580c;
+    --med: #ca8a04;
+    --low: #475569;
+    --ok: #16a34a;
+
+    --block-tint: #fef2f2;
+    --high-tint: #fff7ed;
+    --med-tint: #fefce8;
+    --low-tint: #f8fafc;
+    --ok-tint: #f0fdf4;
+
+    --radius: 8px;
+    --shadow: 0 1px 2px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0a0a0a;
+      --surface: #18181b;
+      --text: #e5e5e5;
+      --text-muted: #a1a1aa;
+      --border: #27272a;
+      --border-strong: #3f3f46;
+      --accent: {{PALETTE_ACCENT}}; /* fill: pick a lighter/brighter shade of the same hue for dark mode if the light-mode value doesn't contrast well on a dark surface */
+      --code-bg: #27272a;
+
+      --block: #f87171;
+      --high: #fb923c;
+      --med: #facc15;
+      --low: #94a3b8;
+      --ok: #4ade80;
+
+      --block-tint: #1f1212;
+      --high-tint: #1f1813;
+      --med-tint: #1f1d10;
+      --low-tint: #141821;
+      --ok-tint: #0f1a14;
+
+      --shadow: 0 1px 2px rgba(0,0,0,0.4), 0 1px 3px rgba(0,0,0,0.5);
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 15px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code, kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Cascadia Mono", "Roboto Mono", monospace;
+    font-size: 0.9em; background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+
+  .layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 48px;
+    max-width: 1180px; margin: 0 auto; padding: 32px 24px 96px; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; gap: 24px; padding: 16px; }
+    .toc { position: static; max-height: none; } }
+
+  .toc { position: sticky; top: 24px; align-self: start; font-size: 13px; }
+  .toc-title { text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted);
+    font-weight: 600; font-size: 11px; margin-bottom: 12px; }
+  .toc ul { list-style: none; margin: 0; padding: 0; }
+  .toc li { margin: 6px 0; }
+  .toc a { color: var(--text); display: block; padding: 4px 8px; border-radius: 4px; border-left: 2px solid transparent; }
+  .toc a:hover { background: var(--surface); border-left-color: var(--accent); text-decoration: none; }
+  .meta-block { margin-top: 28px; padding: 12px; border: 1px solid var(--border);
+    border-radius: var(--radius); background: var(--surface); font-size: 12px; color: var(--text-muted); }
+  .meta-block .meta-row { display: flex; justify-content: space-between; margin: 4px 0; }
+  .meta-block .meta-label { color: var(--text-muted); }
+  .meta-block .meta-value { color: var(--text); font-weight: 500; }
+
+  header.page-header { margin-bottom: 32px; padding-bottom: 24px; border-bottom: 1px solid var(--border); }
+  .crumbs { color: var(--text-muted); font-size: 13px; margin-bottom: 8px; }
+  h1 { font-size: 28px; margin: 0 0 6px; letter-spacing: -0.01em; }
+  .subtitle { color: var(--text-muted); margin: 0 0 16px; font-size: 15px; }
+  .header-badges { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  section { margin-bottom: 48px; scroll-margin-top: 24px; }
+  h2 { font-size: 20px; margin: 0 0 16px; letter-spacing: -0.005em; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+  h3 { font-size: 16px; margin: 24px 0 8px; }
+
+  .verdict-hero { border: 1px solid var(--border-strong); border-left: 4px solid var(--block);
+    background: var(--block-tint); border-radius: var(--radius); padding: 20px 24px; }
+  .verdict-hero.high { border-left-color: var(--high); background: var(--high-tint); }
+  .verdict-hero.med  { border-left-color: var(--med);  background: var(--med-tint); }
+  .verdict-hero.ok   { border-left-color: var(--ok);   background: var(--ok-tint); }
+  .verdict-hero .verdict-label { text-transform: uppercase; letter-spacing: 0.08em;
+    font-size: 11px; font-weight: 700; color: var(--block); }
+  .verdict-hero.high .verdict-label { color: var(--high); }
+  .verdict-hero.med  .verdict-label { color: var(--med); }
+  .verdict-hero.ok   .verdict-label { color: var(--ok); }
+  .verdict-hero h2 { margin: 8px 0 8px; border: none; padding: 0; font-size: 22px; }
+  .verdict-hero p { margin: 0; color: var(--text); }
+  .verdict-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-top: 16px; }
+  .stat { background: var(--surface); padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border); }
+  .stat .stat-num { font-size: 22px; font-weight: 600; line-height: 1; }
+  .stat .stat-label { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .stat.block .stat-num { color: var(--block); }
+  .stat.high  .stat-num { color: var(--high); }
+  .stat.med   .stat-num { color: var(--med); }
+  .stat.low   .stat-num { color: var(--low); }
+
+  .badge { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px;
+    border-radius: 999px; font-size: 11px; font-weight: 600; letter-spacing: 0.04em;
+    text-transform: uppercase; border: 1px solid currentColor; line-height: 1.5; white-space: nowrap; }
+  .badge-block { color: var(--block); background: var(--block-tint); }
+  .badge-high  { color: var(--high);  background: var(--high-tint); }
+  .badge-med   { color: var(--med);   background: var(--med-tint); }
+  .badge-low   { color: var(--low);   background: var(--low-tint); }
+  .badge-ok    { color: var(--ok);    background: var(--ok-tint); }
+  .badge-muted { color: var(--text-muted); background: var(--code-bg); border-color: var(--border); }
+
+  .actions { display: flex; flex-direction: column; gap: 12px; }
+  .action { display: grid; grid-template-columns: 56px minmax(0, 1fr); background: var(--surface);
+    border: 1px solid var(--border); border-left-width: 4px; border-radius: var(--radius);
+    box-shadow: var(--shadow); overflow: hidden; }
+  .action.block { border-left-color: var(--block); }
+  .action.high  { border-left-color: var(--high); }
+  .action.med   { border-left-color: var(--med); }
+  .action.low   { border-left-color: var(--low); }
+  .action .idx { background: var(--code-bg); display: flex; align-items: center;
+    justify-content: center; font-size: 20px; font-weight: 600; color: var(--text-muted); }
+  .action .body { padding: 14px 18px; }
+  .action h3 { margin: 0 0 6px; font-size: 15px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .action h3 .title-text { flex: 1; min-width: 0; }
+  .action p { margin: 4px 0; }
+  .action .meta { margin-top: 8px; font-size: 12px; color: var(--text-muted);
+    display: flex; flex-wrap: wrap; gap: 14px; }
+  .action .meta strong { color: var(--text); font-weight: 600; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  table th, table td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  table th { font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em;
+    color: var(--text-muted); background: var(--code-bg); font-weight: 600; }
+  table tr:last-child td { border-bottom: none; }
+  .table-wrap { border: 1px solid var(--border); border-radius: var(--radius); overflow-x: auto; background: var(--surface); }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 700px) { .two-col { grid-template-columns: 1fr; } }
+  .col-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 16px; }
+  .col-card.verified { border-top: 3px solid var(--ok); }
+  .col-card.unverified { border-top: 3px solid var(--med); }
+  .col-card h3 { margin-top: 0; }
+  .col-card ul { padding-left: 20px; margin: 0; }
+  .col-card li { margin: 6px 0; }
+
+  .questions { display: flex; flex-direction: column; gap: 8px; }
+  .question { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 10px 14px; display: flex; gap: 12px; align-items: flex-start; }
+  .question .q-body { flex: 1; }
+  .question .q-body p { margin: 0; }
+  .question .q-body p + p { margin-top: 4px; color: var(--text-muted); font-size: 13px; }
+
+  .source-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+  .source { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; font-size: 13px; }
+  .source h4 { margin: 0 0 4px; font-size: 14px; }
+  .source .source-meta { color: var(--text-muted); font-size: 12px; margin-bottom: 6px; }
+  .source p { margin: 0; }
+
+  details { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 14px; margin: 8px 0; }
+  details > summary { cursor: pointer; font-weight: 600; padding: 4px 0; list-style: none; }
+  details > summary::-webkit-details-marker { display: none; }
+  details > summary::before { content: "▸"; display: inline-block; margin-right: 8px; transition: transform 0.15s; }
+  details[open] > summary::before { transform: rotate(90deg); }
+
+  footer.page-footer { margin-top: 64px; padding-top: 16px; border-top: 1px solid var(--border);
+    color: var(--text-muted); font-size: 12px; display: flex; justify-content: space-between;
+    flex-wrap: wrap; gap: 8px; }
+
+  @media print {
+    body { background: #fff; color: #000; font-size: 11pt; }
+    .toc, .page-footer, .meta-block { display: none; }
+    .layout { display: block; padding: 0; max-width: 100%; }
+    .verdict-hero { background: #fff !important; border: 1px solid #000 !important; border-left: 4px solid #000 !important; }
+    .action { break-inside: avoid; box-shadow: none; }
+    section { break-inside: avoid-page; }
+    h1, h2, h3 { color: #000 !important; }
+    a { color: #000; text-decoration: underline; }
+    .badge { border-color: #000 !important; color: #000 !important; background: #fff !important; }
+    .stat { box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <nav class="toc" aria-label="Table of contents">
+    <div class="toc-title">Contents</div>
+    <ul>
+      <li><a href="#verdict">Verdict</a></li>
+      <li><a href="#actions">Top actions</a></li>
+      <li><a href="#decisions">Decisions matrix</a></li>
+      <li><a href="#verified">Verified vs unverified</a></li>
+      <li><a href="#questions">Open questions</a></li>
+      <li><a href="#sources">Source reports</a></li>
+    </ul>
+    <div class="meta-block">
+      <!-- TODO: meta-block — update each value per round -->
+      <div class="meta-row"><span class="meta-label">Status</span><span class="meta-value">draft</span></div>
+      <div class="meta-row"><span class="meta-label">Phase</span><span class="meta-value">N</span></div>
+      <div class="meta-row"><span class="meta-label">Round</span><span class="meta-value">[Round name]</span></div>
+      <div class="meta-row"><span class="meta-label">Updated</span><span class="meta-value">YYYY-MM-DD</span></div>
+      <div class="meta-row"><span class="meta-label">Reports</span><span class="meta-value">N sub-reports</span></div>
+      <div class="meta-row"><span class="meta-label">Verifier</span><span class="meta-value">not yet</span></div>
+    </div>
+  </nav>
+
+  <main>
+
+    <header class="page-header">
+      <div class="crumbs"><!-- TODO: Phase N / Research / x.y - Problem Name --></div>
+      <h1><!-- TODO: Topic — Synthesis --></h1>
+      <p class="subtitle"><!-- TODO: one-sentence purpose statement --></p>
+      <div class="header-badges">
+        <span class="badge badge-block"><!-- TODO: OVERALL VERDICT (e.g. NEEDS CORRECTIONS / READY / BLOCKED) --></span>
+        <span class="badge badge-muted">Draft · YYYY-MM-DD</span>
+        <span class="badge badge-muted">N source reports</span>
+      </div>
+    </header>
+
+    <!--
+      VERDICT HERO
+      Choose hero severity class: verdict-hero (red/block) | verdict-hero high | verdict-hero med | verdict-hero ok
+    -->
+    <section id="verdict">
+      <div class="verdict-hero">
+        <div class="verdict-label">Verdict · [scope phrase]</div>
+        <h2><!-- TODO: one-sentence "what changes because of this" --></h2>
+        <p><!-- TODO: 2-3 sentences expanding the verdict. Name the biggest finding(s). Anchor to action items below. --></p>
+        <div class="verdict-stats">
+          <div class="stat block"><div class="stat-num">N</div><div class="stat-label">Block-ship</div></div>
+          <div class="stat high"><div class="stat-num">N</div><div class="stat-label">High</div></div>
+          <div class="stat med"><div class="stat-num">N</div><div class="stat-label">Medium</div></div>
+          <div class="stat low"><div class="stat-num">N</div><div class="stat-label">Low</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!--
+      TOP ACTIONS — ranked
+      One <div class="action ..."> per finding. Severity class on the action: block | high | med | low.
+      Keep 5-20 cards. If you have 20+ actions, you are under-distilling — split or roll up.
+    -->
+    <section id="actions">
+      <h2>Top actions, ranked</h2>
+      <p style="color: var(--text-muted); margin-top: -8px;"><!-- TODO: one-sentence framing — what closing these actions unlocks --></p>
+
+      <div class="actions">
+
+        <div class="action block">
+          <div class="idx">1</div>
+          <div class="body">
+            <h3>
+              <span class="badge badge-block">Block-ship</span>
+              <span class="title-text"><!-- TODO: action verb + concrete object --></span>
+            </h3>
+            <p><!--
+              TODO: 2-3 lines describing what to do, concretely.
+              SELF-CONTAINED RULE: if you reference a source doc, summarize
+              what's there in plain English right here. Don't make the reader
+              open the source to understand the action. Source link is for
+              deeper context (line numbers, full evidence), not the baseline.
+            --></p>
+            <p><!-- TODO: optional second paragraph — concrete pattern, mechanism, or impact if the action isn't taken --></p>
+            <div class="meta">
+              <span><strong>Why:</strong> <!-- TODO: one-line rationale — what breaks if this isn't done --></span>
+              <span><strong>Confidence:</strong> HIGH | MED | LOW</span>
+              <span><strong>Source:</strong> <a href="obsidian://open?vault={{VAULT_NAME}}&amp;file=Phases%2FPhase%20N%2FResearch%2Fx.y%20-%20Problem%2FYYYY-MM-DD-report-name">Report name</a> · finding ref · (cite line numbers when useful)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- TODO: more <div class="action high|med|low"> cards as needed.
+             Always use target="_blank" rel="noopener" on file links. -->
+
+      </div>
+    </section>
+
+    <!--
+      DECISIONS MATRIX — present only if the round changed prior decisions.
+      Skip the section if no decisions were overturned.
+    -->
+    <section id="decisions">
+      <h2>Decisions matrix — what changed this round</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 24%;">Decision</th>
+              <th style="width: 24%;">Was</th>
+              <th style="width: 24%;">Now</th>
+              <th>Why</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><!-- TODO: decision name --></td>
+              <td><!-- TODO: prior state --></td>
+              <td><strong><!-- TODO: new state --></strong></td>
+              <td><!-- TODO: rationale, short --></td>
+            </tr>
+            <!-- TODO: more rows -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!--
+      VERIFIED vs UNVERIFIED
+      Two-column at-a-glance. Verified items have primary-source citations or local empirical evidence.
+      Unverified items name what the evidence gap is (and ideally link to a spike).
+    -->
+    <section id="verified">
+      <h2>Verified vs unverified</h2>
+      <div class="two-col">
+        <div class="col-card verified">
+          <h3><span class="badge badge-ok">Verified</span></h3>
+          <ul>
+            <li><!-- TODO: claim — primary source or empirical evidence --></li>
+            <!-- TODO: more bullets -->
+          </ul>
+        </div>
+        <div class="col-card unverified">
+          <h3><span class="badge badge-med">Unverified / inferred</span></h3>
+          <ul>
+            <li><!-- TODO: claim — caveat / gap / spike that would resolve it --></li>
+            <!-- TODO: more bullets -->
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!--
+      OPEN QUESTIONS
+      Each question with a severity badge. State the question, then 1-2 lines on what hinges on the answer.
+    -->
+    <section id="questions">
+      <h2>Open questions</h2>
+      <div class="questions">
+        <div class="question">
+          <span class="badge badge-block">Block-ship</span>
+          <div class="q-body">
+            <p><strong><!-- TODO: question --></strong></p>
+            <p><!-- TODO: what hinges on the answer --></p>
+          </div>
+        </div>
+        <!-- TODO: more questions -->
+      </div>
+    </section>
+
+    <!--
+      SOURCE REPORTS
+      One <div class="source"> per sub-report. Group by round if multiple rounds happened.
+      Anchors (original spec, INDEX, etc.) live in a separate group.
+    -->
+    <section id="sources">
+      <h2>Source reports</h2>
+      <p style="color: var(--text-muted); margin-top: -8px;"><!-- TODO: one-sentence on how many reports / how many rounds drove this --></p>
+
+      <h3><!-- TODO: round name or "Sub-reports" --></h3>
+      <div class="source-list">
+        <div class="source">
+          <h4><a href="obsidian://open?vault={{VAULT_NAME}}&amp;file=Phases%2FPhase%20N%2FResearch%2Fx.y%20-%20Problem%2FYYYY-MM-DD-report-name">Report Name</a></h4>
+          <div class="source-meta">draft · verdict · confidence</div>
+          <p><!-- TODO: one-line headline of the report's conclusion --></p>
+        </div>
+        <!--
+          TODO: more source cards.
+          LINK FORMAT for markdown sub-reports: obsidian:// URL scheme.
+          Why: clicking opens the doc in Obsidian (rendered), not raw text in browser.
+          URL shape: obsidian://open?vault=<VaultName>&file=<URL-encoded-vault-relative-path-WITHOUT-.md>
+          The vault name must match exactly what Obsidian has registered (folder name is the default).
+        -->
+      </div>
+    </section>
+
+    <details>
+      <summary>How this synthesis was assembled</summary>
+      <p><!-- TODO: brief assembly notes — who dispatched what, when, with what scope --></p>
+      <p><strong>Verifier status:</strong> <!-- TODO: "no external verifier pass has run" / "verified by ..." / link to verifier log --></p>
+    </details>
+
+    <footer class="page-footer">
+      <span><!-- TODO: project · Phase N.V · synthesis.html --></span>
+      <span>Regenerate by re-running the relevant agent fleet.</span>
+    </footer>
+
+  </main>
+
+</div>
+</body>
+</html>
