@@ -1,5 +1,6 @@
 // Dev repo guard. Runs from the dev hooks.
-//   node devcheck.mjs pre-commit            scan the added lines of the staged diff
+//   node devcheck.mjs pre-commit            scan the added lines of the staged diff, except in
+//                                           the files that hold the enforced sets (deny/<set>.json)
 //   node devcheck.mjs commit-msg <msgfile>  scan every line of the commit message
 // Any hit, or any error, exits 1 (fail closed).
 import { execFileSync } from "node:child_process";
@@ -29,7 +30,15 @@ export function addedLines(diff) {
   return out;
 }
 
-function checkStaged(rules) {
+/** True for a file that holds one of the enforced sets: deny/<set>.json or deny/<set>.samples.json.
+ *  Such a file must contain the denied words (and samples that hit them), so it is the one file the
+ *  scan skips. It never ships: the publish-time scan still reads every exported file. */
+export function isRuleFile(file, sets) {
+  const m = /(?:^|\/)deny\/([^/]+?)(?:\.samples)?\.json$/.exec(file);
+  return m !== null && sets.includes(m[1]);
+}
+
+function checkStaged(rules, sets) {
   const diff = execFileSync(
     "git",
     ["-c", "core.quotepath=off", "diff", "--cached", "-U0", "--no-color", "--no-ext-diff", "--no-renames"],
@@ -37,6 +46,7 @@ function checkStaged(rules) {
   );
   const hits = [];
   for (const a of addedLines(diff)) {
+    if (isRuleFile(a.file, sets)) continue;
     for (const h of scanText(a.text, rules)) hits.push(`${a.file}:${a.line}: ${h.rule}: ${h.text}`);
   }
   return hits;
@@ -50,9 +60,10 @@ function checkMessage(rules, msgFile) {
 
 function main(argv) {
   const [mode, msgFile] = argv;
-  const rules = loadRules(readDenySets(process.cwd()));
+  const sets = readDenySets(process.cwd());
+  const rules = loadRules(sets);
   let hits;
-  if (mode === "pre-commit") hits = checkStaged(rules);
+  if (mode === "pre-commit") hits = checkStaged(rules, sets);
   else if (mode === "commit-msg" && msgFile) hits = checkMessage(rules, msgFile);
   else throw new Error("usage: devcheck.mjs pre-commit | commit-msg <msgfile>");
   if (hits.length === 0) return 0;

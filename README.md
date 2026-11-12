@@ -1,6 +1,6 @@
 # claude-env
 
-29 skills for Claude Code: build UI, motion, 3D models and technical figures, and run long
+35 skills for Claude Code: build UI, motion, 3D models and technical figures, and run long
 multi-agent jobs without losing the plan or the budget.
 
 <!-- picture: a few things these skills made -->
@@ -56,11 +56,19 @@ When prose is not enough, from a quick sketch to a finished figure.
 - `figures:anatomy-reveal`: a real object as a page you can turn and take apart, plus a short reveal video.
 - `figures:hairline-create`: a thin-line isometric figure that follows the pointer.
 
-## Rebuild motion you like
+## Make motion feel right
 
 <!-- picture: an original next to its rebuild -->
 
-- `motion:steal-mechanism`: record how a site moves, measure it, and rebuild the motion frame by frame. It needs Claude Code's Workflow tool, `ffmpeg`, and Playwright or Puppeteer. Studying one reference costs 3.5 units and 4 agents at worst. Its intake mode also needs a clone of https://github.com/bnhoang2k/motion-kit with its dependencies installed (`pnpm install`, so `pnpm` from https://pnpm.io/installation), and a Node version inside the kit's `engines.node` range.
+Say what feels off in your own words ("it just randomly appears", "it teleports"), on any platform.
+
+- `motion:choreograph`: plan one timeline when several things move at once, so they read as one motion.
+- `motion:gestures`: make drags, sliders and flings follow the hand and land where they were heading.
+- `motion:animation-performance`: find why motion freezes or stutters, and fix the cause.
+- `motion:animation-vocabulary`: name the effect you can't describe, then build it.
+- `motion:find-animation-opportunities`: show where motion would help a plain screen, and where it would not.
+- `motion:remove-animations`: list the motion that gets in the way, before anything is cut.
+- `motion:steal-mechanism`: record how a site moves, measure it, and rebuild the motion frame by frame. Studying one reference costs 3.5 units and 4 agents at worst. It needs `ffmpeg`, Playwright or Puppeteer, and Claude Code's Workflow tool; intake also needs a motion-kit clone (see [REFERENCE.md](REFERENCE.md)).
 
 ## Check 3D models
 

@@ -18,8 +18,8 @@ Call a skill as `<group>:<skill>`.
 
 - **ui-suite**: UI taste, lint, break-test and consistency skills, with the hooks that inject taste rules, gate unlinted pages, and make Claude point at a page instead of describing it.
   Skills: `ui-suite:taste`, `ui-suite:ui-taste`, `ui-suite:lint-ui`, `ui-suite:break-ui`, `ui-suite:inspo-sweep`, `ui-suite:unify-ui`, `ui-suite:ui-iteration-guardrail`, `ui-suite:show-me`, `ui-suite:explain-as-machine`.
-- **motion**: study how a page or clip moves, then rebuild the mechanism.
-  Skill: `motion:steal-mechanism`.
+- **motion**: study how a page or clip moves and rebuild the mechanism; choreograph, tune, speed up, add or cut motion.
+  Skills: `motion:steal-mechanism`, `motion:choreograph`, `motion:gestures`, `motion:animation-performance`, `motion:animation-vocabulary`, `motion:find-animation-opportunities`, `motion:remove-animations`.
 - **models**: check 3D models and rooms for geometry and layout defects before they ship.
   Skills: `models:build-models`, `models:break-models`, `models:break-scene`.
 - **workflow**: planning, review, documentation and hand-off skills for long agent-driven work.
@@ -67,6 +67,12 @@ python3 plugins/models/skills/break-models/scripts/preflight.py
 | `ui-suite:show-me` | Claude desktop app tools `mcp__visualize__read_me` and `mcp__visualize__show_widget` | Builds the picture as an HTML file or Artifact and says where it is |
 | `ui-suite:explain-as-machine` | The `figures` plugin (the `anatomy` skill), Node, `python3` to serve the page, Chrome (https://www.google.com/chrome/) for the check screenshot. The skill sets `ANATOMY_DIR` itself | No machine page without `figures`; see "Groups that use each other" |
 | `motion:steal-mechanism` | Claude Code's Workflow tool, `ffmpeg` (https://ffmpeg.org/download.html), and Playwright or Puppeteer (an npm library an agent can drive). Intake adds a clone of https://github.com/bnhoang2k/motion-kit (`MOTION_KIT`), `pnpm` (https://pnpm.io/installation), `pnpm install` run once in the clone, Node inside the kit's `engines.node` range, and the `workflow` plugin's publish scripts (`PUBLISH_PUBLIC_SCRIPTS`). Preflight, with the mode | The skill stops before it launches and shows the `needs` lines |
+| `motion:choreograph` | Nothing. A screen recorder helps the frame-by-frame check | The feel check is reasoned from code and marked as not seen |
+| `motion:gestures` | Nothing. A real touch device helps the touch checklist | Touch findings are marked as not tested on hardware |
+| `motion:animation-performance` | Nothing. A profiler (browser DevTools or the platform's own) confirms a cause | Findings are marked "verified from code" or "needs a device recording" |
+| `motion:animation-vocabulary` | Nothing | Nothing |
+| `motion:find-animation-opportunities` | Nothing | Nothing |
+| `motion:remove-animations` | Nothing | Nothing |
 | `models:build-models` | The `model-kit` command (https://github.com/bnhoang2k/model-kit) and Blender, for the yes path. The ask itself needs nothing | Says model-kit is missing and asks how to continue |
 | `models:break-models` | Blender 5.0 or newer (https://www.blender.org/download/; `blender` on the PATH, or `BLENDER` set to the executable, or the macOS app at `/Applications/Blender.app`) and Pillow (`python3 -m pip install Pillow`). Preflight | Stops with the `needs` lines |
 | `models:break-scene` | Same as `models:break-models`, and the Agent tool for the blind cold read. Preflight | Stops with the `needs` lines |
@@ -155,10 +161,11 @@ The example files and the `data/hooks/` folder live in the installed workflow pl
 
 ## Credits
 
-Five skills come from other projects. All are MIT licensed, and each LICENSE file ships unchanged in the skill's own folder (`plugins/<group>/skills/<name>/`).
+Eleven skills come from other projects. All are MIT licensed, and each LICENSE file ships unchanged in the skill's own folder (`plugins/<group>/skills/<name>/`).
 
 - `lint-ui` (in `ui-suite`): adapted from [lintapple](https://github.com/gholtzap/lintapple) by Gavin Holtzapple
 - `break-ui` (in `ui-suite`): from Emil Kowalski's design-engineering work. The skill folder records no upstream link, only his name in the LICENSE and SKILL.md.
+- `choreograph`, `gestures`, `animation-performance`, `animation-vocabulary`, `find-animation-opportunities` and `remove-animations` (in `motion`): adapted from [emilkowalski/skills](https://github.com/emilkowalski/skills) by Emil Kowalski. `gestures` also takes the gesture parts of his `apple-design` skill. Each core is rewritten to work on any platform, and his web code moved to a `web.md` beside it.
 - `anatomy`: [wheresryan22/anatomy](https://github.com/wheresryan22/anatomy)
 - `anatomy-reveal`: [annnguyentt/anatomy-reveal-skill](https://github.com/annnguyentt/anatomy-reveal-skill)
 - `hairline-create`: [lucasmarkes/hairline](https://github.com/lucasmarkes/hairline)

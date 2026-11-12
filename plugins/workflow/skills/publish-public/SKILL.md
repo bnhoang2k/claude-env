@@ -74,7 +74,7 @@ The first line shows the seed. To repeat a run with the same plants, add `--seed
 4. Run `node "${CLAUDE_PLUGIN_ROOT}/skills/publish-public/scripts/install-guards.mjs" public <privateRepo>`. It clones the public remote if the clone is missing.
 5. Each GitHub change (create, rename, visibility, settings) needs the user's yes.
 
-The dev hooks scan staged lines and commit messages against the repo's deny sets. Both installs set `core.hooksPath`, and write `scripts-dir` in your config folder so the hooks find the scripts. The path holds the plugin version, so after a plugin update the hooks take the newest version folder beside it. A hook that finds no scripts refuses with `the publish tool moved: re-run install-guards`. That puts both repos under the hooks-bypass gate, so Claude cannot skip hooks there.
+The dev hooks scan staged lines and commit messages against the repo's deny sets. They skip the files that hold those sets (`deny/<set>.json` and `deny/<set>.samples.json`), which must contain the denied words; those files never ship. Both installs set `core.hooksPath`, and write `scripts-dir` in your config folder so the hooks find the scripts. The path holds the plugin version, so after a plugin update the hooks take the newest version folder beside it. A hook that finds no scripts refuses with `the publish tool moved: re-run install-guards`. That puts both repos under the hooks-bypass gate, so Claude cannot skip hooks there.
 
 ## Waivers
 

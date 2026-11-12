@@ -5,7 +5,8 @@ Why it exists: a reply that describes parts of a page in words makes the reader 
 onto the screen. Lettered rings on the page let the reply say "A" and "B", and let the reader
 answer with a letter.
 
-While a page is open in a browser (the built-in pane, Playwright or Chrome), a reply or a
+While a page is open in a browser (the built-in pane, Playwright or Chrome) and in use (a
+browser tool ran in this turn or the two before it, and the last one did not close a tab), a reply or a
 question that names two or more parts of a screen (button, card, sidebar, "top left", ...) is
 held when nothing was ringed with scripts/point.js during that turn. It is held once: at Stop,
 stop_hook_active lets the second try through; a question goes through when the turn already
@@ -47,6 +48,13 @@ SCRIPT = os.path.join(PLUGIN_ROOT, "scripts", "point.js")
 ASK = "AskUserQuestion"
 # Tools that load a page: the built-in pane (also through remote-devices), Playwright, Chrome.
 PAGE_OPEN = re.compile(r"(Claude_Browser__(preview_start|navigate)|__browser_navigate|claude-in-chrome__navigate)$")
+# Any browser tool shows a page is still in use; closing tools end it.
+PAGE_USE = re.compile(r"(Claude_Browser__\w+|playwright\w*__browser_\w+|claude-in-chrome__\w+)$")
+PAGE_CLOSE = re.compile(r"(Claude_Browser__(tabs_close|preview_stop)|__browser_close|claude-in-chrome__tabs_close_mcp)$")
+# A page counts only while a browser tool ran in this turn or the two before it. A page left
+# behind turns ago is not beside the chat any more, and holding a reply for it makes Claude send
+# the same reply twice.
+RECENT_TURNS = 3
 # Tools that can run point.js on a page, and the marks that show they did: the pasted file
 # returns pointV1 or later, a later ring is a __point.mark() call, and a review list is a
 # __point.review() call. Reading answers (__point.answers()) points at nothing.
@@ -92,7 +100,25 @@ def named_parts(text):
 
 
 def page_opened(entries):
-    return any(PAGE_OPEN.search(str(u.get("name", ""))) for e in entries for u in lint.tool_uses(e))
+    """True while a page is beside the chat: the latest browser event in the last RECENT_TURNS
+    user turns opens or uses a page. A close, a file:// page (point.js cannot run there), or no
+    browser event in that window means no page."""
+    turns = 1
+    for e in reversed(entries):
+        if lint.is_real_user(e):
+            turns += 1
+            if turns > RECENT_TURNS:
+                return False
+            continue
+        for u in reversed(lint.tool_uses(e)):
+            name = str(u.get("name", ""))
+            if PAGE_CLOSE.search(name):
+                return False
+            if PAGE_OPEN.search(name) and str((u.get("input") or {}).get("url", "")).startswith("file:"):
+                return False
+            if PAGE_OPEN.search(name) or PAGE_USE.search(name):
+                return True
+    return False
 
 
 def question_text(inp):
@@ -121,7 +147,7 @@ def reply_text(entries):
 def decide(page_open, turn, text, *, asking=False, tool_use_id="", user_text="", stop_hook_active=False):
     """The hold reason, or None to let it through.
 
-    page_open: a page was loaded in a browser this session. turn: the entries since the user's
+    page_open: a page is beside the chat now (see page_opened). turn: the entries since the user's
     last message. text: the reply, or the question with its options.
     """
     if stop_hook_active or not page_open or SKIP in user_text.lower():
@@ -167,8 +193,10 @@ def main():
         path = os.path.expanduser(data["transcript_path"])
         turn = lint.tail_entries(path)
         user_text = lint.user_text(turn[0]) if turn and lint.is_real_user(turn[0]) else ""
-        with open(path, encoding="utf-8", errors="replace") as fh:
-            entries = [e for e in (lint._parse(line) for line in fh if '"tool_use"' in line) if e is not None]
+        with open(path, encoding="utf-8", errors="replace") as fh:  # tool calls and turn starts
+            entries = [e for e in (lint._parse(line) for line in fh
+                                   if '"tool_use"' in line or ('"user"' in line and '"tool_result"' not in line))
+                       if e is not None]
         if asking:
             text = question_text(data.get("tool_input"))
         else:  # the final message may reach the hook before the transcript holds it
