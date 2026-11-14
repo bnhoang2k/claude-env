@@ -11,6 +11,11 @@ A build copies motion well from a reference and badly without one. This skill tu
 the user liked into a **bar page**: a single-file rebuild of its motion, measured against the original
 and shown side by side so the user can grade it. Graded pages later enter motion-kit as finished examples.
 
+The capture tools ship in `scripts/capture/` (vendored from reanimate, MIT; see `VENDORED.md` there). On a
+live site they read the motion's numbers from the page: declared durations, delays and easings
+(`inspect.json`), each element's position on every frame (`track.json`), and WebGL uniforms. Agents
+estimate from video frames only what the page cannot tell them, such as a video clip.
+
 ## Modes
 
 | Mode | Input | Status |
@@ -33,8 +38,8 @@ All three modes run one Workflow script, `workflows/run.js`. Needs Claude Code's
 
 Run `node "${CLAUDE_PLUGIN_ROOT}/skills/steal-mechanism/scripts/preflight.mjs" <mode>` with Bash. It
 prints one line per need, `ok <tool>` or `needs <tool>: <where to get it>`. On exit code 3, stop:
-show the user the `needs` lines and do not launch. Study and fix modes need `ffmpeg` and Playwright
-or Puppeteer. Intake also needs the motion-kit clone and the `workflow` plugin's publish scripts
+show the user the `needs` lines and do not launch. Study and fix modes need `ffmpeg`, Node 22.18 or later, and
+the capture tools' packages and Chromium. Intake also needs the motion-kit clone and the `workflow` plugin's publish scripts
 (see below), `pnpm` (https://pnpm.io/installation), the kit's dependencies (`pnpm install` in the
 clone, which makes `node_modules`), and a Node version inside the kit's `package.json`
 `engines.node` range. Plain `node` runs the kit's `.ts` files only on versions that strip types by
@@ -54,8 +59,9 @@ Offer to install every other `needs` line the same way, in the same question. Li
 tool with the exact command you will run, and never install without their yes:
 
 - `ffmpeg`: `brew install ffmpeg` on a Mac with Homebrew; on Linux, the distro's package manager.
-- Playwright or Puppeteer: in the user's project folder, `npm install playwright` then
-  `npx playwright install chromium`.
+- `capture tool packages in <folder>`: run `npm install` in that folder, then
+  `npx playwright install chromium` in it.
+- `chromium for the capture tools`: run `npx playwright install chromium` in the folder it names.
 - `pnpm`: `corepack enable pnpm` when `corepack` is present, else `npm install -g pnpm`.
 - `pnpm install in <folder>`: run `pnpm install` in that folder.
 - Node: switch with the user's version manager when one is installed (`nvm`, `fnm`, `volta`).
@@ -100,8 +106,9 @@ Where each path comes from:
   (`~/.claude/plugins/cache/<marketplace>/workflow/<newest version>/`). Set `PUBLISH_PUBLIC_SCRIPTS`
   only when that lookup fails. Find the folder with
   `ls -d ~/.claude/plugins/cache/*/workflow/*/skills/publish-public/scripts`.
-- **Capture tools** (`tools`): `args.tools`, else `$STEAL_TOOLS`, a folder holding `capture.mjs` and
-  `drive.mjs`. With none, the agents write their own headless-Chrome capture script.
+- **Capture tools**: `scripts/capture/run.mjs` in this skill, always. `tools` (`args.tools`, else
+  `$STEAL_TOOLS`) is optional: a folder holding the user's own `drive.mjs`, for inputs the capture
+  tool cannot script (a held press, a drawn path).
 - **Intake procedure** (`spec`, optional): `args.spec`, else `$MOTION_KIT_SPEC`, else `intake.md` in
   this skill's folder. That file holds the whole procedure and the field tables, so intake needs no
   other spec.
@@ -110,15 +117,17 @@ Where each path comes from:
 
 The original captures (video, frames, downloaded source) of someone else's site are written to
 `<captures root>/<slug>/` (`~/.claude/taste/captures/<slug>/` unless `STEAL_CAPTURES` says
-otherwise), never into a plugin folder or a project repo. If a project
+otherwise), never into a plugin folder or a project repo. A live-site capture adds `original/capture/` (frames,
+video, `inspect.json`, `track.json`, and `gl/` for WebGL) and `original/sheets/` (filmstrip sheets). If a project
 folder must hold one, the tool appends that path to the folder's `.gitignore` first. The public
 export always drops `captures/`.
 
 ## What study mode needs installed
 
 - `ffmpeg` (frame extraction and the side-by-side video).
-- A headless-Chrome library the agents can drive, such as Playwright or Puppeteer, or a capture
-  folder (`tools`) holding `capture.mjs` and `drive.mjs`.
+- Node 22.18 or later (it runs the capture tools' TypeScript with no build step).
+- The capture tools' packages and Chromium: `npm install` then `npx playwright install chromium`,
+  both in `scripts/capture/`. Preflight names the folder.
 
 ## The review page is not part of this plugin
 
@@ -153,7 +162,8 @@ The bar home is the `barHome` folder resolved at launch (see above).
    already has the same `group`, add a `title` too: the review page shows the title (or the
    group), and `gen-index.mjs` refuses two pages with the same shown name.
 2. State the cost before launch: **3.5 units and 4 agents per reference, worst case** (3 opus and
-   1 sonnet). 10 references is 35 units. Above 15 units, ask the user first.
+   1 sonnet). 10 references is 35 units. Above 15 units, ask the user first. A study whose numbers
+   all came from the page skips Refute (2.5 units, 3 agents); a video clip never does.
 3. Launch `run.js` with the JSON `{ "mode": "study", "slugs": ["35-...", "36-..."] }`.
 4. When it ends, clean the run's pages (see "After every run"). If your bar home has
    `gen-index.mjs`, run `node gen-index.mjs` in it, start a local preview that serves the bar pages, and tell the user which pages to grade. Otherwise tell the user which

@@ -158,6 +158,11 @@ probe "args.mjs intake" "$BIN/node" "$SM/workflows/args.mjs" '{"mode":"intake"}'
 probe "args.mjs bare" "$BIN/node" "$SM/workflows/args.mjs"
 probe "regrade.mjs bare" "$BIN/node" "$SM/scripts/regrade.mjs"
 probe "clean-captures.mjs bare" "$BIN/node" "$SM/scripts/clean-captures.mjs"
+probe "capture run.mjs bare" "$BIN/node" "$SM/scripts/capture/run.mjs"
+# capture.ts imports Playwright on its first line. With no npm install in the installed copy this must be one
+# `needs capture tool packages` line (exit 3), never ERR_MODULE_NOT_FOUND; a copy that holds node_modules prints help.
+probe "capture run.mjs capture --help" "$BIN/node" "$SM/scripts/capture/run.mjs" capture --help
+probe "capture run.mjs easing --help" "$BIN/node" "$SM/scripts/capture/run.mjs" easing --help
 probe "leak-scan.mjs bare" "$BIN/node" "$SM/scripts/intake/leak-scan.mjs"
 probe "leak-scan.mjs missing kit" "$BIN/node" "$SM/scripts/intake/leak-scan.mjs" "$WORK"
 probe "deny.mjs bare" "$BIN/node" "$WORKFLOW/skills/publish-public/scripts/deny.mjs"

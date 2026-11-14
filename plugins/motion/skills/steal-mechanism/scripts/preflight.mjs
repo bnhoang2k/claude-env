@@ -72,11 +72,24 @@ const ff = spawnSync("ffmpeg", ["-version"], { stdio: "ignore" });
 if (!ff.error && ff.status === 0) ok("ffmpeg");
 else need("ffmpeg", "install FFmpeg from https://ffmpeg.org/download.html (on a Mac with Homebrew: brew install ffmpeg)");
 
-// A headless-Chrome library the agents can drive, found the way a script in the current folder would find it.
-const lib = ["playwright", "puppeteer"].find((name) =>
-  spawnSync(process.execPath, ["-e", `import(${JSON.stringify(name)}).then(() => {}, () => process.exit(1))`], { stdio: "ignore" }).status === 0);
-if (lib) ok(lib);
-else need("Playwright or Puppeteer", "in your project folder run: npm install playwright, then npx playwright install chromium (or npm install puppeteer)");
+// The capture tools (scripts/capture/, run through run.mjs): Node that strips TypeScript, their npm packages, and the
+// Chromium build their Playwright version expects.
+const CAPTURE = path.join(HERE, "capture");
+if (process.features?.typescript) ok(`node ${process.versions.node} (capture tools need 22.18 or later)`);
+else need("Node 22.18 or later", `the capture tools are TypeScript run by Node; this is ${process.versions.node}. Install a newer one from https://nodejs.org/ or with your version manager`);
+const pkgs = ["playwright", "pixelmatch", "pngjs"].filter((p) => !isDir(path.join(CAPTURE, "node_modules", p)));
+if (pkgs.length) need(`capture tool packages in ${CAPTURE}`, `run npm install there, then npx playwright install chromium there (missing: ${pkgs.join(", ")})`);
+else {
+  ok(`capture tool packages ${path.join(CAPTURE, "node_modules")}`);
+  const chrome = spawnSync(process.execPath, ["-e",
+    'import("playwright").then((m) => { process.stdout.write(m.chromium.executablePath()) }, () => process.exit(1))'],
+    { cwd: CAPTURE, encoding: "utf8" });
+  const exe = chrome.status === 0 ? chrome.stdout.trim() : "";
+  let found = false;
+  try { found = !!exe && statSync(exe).isFile(); } catch {}
+  if (found) ok("chromium for the capture tools");
+  else need("chromium for the capture tools", `run npx playwright install chromium in ${CAPTURE}`);
+}
 
 if (mode === "intake") {
   // The kit: a clone or fork of the public motion-kit.

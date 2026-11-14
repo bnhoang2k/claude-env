@@ -55,7 +55,7 @@ export function ensureBarIgnore(args, env = {}, cwd = "") {
   return file;
 }
 
-// Everything run.js needs, resolved. `tools` is the folder holding capture.mjs and drive.mjs (optional);
+// Everything run.js needs, resolved. `tools` is an optional folder with the user's own drive.mjs (the capture tools ship in scripts/capture/);
 // `spec` is the intake procedure (args.spec, else $MOTION_KIT_SPEC, else the intake.md that ships beside SKILL.md);
 // in intake mode `kitBars`, `kitDoc`, `kitDialSet` and `kitStripsPrivate` say which kit files exist; `capturesLink` (args.capturesLink, else
 // $STEAL_CAPTURES_LINK) is how a review page reaches the captures: when set, compare.json's
