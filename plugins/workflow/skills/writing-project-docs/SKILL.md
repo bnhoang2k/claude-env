@@ -83,9 +83,7 @@ When writing a **research**, **audit**, or **validation report** document, read 
 matching template in the current project's brain repo (e.g. `<Brain>/Templates/`)
 first and follow its structure. With no brain repo, keep these docs in the project's
 `docs/` folder; `workflow:new-project` scaffolds a notes repo with the templates.
-Specs and plans are handled by Superpowers skills — don't use templates for those.
-Needs Superpowers: `superpowers@claude-plugins-official`, for those skills only;
-without it, write a spec or plan by hand and still classify it with section 1.
+Specs and plans are handled by the workflow planning skills (`workflow:brainstorming`, `workflow:writing-plans`) — don't use templates for those.
 External inspiration/ideas go in the brain repo's ideas folder (`<Brain>/Ideas/`).
 
 Specialized document types (e.g. a brain's Validation Reports) have their own

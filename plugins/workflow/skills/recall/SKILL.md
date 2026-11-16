@@ -12,8 +12,6 @@ The briefing is produced by dispatching an **Explore** agent that reads the rele
 - `PROJECT_DIR` = toplevel of the current repo (`git rev-parse --show-toplevel`); `PROJECT` = its basename.
 - `BRAIN_DIR` = sibling `${PROJECT}Brain` directory, included only if it exists. If there is no brain repo, all brain-sourced sections below fall back to the in-repo `docs/` folder (specs and plans there, if present) or are skipped. `workflow:new-project` can scaffold a notes repo.
 
-Needs Superpowers: `superpowers@claude-plugins-official`, for Stages 3 and 4 only. Without it, the briefing (Stages 0 to 2) works as written. For Stage 3, write the plan yourself, one step at a time, and get the user's approval before any code.
-
 ## Stage 0: Dedup Guard
 
 1. Compute today's date as `YYYY-MM-DD` (use the `currentDate` from session context if present; otherwise `date +%F`).
@@ -41,7 +39,7 @@ Dispatch a single **Explore** agent (one synthesis voice), pinned to `model: "op
 - `$BRAIN_DIR/README.md` (canonical spec) and `$BRAIN_DIR/Development_Phases.md` (phase status) — or the in-repo equivalents when no brain exists
 - The active phase folder(s) per the phase map's in-progress markers
 - Recent git activity in both repos: `git -C <path> log --oneline -20` and `git -C <path> status`
-- Open items in the specs/plans dirs (`$BRAIN_DIR/Superpowers/{specs,plans}/` or the same folders under the in-repo `docs/`)
+- Open items in the specs and plans folders (see `workflow:archive-plans` for the layout)
 
 Require of the agent:
 - Honor the SCOPE. Omit (empty array) any section the scope excludes.
@@ -94,13 +92,13 @@ The rendered priorities are the proposals (What, Why now, Scope, Approach are al
 
 ## Stage 3: Planning (requires Stage 2 approval)
 
-For each approved action needing implementation, invoke `superpowers:writing-plans`. Present plans **one at a time**. For research actions, dispatch the project's research agent directly with a tight prompt instead — research is gathered, not implemented.
+For each approved action needing implementation, invoke `workflow:writing-plans`. Present plans **one at a time**. For research actions, dispatch the project's research agent directly with a tight prompt instead — research is gathered, not implemented.
 
 **APPROVAL GATE 2:** the user must explicitly approve each plan before code is written. **No code is written, no implementing agents dispatched, no files touched until a plan is approved.**
 
 ## Stage 4: Execution (requires Stage 3 approval)
 
-For each approved plan, invoke `superpowers:executing-plans` (its own checkpoints apply). After execution, the user decides whether to commit, modify, or discard. Use `/commit` when ready.
+For each approved plan, invoke `workflow:subagent-driven-development`. After execution, the user decides whether to commit, modify, or discard. Use `/commit` when ready.
 
 ## Gotchas
 

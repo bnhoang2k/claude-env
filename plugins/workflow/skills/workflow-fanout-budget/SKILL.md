@@ -66,20 +66,14 @@ file moves, formatting, lint fixes, doc shuffles.
 
 ## Dispatch waves: parallel by default
 
-Derive the wave plan from the plan's per-task `**Files:**` blocks — `writing-plans` already
+Derive the wave plan from the plan's per-task `**Files:**` blocks — `workflow:writing-plans` already
 requires Create/Modify paths per task, so the dependency graph exists before execution
 starts. Tasks with **disjoint** file sets go out in ONE message and run concurrently. Tasks
 sharing a file serialize. State the waves in the launch message
 (`wave 1: tasks 1, 8 · then 3 → 4 → 6 → 7, all on server.js`) so a plan that is
 really one shared file is visible as such instead of trickling out one task at a time.
 
-This **overrides** `superpowers:subagent-driven-development`'s blanket *"Never dispatch multiple
-implementation subagents in parallel (conflicts)."* That ban names the right hazard and the
-wrong scope: the conflict is a shared working tree, not parallelism. Overlapping file sets get
-a worktree each (`superpowers:using-git-worktrees`) or a serial wave. Task reviewers are always
-parallel with each other; they only read.
-
-Needs Superpowers: `superpowers@claude-plugins-official`, for the two skills named above only. Without it, the wave rules in this section still hold: give overlapping file sets a `git worktree` each, or run them one after another.
+Tasks that share a file serialize, or get a worktree each (the built-in `EnterWorktree` tool). Task reviewers always run in parallel with each other, since they only read.
 
 ## Watching children
 

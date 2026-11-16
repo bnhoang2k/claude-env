@@ -80,10 +80,10 @@ Next step: <one action>
 ## Not for
 - Visual, taste or motion experiments judged by eye: use `ui-suite:ui-taste`. Judge by eye with
   the user; this protocol does not apply.
-- A bug with a known cause and a clear repro: fix it (see `superpowers:systematic-debugging`).
-- A plain code test: use `superpowers:test-driven-development`.
+- A bug with a known cause and a clear repro: fix it (see `workflow:systematic-debugging`).
+- A plain code test: use `workflow:behavior-tests`.
 - Researching what others found: use `anthropic-skills:deep-research`.
 
-The pointers above are optional. Needs Superpowers: `superpowers@claude-plugins-official`, for `superpowers:systematic-debugging` and `superpowers:test-driven-development` only; without it, find the cause and write the test by hand. `anthropic-skills:deep-research` is built in to some Claude apps and has no install id; without it, search the web directly.
+The pointers above are optional. `anthropic-skills:deep-research` is built in to some Claude apps and has no install id; without it, search the web directly.
 - A project's own memories (its prompt-balance notes, its judge calibration) stay in that
   project. Read them as worked examples, and do not copy them here.

@@ -1,6 +1,6 @@
 # claude-env
 
-35 skills for Claude Code: build UI, motion, 3D models and technical figures, and run long
+40 skills for Claude Code: build UI, motion, 3D models and technical figures, and run long
 multi-agent jobs without losing the plan or the budget.
 
 <!-- picture: a few things these skills made -->
@@ -102,6 +102,16 @@ Three guards trim waste and risk in agent work:
 - Hook `big-read-guard`: denies a full Read of a code file over 800 lines. Pass `offset` or `limit` to read part of it.
 - Hook `pre-explore-guard`: tells an Explore agent to use Grep and Glob for a directed search.
 - Hook `test-edit-gate`: denies a subagent's first edit to an existing test file, so it must retry on purpose.
+
+## Plan and build with checks
+
+Design before code, plan in small tasks, and prove each test can fail.
+
+- `workflow:brainstorming`: turn an idea into a design you have agreed to, before any code.
+- `workflow:writing-plans`: turn a spec into small tasks, each with the tests that guard it.
+- `workflow:subagent-driven-development`: run a plan one task at a time, each with a fresh subagent and a review.
+- `workflow:systematic-debugging`: find the root cause of a bug before you propose a fix.
+- `workflow:behavior-tests`: write tests, then plant a fault in the guarded code to prove each one can fail.
 
 ## Keep your place across sessions
 

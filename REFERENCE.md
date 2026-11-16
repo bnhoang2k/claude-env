@@ -23,7 +23,7 @@ Call a skill as `<group>:<skill>`.
 - **models**: check 3D models and rooms for geometry and layout defects before they ship.
   Skills: `models:build-models`, `models:break-models`, `models:break-scene`.
 - **workflow**: planning, review, documentation and hand-off skills for long agent-driven work.
-  Skills: `workflow:archive-plans`, `workflow:babysitter`, `workflow:blind-panel`, `workflow:handoff`, `workflow:llm-pipeline-spike`, `workflow:new-project`, `workflow:plan-review`, `workflow:prior-art-check`, `workflow:publish-public`, `workflow:recall`, `workflow:where-are-we`, `workflow:workflow-fanout-budget`, `workflow:writing-project-docs`.
+  Skills: `workflow:archive-plans`, `workflow:babysitter`, `workflow:behavior-tests`, `workflow:blind-panel`, `workflow:brainstorming`, `workflow:handoff`, `workflow:llm-pipeline-spike`, `workflow:new-project`, `workflow:plan-review`, `workflow:prior-art-check`, `workflow:publish-public`, `workflow:recall`, `workflow:subagent-driven-development`, `workflow:systematic-debugging`, `workflow:where-are-we`, `workflow:workflow-fanout-budget`, `workflow:writing-plans`, `workflow:writing-project-docs`.
 - **figures**: isometric technical figures and product reveals built as interactive pages.
   Skills: `figures:anatomy`, `figures:anatomy-reveal`, `figures:hairline-create`.
 - **bnhoang2k**: installs the five groups above. It has no skills of its own.
@@ -76,19 +76,24 @@ python3 plugins/models/skills/break-models/scripts/preflight.py
 | `models:build-models` | The `model-kit` command (https://github.com/bnhoang2k/model-kit) and Blender, for the yes path. The ask itself needs nothing | Says model-kit is missing and asks how to continue |
 | `models:break-models` | Blender 5.0 or newer (https://www.blender.org/download/; `blender` on the PATH, or `BLENDER` set to the executable, or the macOS app at `/Applications/Blender.app`) and Pillow (`python3 -m pip install Pillow`). Preflight | Stops with the `needs` lines |
 | `models:break-scene` | Same as `models:break-models`, and the Agent tool for the blind cold read. Preflight | Stops with the `needs` lines |
-| `workflow:archive-plans` | Nothing to run. Optional: the `superpowers` plugin, which writes the specs and plans it files | Files any spec and plan you name |
+| `workflow:archive-plans` | Nothing to run | Files any spec and plan you name |
 | `workflow:babysitter` | Claude desktop app session tools (`start_session`, `get_usage`), the `SendMessage` and `CronCreate` tools, and `git`. A notes repo is optional | Cannot start or watch other sessions; run the plans one at a time yourself |
+| `workflow:behavior-tests` | Nothing to run beyond the project's own test runner | Write the tests by hand and plant the fault yourself |
 | `workflow:blind-panel` | The Agent tool, for the reviewer subagents | No blind reviewers; review the artifact yourself |
+| `workflow:brainstorming` | Nothing to run. Optional: Node for the visual companion, and the Agent tool for the builder check. | Talk the design through by hand before any code |
 | `workflow:handoff` | `git`, for the branch and status lines | The prompt carries no git lines |
-| `workflow:llm-pipeline-spike` | Nothing to run. Optional: `superpowers`, and the built-in `anthropic-skills:deep-research` | Find the cause and write the test by hand; search the web directly |
+| `workflow:llm-pipeline-spike` | Nothing to run. Optional: the built-in `anthropic-skills:deep-research` | Find the cause and write the test by hand; search the web directly |
 | `workflow:new-project` | `bash`, `jq`, `python3`, `git`. The lint-preset step needs the `ui-suite` plugin. `NEW_PROJECT_PORTS` moves the ports file | `instantiate.sh` prints `needs jq: https://jqlang.org/download/` and exits 3 |
 | `workflow:plan-review` | Claude Code's Agent tool. No third-party plugin | No reviewer agent; read the plan against the code yourself |
 | `workflow:prior-art-check` | A web search tool. Optional: the built-in `anthropic-skills:deep-research` | The search step has nothing to run |
 | `workflow:publish-public` | Node, `pnpm` (https://pnpm.io/installation), `gitleaks` on the PATH (https://github.com/gitleaks/gitleaks#installing), the `claude` command logged in with access to the opus model, and the config folder (`PUBLISH_PUBLIC_HOME`) with `deny/base.json`, `deny/base.samples.json`, `plants.json`, `identity.json` and `hooks/`. The private repo needs a `package.json` with `build` and `test` scripts, a `publish.json`, and no `docs/` folder. See "Set up publish-public" | A run stops partway: `no deny rules configured`, `gitleaks` not found, or a refused `docs/` folder |
-| `workflow:recall` | `git`, and the built-in Explore agent. Optional: `superpowers` for the planning and execution stages, and `show_widget` for the card | The briefing works; write the plan yourself and get approval before code; the card is plain markdown |
+| `workflow:recall` | `git`, and the built-in Explore agent. Optional: `show_widget` for the card | The briefing works; the card is plain markdown |
+| `workflow:subagent-driven-development` | Claude Code's Agent tool, and `git` for worktrees | Run the plan's tasks yourself, one at a time |
+| `workflow:systematic-debugging` | Nothing to run | Find the root cause by hand before any fix |
 | `workflow:where-are-we` | `git`, `ListAgents`, and Claude desktop app tools `mcp__ccd_session_mgmt__*` for sessions it started | The card skips linked sessions and says so |
-| `workflow:workflow-fanout-budget` | Claude Code's Workflow and Agent tools, `ListAgents`. Optional: `superpowers` | The wave rules still hold; use one `git worktree` per overlapping task |
-| `workflow:writing-project-docs` | Nothing to run. Optional: `superpowers` for specs and plans | Keep the docs in the project's `docs/`; write specs and plans by hand |
+| `workflow:workflow-fanout-budget` | Claude Code's Workflow and Agent tools, `ListAgents` | The wave rules still hold; use one `git worktree` per overlapping task |
+| `workflow:writing-plans` | Nothing to run | Write the plan by hand, one task per step |
+| `workflow:writing-project-docs` | Nothing to run | Keep the docs in the project's `docs/`; write specs and plans by hand |
 | `figures:anatomy` | Node, and Google Chrome (https://www.google.com/chrome/) or Chromium for the capture and check scripts (`CHROME_PATH`; Playwright's Chromium cache is also searched) | No screenshots or checks; the build scripts still run |
 | `figures:anatomy-reveal` | Node 20 or newer, `npm`, Google Chrome (https://www.google.com/chrome/), Chromium or Edge (`CHROME_PATH`), `ffmpeg` (`FFMPEG`; https://ffmpeg.org/download.html), ImageMagick 7, the `magick` command (`MAGICK`; https://imagemagick.org/script/download.php). Preflight | Stops with the `needs` lines |
 | `figures:hairline-create` | Node. `look.mjs` also needs Chrome (https://www.google.com/chrome/), or Playwright's Chromium, and network once: it installs `playwright-core` into a cache folder (`HAIRLINE_LOOK_CACHE` moves it) | Check with `validate.mjs` and do the look by hand, as `look.md` says |
@@ -99,7 +104,6 @@ Third-party plugins are not bundled with claude-env and nothing declares them. I
 
 | Plugin | Install id | Used by | Without it |
 |---|---|---|---|
-| `superpowers` | `superpowers@claude-plugins-official` | `workflow:archive-plans`, `workflow:llm-pipeline-spike`, `workflow:recall`, `workflow:workflow-fanout-budget`, `workflow:writing-project-docs` | Each skill works; do the Superpowers steps by hand, as the table above says |
 | `taste-skill` | `taste-skill@taste-skill`; add its marketplace first with `claude plugin marketplace add Leonxlnx/taste-skill` | `ui-suite:ui-taste` | `ui-suite:ui-taste` is the whole design brief |
 | `anthropic-skills` | Built in to some Claude apps; no install id | `workflow:llm-pipeline-spike`, `workflow:prior-art-check` | Search the web directly |
 
