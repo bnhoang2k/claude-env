@@ -42,7 +42,7 @@ Phase X/
 
 The phase vision doc is the **founder-facing entry point** for everything happening in a phase — same audience as every Version doc underneath it:
 
-> **`Phase X.md` and every `Versions/x.y` doc are user-facing — c-suite level, plain English, layman's terms.** Technical detail lives in the active spec (`Superpowers/specs/`) or the archived spec + plan (`Superpowers/Archive/specs/`, `Superpowers/Archive/plans/`). Vision and version docs *link* to those — they never restate them.
+> **`Phase X.md` and every `Versions/x.y` doc are user-facing — c-suite level, plain English, layman's terms.** Technical detail lives in the active spec (`Planning/specs/`) or the archived spec + plan (`Planning/Archive/specs/`, `Planning/Archive/plans/`). Vision and version docs *link* to those — they never restate them.
 
 The founder on a Tuesday morning, a future Claude session, or an outside collaborator should be able to skim `Phase X.md` in under 5 minutes and walk away with: what this phase is trying to do, where the work stands, what shipped most recently, what's blocked. If they want the technical depth, they click through.
 
@@ -96,7 +96,7 @@ Links to Research/x.y subfolders, one line each. "None" if implementation-only.
 
 Version docs are the **readable reference** for each sub-phase. Same audience as `Phase X.md` (above) — user-facing, c-suite level, plain English. A reader skims a version doc to know what shipped, then clicks through to the archived spec or implementation plan for technical depth. Think "patch notes with architecture context."
 
-The spec and plan live in `Superpowers/specs/` and `Superpowers/plans/` during active work, and `Superpowers/Archive/specs/` and `Superpowers/Archive/plans/` once complete. **Every version doc must link to its spec and plan** — that's the bridge from the readable record to the technical artifact. The version doc is the living record that stays readable; the archived spec and plan are the technical record that stays accurate.
+The spec and plan live in `Planning/specs/` and `Planning/plans/` during active work, and `Planning/Archive/specs/` and `Planning/Archive/plans/` once complete. **Every version doc must link to its spec and plan** — that's the bridge from the readable record to the technical artifact. The version doc is the living record that stays readable; the archived spec and plan are the technical record that stays accurate.
 
 ### Writing rules
 
@@ -366,7 +366,7 @@ Examples for a typical project:
 
 ## Archive-to-Summary Process
 
-When a Superpowers spec is archived (per the `workflow:archive-plans` skill), the corresponding Version doc and Research INDEX must be written or finalized:
+When a spec is archived (per the `workflow:archive-plans` skill), the corresponding Version doc and Research INDEX must be written or finalized:
 
 1. **Version doc** — Create or update `Versions/x.y - Feature Name.md`. If the sub-phase already has a version doc, append a release-notes entry under `## Release notes` for the shipped spec. Follow the rules and template in the "Version Docs" section above.
 2. **Research INDEX** — **Finalize**, don't first-write. Flip Status to RESOLVED, distill the Session log into "What we tried that didn't work", fill in "How we solved it", add spec link. The INDEX should already be maintained live — archive is the finalization pass, not the first pass.
@@ -392,10 +392,10 @@ Any agent spawned to write files under `Phases/` must be briefed on this documen
 
 ## Lessons
 
-- `Phase X.md` and `Versions/x.y` docs are user-facing — plain English, c-suite skim, no jargon. Technical content lives in `Superpowers/specs/` (and `Archive/specs/`, `Archive/plans/`); vision and version docs link to those, never restate them
+- `Phase X.md` and `Versions/x.y` docs are user-facing — plain English, c-suite skim, no jargon. Technical content lives in `Planning/specs/` (and `Archive/specs/`, `Archive/plans/`); vision and version docs link to those, never restate them
 - Synthesis docs are c-suite facing, sub-reports are not — never confuse the two
 - Retrospectives are not a separate zone — they live inside the Research folder for the problem they diagnosed
-- Specs belong in Superpowers/Archive lifecycle, not in phase folders — version docs link to them
+- Specs belong in Planning/Archive lifecycle, not in phase folders — version docs link to them
 - Cross-cutting research (site format lists, source rosters, prompt-version archives) goes in Reference, not Research
 - Every Research subfolder must have an INDEX.md — orphaned agent reports are unnavigable
 - INDEX.md is a living dossier maintained across sessions, not a retrospective written once at archive

@@ -5,7 +5,7 @@ description: Use when writing or reviewing tests for any feature or bugfix. A te
 
 # Behavior tests
 
-A test that fails only because the function does not exist yet proves the test can fail. It does not prove the test fails when the code it guards breaks. The planted fault (step 3) is the real proof.
+A test that fails only because the function does not exist yet proves the test can fail. It does not prove the test fails when the code it guards breaks. A planted fault (see "Planted fault" below) is the real proof.
 
 Spec, plan and subagent-driven work point here. They do not restate these steps.
 

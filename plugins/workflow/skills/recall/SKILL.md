@@ -69,7 +69,7 @@ Limits: 1–3 priorities, last 5–10 commits grouped by feature, 3–5 ideas ra
 
 Then:
 1. **Render** the JSON (see below).
-2. **Save** it, if a brain repo exists: write `$BRAIN_DIR/Daily Briefings/YYYY-MM-DD.md` (create the dir if missing) holding a short markdown version of the briefing plus the raw JSON in a fenced `json` block. This is what Stage 0 reads back. Don't commit it — `/commit` handles that.
+2. **Save** it, if a brain repo exists: write `$BRAIN_DIR/Daily Briefings/YYYY-MM-DD.md` (create the dir if missing) holding a short markdown version of the briefing plus the raw JSON in a fenced `json` block. This is what Stage 0 reads back. Don't commit it; the user commits the brain repo when they choose.
 
 ## Rendering
 
@@ -98,7 +98,7 @@ For each approved action needing implementation, invoke `workflow:writing-plans`
 
 ## Stage 4: Execution (requires Stage 3 approval)
 
-For each approved plan, invoke `workflow:subagent-driven-development`. After execution, the user decides whether to commit, modify, or discard. Use `/commit` when ready.
+For each approved plan, invoke `workflow:subagent-driven-development`. After execution, the user decides whether to commit, modify, or discard. They commit with git when ready.
 
 ## Gotchas
 

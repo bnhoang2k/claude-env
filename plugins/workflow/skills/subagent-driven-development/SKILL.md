@@ -113,7 +113,7 @@ a ledger file, not only in todos.
 - Each plan owns a workspace: at skill start, run this skill's
   `bash scripts/sdd-workspace PLAN_FILE` by its absolute path, from the
   working tree you're executing in — it prints the plan's git-ignored
-  directory (under `<repo-root>/.superpowers/sdd/`), home to
+  directory (under `<repo-root>/.planning/sdd/`), home to
   every artifact for THIS plan: ledger, briefs, reports, review packages.
   Another plan's directory is never yours to read or write.
 - Check for this plan's ledger at `<workspace>/progress.md`. If one exists,

@@ -108,7 +108,7 @@ if [[ ${#SOURCES[@]} -gt 1 ]]; then
   [[ $DRY_RUN -eq 0 ]] && render "$SHARED/DESIGN.md.tmpl" "$TARGET/DESIGN.md"
 fi
 
-# preserve empty scaffold dirs (brain Superpowers zones)
+# preserve empty scaffold dirs (brain Planning zones)
 while IFS= read -r keep; do
   rel="${keep#"$SRC"/}"
   manifest+=("$rel")

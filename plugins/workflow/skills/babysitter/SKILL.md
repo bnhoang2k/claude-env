@@ -14,8 +14,8 @@ The babysitter never builds, edits plan code, or runs a plan's tasks itself.
 ## Set up once
 
 1. **The log.** Make an append-only file in the project's notes repo, for example
-   `.superpowers/babysitter/user-review.md`. With no notes repo, put the log at that path
-   inside the project and add `.superpowers/` to `.gitignore`; `workflow:new-project` can
+   `.planning/babysitter/user-review.md`. With no notes repo, put the log at that path
+   inside the project and add `.planning/` to `.gitignore`; `workflow:new-project` can
    scaffold a notes repo. Log every merge, every decision the user
    makes (their words, quoted), every finding routed somewhere, and every gate result.
 2. **The gates script.** Write one script that runs the full gates with every env var set,

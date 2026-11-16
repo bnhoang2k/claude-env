@@ -7,7 +7,7 @@ description: Use immediately after completing any task that had a spec or plan, 
 
 When the current project has a sister "brain" repo (e.g. `myapp` ↔ `myappBrain`), specs and plans live in the brain, not the code repo.
 
-Layout: specs, plans and their archive live in `<Brain>/Superpowers/{specs,plans,Archive}`, or in `docs/superpowers/{specs,plans,Archive}` when there is no notes repo.
+Layout: specs, plans and their archive live in `<Brain>/Planning/{specs,plans,Archive}`, or in `docs/planning/{specs,plans,Archive}` when there is no notes repo.
 
 With no notes repo, keep specs and plans in the project and move finished ones into `Archive/`. `workflow:new-project` scaffolds that layout, or a full notes repo. For a repo you publish with `workflow:publish-public`, use a notes repo instead: that skill refuses a twin repo that has a `docs/` folder.
 
@@ -15,8 +15,8 @@ After completing any task that had a spec or plan:
 
 ### 1. Archive the spec and plan
 
-- Move the spec from `<Brain>/Superpowers/specs/` → `<Brain>/Superpowers/Archive/specs/`
-- Move the plan from `<Brain>/Superpowers/plans/` → `<Brain>/Superpowers/Archive/plans/`
+- Move the spec from `<Brain>/Planning/specs/` → `<Brain>/Planning/Archive/specs/`
+- Move the plan from `<Brain>/Planning/plans/` → `<Brain>/Planning/Archive/plans/`
 - Both files stay in git history. Brain repos have no `.claudeignore` — archived specs
   and plans remain visible to Claude for future lookups.
 

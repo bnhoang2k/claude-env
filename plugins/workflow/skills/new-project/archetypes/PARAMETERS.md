@@ -35,7 +35,7 @@ must be a subset of this table. The claude-env repo's tests enforce this.
   session; an agent expands it with `echo $PROJECTS_ROOT` before a Read.
 - The thin-site archetype deliberately has no `{{BRAIN_PATH}}`, `{{BRAIN_SPEC_PATH}}`, or
   `{{PHASE_MAP_PATH}}` consumers — it has no sibling brain repo. Its `CLAUDE.md.tmpl` points at
-  `docs/superpowers/{specs,plans,Archive}` in-repo instead.
+  `docs/planning/{specs,plans,Archive}` in-repo instead.
 - Tokens that don't resolve cleanly to a single value (e.g. a project with no locked frontend
   stack yet) should stay as an explicit `<!-- fill: ... -->` marker in the rendered file rather
   than being deleted — an empty rule is worse than a visible gap.

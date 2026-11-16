@@ -7,7 +7,7 @@ Scaffold a new project from the archetypes in this skill. In this file, `<skill 
 
 ## Step 1: Pick the archetype
 
-Use AskUserQuestion (one decision): **flagship** (full app: CLAUDE.md skeleton, sector convention, wired hooks, DESIGN.md — pairs with a brain repo), **brain** (docs-only knowledge vault: six-zone Phases framework, Templates, Superpowers dirs), or **thin-site** (single CLAUDE.md, in-repo specs/plans, no brain). Flagship and thin-site both get `DESIGN.md` with a `## UI system` block.
+Use AskUserQuestion (one decision): **flagship** (full app: CLAUDE.md skeleton, sector convention, wired hooks, DESIGN.md — pairs with a brain repo), **brain** (docs-only knowledge vault: six-zone Phases framework, Templates, Planning dirs), or **thin-site** (single CLAUDE.md, in-repo specs/plans, no brain). Flagship and thin-site both get `DESIGN.md` with a `## UI system` block.
 
 ## Step 2: Gather parameters
 
