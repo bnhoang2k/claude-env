@@ -16,6 +16,9 @@ hook reuses its transcript reading.
 It asks only at the end of a turn that itself made a change of that kind: a turn of talk
 after an unchecked change does not block.
 
+A skip also counts when the user picks it on an AskUserQuestion card (an answer such as
+"Skip break (Recommended)"); only the answer value is read, never the question text.
+
 Never blocks when stop_hook_active is set (loop guard). A "skip break" from the user
 holds across turns, so one skip covers an exploration round: it lasts until a break skill
 runs after it, or until the user says "run break". Gap: if neither happens, the gate stays
@@ -127,6 +130,12 @@ def skip_holds(entries):
             elif RUN_SAID.search(text):
                 held = False
             continue
+        if lint.card_said(entry, SKIP_SAID):  # a card answer: answer values only
+            held = True
+            continue
+        if lint.card_said(entry, RUN_SAID):
+            held = False
+            continue
         if any(skill_name(b.get("name"), b.get("input") or {}) in UI_SKILLS + MODEL_SKILLS
                for b in lint.tool_uses(entry)):
             held = False
@@ -181,10 +190,11 @@ def session_entries(path):
     with open(path, encoding="utf-8", errors="replace") as fh:
         for line in fh:
             is_call = '"tool_use"' in line
-            if not is_call and ('"user"' not in line or '"tool_result"' in line):
+            is_card = '"tool_result"' in line and (lint.CARD_PREFIX in line or '"answers"' in line)
+            if not is_call and not is_card and ('"user"' not in line or '"tool_result"' in line):
                 continue
             entry = lint._parse(line)
-            if entry is not None and (is_call or lint.is_real_user(entry)):
+            if entry is not None and (is_call or lint.is_real_user(entry) or (is_card and lint.card_answers(entry))):
                 out.append(entry)
     return out
 

@@ -42,6 +42,10 @@ mktemp); a cd inside quoted text ("echo 'then cd /tmp/w' > page.html") still cou
 that runs mktemp and also writes a real page by a relative path is not seen; cd inside a
 shell function, loop body or case branch is read as plain sequence.
 
+A skip also counts when the user picks it on an AskUserQuestion card (an answer such as
+"Skip lint (Recommended)"). Only the answer value is read, never the question text, so the
+agent cannot pass by writing "skip lint" in its own question. See card_answers.
+
 Never blocks when stop_hook_active is set (loop guard). A "skip lint" from the user holds
 across turns, so one skip covers an exploration round: it lasts until a later lint or
 text-edge run (lintapple, text-edge-auto, story-gate, passing or not), or until the user
@@ -116,6 +120,38 @@ def user_text(entry):
     if isinstance(content, str):
         return content
     return " ".join(b.get("text", "") for b in content or [] if isinstance(b, dict))
+
+CARD_PREFIX = "Your questions have been answered:"
+CARD_PAIR = re.compile(r'"(?P<q>.*?)"="(?P<a>.*?)"(?=, "|\. You can now|\s*$)', re.S)
+
+
+def card_answers(entry):
+    """The answers the user picked on an AskUserQuestion card in this transcript entry: a list
+    of answer strings, empty when the entry is not a card answer. Question text is never
+    returned. The structured toolUseResult.answers dict (question -> answer) is read when
+    present. Otherwise the tool_result text 'Your questions have been answered: "q"="a"' is
+    parsed. Gap: in that text fallback, a question that itself contains the characters
+    "="skip lint", forges an answer; the structured dict has no such gap."""
+    if entry.get("type") != "user" or entry.get("isMeta"):
+        return []
+    structured = entry.get("toolUseResult")
+    if isinstance(structured, dict) and isinstance(structured.get("answers"), dict):
+        return [str(a) for a in structured["answers"].values()]
+    content = (entry.get("message") or {}).get("content")
+    out = []
+    for b in content if isinstance(content, list) else []:
+        if not (isinstance(b, dict) and b.get("type") == "tool_result" and not b.get("is_error")):
+            continue
+        c = b.get("content")
+        text = c if isinstance(c, str) else " ".join(x.get("text", "") for x in c or [] if isinstance(x, dict))
+        if text.startswith(CARD_PREFIX):
+            out += [m.group("a") for m in CARD_PAIR.finditer(text[len(CARD_PREFIX):].strip())]
+    return out
+
+
+def card_said(entry, pattern):
+    """True when a card answer in this entry matches pattern."""
+    return any(pattern.search(a) for a in card_answers(entry))
 
 
 def tool_uses(entry):
@@ -405,6 +441,14 @@ def skip_holds(path):
                     held = False
                 continue
             low = line.lower()
+            if '"tool_result"' in line and (CARD_PREFIX in line or '"answers"' in line):
+                entry = _parse(line)  # a card answer: read its answer values only
+                if entry and card_answers(entry):
+                    if card_said(entry, SKIP_SAID):
+                        held = True
+                    elif card_said(entry, RUN_SAID):
+                        held = False
+                continue
             if '"user"' not in line or '"tool_result"' in line or ("skip" not in low and "run" not in low):
                 continue
             entry = _parse(line)
@@ -429,6 +473,8 @@ def decide(entries, stop_hook_active, cwd="", skip_held=False):
     if start >= 0 and SKIP_SAID.search(user_text(entries[start])):
         return None
     turn = entries[start + 1:]
+    if any(card_said(e, SKIP_SAID) for e in turn):
+        return None
     results = results_by_id(turn)
     times = result_times(turn)
     changed = []

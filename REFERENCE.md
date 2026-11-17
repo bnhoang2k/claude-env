@@ -129,7 +129,7 @@ All of these are environment variables. Most have a working default. `MOTION_KIT
 
 | Name | What it does | Default |
 |---|---|---|
-| `STEAL_BAR_HOME` | Folder for the pages that `steal-mechanism` builds | `.steal-mechanism/bars/` in the current folder |
+| `STEAL_BAR_HOME` | Folder for the pages that `steal-mechanism` builds. chezmoi writes it only when the machine sets `[data] brainRepo = "<the brain repo's folder name>"` in `~/.config/chezmoi/chezmoi.toml` | `.steal-mechanism/bars/` in the current folder |
 | `STEAL_CAPTURES` | Folder for captures of other people's sites | `~/.claude/taste/captures/` |
 | `STEAL_CAPTURES_LINK` | Link folder through which a review page reaches the captures | none (absolute paths are used) |
 | `STEAL_TOOLS` | Folder holding `capture.mjs` and `drive.mjs` | none (agents write their own capture script) |

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.15
+
+The lint and break Stop hooks now accept a skip you pick on a question card. Before, only a typed "skip lint" or "skip break" counted, so agents kept asking you to type it. No folders or settings change. Update the ui-suite plugin to get the fix.
+
 ## 0.2.14
 
 The folders that hold plans and specs now say "Planning", not "Superpowers". Three names change:
