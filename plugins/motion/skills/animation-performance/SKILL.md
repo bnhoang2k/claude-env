@@ -54,22 +54,22 @@ Every property enters this pipeline at one of three points, and the cost differs
 
 | Tier | What changes | Cost |
 |---|---|---|
-| Composite only | Move, fade and scale of an element as a whole. A few more effects, with uneven support | Cheapest. The element sits on its own layer, so only the layers are re-combined. |
+| Composite only | Move, fade and scale of an element as a whole | Cheapest. The element sits on its own layer, so only the layers are re-combined. |
 | Paint, then composite | Appearance without size or position: shadows, corner rounding, text color | No re-measuring, but the element is redrawn every frame. |
 | Layout, paint, then composite | Anything that changes size or position inside the layout: width, height, padding, margin, offsets | Most expensive. One growing element can move everything around it. |
 
-Move, fade and scale change how an element looks, not where it sits in the layout, so nothing needs re-measuring. Any other property in the cheapest tier needs testing across platforms and devices, because support is uneven.
+Move, fade and scale change how an element looks, not where it sits in the layout, so nothing needs re-measuring.
 
 **Swap down a tier** when the visual allows it:
 
 - To grow or shrink, scale the element instead of changing its size or padding.
 - To move, translate the element instead of changing its position or margin. Percentage moves are relative to the element's own size.
-- To show or hide, fade the element instead of switching its visibility.
-- For a shadow, use the cheaper shadow effect the platform offers for the same look. An animated shadow looks harmless but redraws the element every frame.
+- To show or hide, fade the element instead of switching its visibility. When the fade ends, hide it for real so it stops taking clicks and taps.
+- For a shadow, try the lighter shadow effect the platform offers for the same look, then measure it, because not every engine draws it more cheaply. An animated shadow looks harmless but redraws the element every frame.
 
 Two things follow:
 
-- **Layout animations do not always drop frames.** An absolutely placed element, or one with few children, may animate its padding with no visible cost. But a padding animation and a scale animation look the same, and only one of them cannot regress on a slower device. Pick the one with no downside.
+- **Layout animations do not always drop frames.** An absolutely placed element, or one with few children, may animate its padding with no visible cost. But when scaling gives the look you want, only scaling cannot regress on a slower device, so pick it. Scaling also scales the children and keeps the layout space, so it does not always look the same as padding.
 - **Layout properties also move the wrong things.** Animating a sidebar's margin pushes the content beside it on every frame. Moving the sidebar does not. For a dashboard next to an opening sidebar, that is the whole page laid out again 60 times a second.
 
 ## Where it runs

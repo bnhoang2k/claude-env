@@ -1,6 +1,6 @@
 ---
 name: taste
-description: "Use when the user says /ui-suite:taste, \"add to taste\", \"remember I like/hate this look\", shares a design link or screenshot as inspiration, says they are bored of the look or want overdrive, asks to distill or prune their taste, or asks what is in their taste file. Edits the user's live taste folder, ~/.claude/taste/ (seeded from the ui-suite:ui-taste starter), and nothing else."
+description: "Use when the user says /ui-suite:taste, \"add to taste\", \"remember I like/hate this look\", shares a design link or screenshot as inspiration, says they are bored of the look or want overdrive, asks to harvest or collect the UI corrections from a session, asks to distill or prune their taste, or asks what is in their taste file. Edits the user's live taste folder, ~/.claude/taste/ (seeded from the ui-suite:ui-taste starter), and nothing else."
 ---
 
 # /ui-suite:taste: edit the user's UI taste reference
@@ -10,6 +10,7 @@ description: "Use when the user says /ui-suite:taste, \"add to taste\", \"rememb
 - `/ui-suite:taste add <complaint | url | screenshot>`
 - `/ui-suite:taste add --project <repo> <rule>`
 - `/ui-suite:taste overdrive [surface]`
+- `/ui-suite:taste harvest [transcript]`
 - `/ui-suite:taste distill`
 - `/ui-suite:taste list [principles|gallery|<repo>]`
 - `/ui-suite:taste remove <principle number | gallery name | project rule>`
@@ -100,6 +101,28 @@ For a page the user liked at a taste stop. `<rung>` is one of 1-quiet, 2-express
 3. Build only the one the user picks. ui-suite:lint-ui still runs.
 4. If the user keeps the result, add it to `gallery.md` under `## Approved`, tagged `overdrive`.
 5. Overdrive never edits principles.
+
+## harvest
+
+Finds UI corrections the user made in a session but never sent to `add`. Run it only when the user asks. With no argument it reads the current session; a named transcript (a `.jsonl` under `~/.claude/projects/`) is read instead.
+
+1. Collect candidates. Look for these signals about how a page looks or how UI work is done:
+
+   | Signal | Where it shows |
+   |---|---|
+   | Silent edit | The user changed a file you wrote. Diff it against what you last wrote. |
+   | Repeated nudge | The same kind of request two or more times ("bigger", "less padding"). Record where it ended up, not each step. |
+   | Revert | The user undid a change, or asked for the earlier version back. |
+   | Confirmed pick | The user chose one option over others and said why. |
+   | Stated complaint | A plain complaint that never went through `add`. |
+
+2. Drop a candidate that a principle, the Never list or a ledger line already says. Drop a one-off fix to one value, unless the user said it holds everywhere.
+3. For each one left, write one concrete do or don't plus its why. Use the user's words for the why. If you are guessing the why, mark it *inferred*.
+4. Test each one. Read only the rule and its why, then picture the original task. If the rule alone would not have prevented the correction, sharpen it or drop it.
+5. Show the survivors as a numbered list in chat, each with its signal and the evidence (a quote, or the before and after). Nothing is written yet.
+6. Run `add (complaint)` from step 2 for each number the user picks. The ledger quote is the user's words from the session; for a silent edit or revert, quote the user's pick and start it with `harvest:`. Confirm every *inferred* why with the user before writing it.
+
+Adapted from the collection step of Emil Kowalski's `learn-taste` skill ([emilkowalski/skills](https://github.com/emilkowalski/skills), MIT). Its storage and write steps are not used: here every rule goes through `add`, the ledger and the size caps.
 
 ## distill
 

@@ -49,17 +49,22 @@ Also audit debounces, artificial timers and transition waits on the input path. 
 Read distance and velocity together from `onDragEnd`:
 
 ```jsx
+const y = useMotionValue(0);
+
 <motion.div
   drag="y"
+  style={{ y }}
   dragConstraints={{ top: 0 }}
   dragElastic={0.2}
+  dragMomentum={false}
   onDragEnd={(e, info) => {
     if (info.offset.y > threshold || info.velocity.y > 500) dismiss();
+    else animate(y, 0, { type: 'spring', duration: 0.5, bounce: 0.2, velocity: info.velocity.y });
   }}
 />
 ```
 
-`dragMomentum` is on by default. It is right for a flung card and wrong for a simple reposition. Disable it when the element should stop where the finger stops. `dragConstraints` takes a ref or a bounds object.
+`dragMomentum` is on by default. It is right for a flung card and wrong for a simple reposition. Disable it when the element should stop where the finger stops. The example disables it because `onDragEnd` hands the release to its own spring, seeded with the release velocity. `dragConstraints` takes a ref or a bounds object.
 
 Momentum projection and the handoff to a spring:
 
@@ -78,7 +83,7 @@ For spring APIs that want relative velocity, use `gestureVelocity / (targetValue
 
 ## Springs in Motion
 
-The `bounce` plus `duration` spring API maps closely to damping plus response.
+The `bounce` plus `duration` spring API maps closely to damping ratio plus response. Default to `bounce: 0`. Do not pass the damping values in the table below to Motion's `damping` option. That option is a physics coefficient, not Apple's damping ratio.
 
 ```js
 import { animate } from 'motion';
@@ -118,8 +123,8 @@ Vaul mimics the iOS sheet with pure CSS: `cubic-bezier(0.32, 0.72, 0, 1)` over 5
 - A small floating drawer (not touching the screen edge) should override to about 200ms. The 500ms timing only reads right on a full-width, edge-attached sheet.
 
   ```css
-  [vaul-drawer]  { transition: transform 0.2s cubic-bezier(0.165, 0.84, 0.44, 1); }
-  [vaul-overlay] { transition: opacity  0.2s cubic-bezier(0.165, 0.84, 0.44, 1); }
+  [data-vaul-drawer]  { transition: transform 0.2s cubic-bezier(0.165, 0.84, 0.44, 1); }
+  [data-vaul-overlay] { transition: opacity  0.2s cubic-bezier(0.165, 0.84, 0.44, 1); }
   ```
 
 - The component must feel like one entity. If the drawer opens in 200ms, its height changes and content crossfades belong to the same timing family. One slow sub-animation makes the whole thing feel broken.
@@ -128,7 +133,7 @@ Mark interactive children with `data-vaul-no-drag`, so pressing a button inside 
 
 ## Spatial consistency
 
-Set `transform-origin` to the trigger element, so a menu, popover or sheet grows from the button that opened it. For reversible transitions, use inverse cubic-bezier control points for the two directions. Sonner's toast slides up from the bottom, so swiping down dismisses it.
+Set `transform-origin` to the trigger element, so a menu, popover or sheet grows from the button that opened it. Sonner's toast slides up from the bottom, so swiping down dismisses it.
 
 ## Hold gestures
 
@@ -144,7 +149,7 @@ Use `linear` for the hold phase and `ease-out` for the fast snap-back on early r
 
 ## Smoothness
 
-`requestAnimationFrame` is the web's display-synced clock. Animate only compositor-friendly properties, `transform` and `opacity`, and hint with `will-change` where motion is imminent.
+`requestAnimationFrame` is the web's display-synced clock. Animate only compositor-friendly properties, `transform` and `opacity`. Add `will-change` only after you see a shift or dropped frames. See `motion:animation-performance`.
 
 ## Reduced motion
 

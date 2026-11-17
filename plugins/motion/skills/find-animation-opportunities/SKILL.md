@@ -69,7 +69,7 @@ Name one of these:
 
 ### 3. Speed: can it stay inside budget?
 
-Product UI motion stays under 300ms. Prefer the project's own motion values when it has them; otherwise use these budgets:
+Product UI motion stays under 300ms. Modals, drawers, sheets and toasts are the exceptions and may run longer (see the modals and drawers row). Prefer the project's own motion values when it has them; otherwise use these budgets:
 
 | Element | Duration |
 |---|---|
@@ -92,7 +92,7 @@ Look for these gaps. Each is a known class of real opportunity.
 - **Feedback gaps:** pressable things with no pressed state. Destructive actions confirmed by a plain click, where a hold-to-confirm would prevent slips.
 - **Teleporting state:** content that swaps, appears or vanishes instantly. Sections that snap open. List items added or removed with no bridge, in a list that is not high frequency.
 - **Missing spatial story:** panels, popovers and menus that appear with no link to their trigger. Dismissable surfaces that leave a different way than they arrived. Centered modals are exempt from growing out of a trigger.
-- **Group entrances:** a grid or list that pops in all at once on a view the user sees only occasionally. Any stagger is decorative and never blocks input.
+- **Group entrances:** a grid or list that pops in all at once on a view the user sees only occasionally. Any stagger is decorative, not uniform, and one per container (see `motion:choreograph`), and it never blocks input.
 - **Gesture seams:** draggable or swipeable things that snap with no physics, or stop dead at a boundary.
 - **The delight budget:** rare, high-emotion moments shown flat, such as first run, empty states, success and completion. On a surface marked expressive, also the arrival of the main view and a calm idle life that invites the user in.
 
@@ -120,7 +120,7 @@ Each "Suggested motion" cell carries exact values (curve, duration, properties) 
 
 ### Part 2: Rejected candidates (REQUIRED)
 
-List 2 to 5 places you considered and did not suggest. Give the gate question that rejected each:
+List up to 5 places you considered and did not suggest. Give the gate question that rejected each. If you rejected none, say so:
 
 - Command palette open and close. **Rejected: keyboard-driven and very frequent. Never animate.**
 - Line drawing on an analytics chart. **Rejected: function. The user reads this data, and decoration hinders.**

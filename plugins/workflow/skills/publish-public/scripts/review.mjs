@@ -47,15 +47,19 @@ const HEADING = /^\s*# userEmail\s*$/;
 const PLAIN_ADDRESS = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
 const escapeRe = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-/** Hide the account email, which the CLI always adds and the user accepted. Only the exact address is
+/** Hide the account email, which the CLI always adds and the user accepted. The exact address is
  *  replaced (any case, anywhere), and only a line that is exactly `# userEmail` is dropped.
- *  All other text stays for the scan, so nothing glued to the address can hide. */
+ *  The reviewer may also guess a name from the address ("alex" in alex.x@...), so each word of
+ *  3+ letters in the part before the @ is hidden too, but only as a whole word: text glued to it,
+ *  and every word not in the address, stays for the scan. */
 function maskAccountEmail(text, email) {
   const re = new RegExp(escapeRe(email), "gi");
+  const words = [...new Set(email.split("@")[0].split(/[^A-Za-z]+/).filter((w) => w.length >= 3))];
+  const wordRes = words.map((w) => new RegExp(`(?<![A-Za-z])${escapeRe(w)}(?![A-Za-z])`, "gi"));
   return text
     .split("\n")
     .filter((l) => !HEADING.test(l))
-    .map((l) => l.replace(re, "<email>"))
+    .map((l) => wordRes.reduce((s, w) => s.replace(w, "<email-word>"), l.replace(re, "<email>")))
     .join("\n");
 }
 

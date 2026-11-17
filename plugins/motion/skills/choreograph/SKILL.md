@@ -71,7 +71,7 @@ A fifth option is not a timing: **Carry.** When you cannot control a child's mot
 
 - **Two rich states in a container that changes size both ways.** The old content leaves before the new content starts.
 - **One element would pass through another.** Show the front layer only when the items have almost landed.
-- **Drawing with cause and effect.** The box draws, then the check draws. The second delay equals the first duration, and both hold their end state.
+- **Drawing with cause and effect.** The box draws, then the check draws. The second starts just before the first ends, and both hold their end state.
 
 Overlap the handoff slightly. Starting the second move just before the first ends turns a queue into one gesture.
 
@@ -102,7 +102,6 @@ A sequence has more states than one animation. Test each:
 
 - **Re-trigger mid-way.** Hover out halfway, click Next twice fast, switch views while the first still opens. Each run stops the motion in flight before starting new motion. Never stack runs.
 - **Wait for completion before chaining.** An idle loop that resumes after an interaction starts only after every reset animation has finished.
-- **Gate actions on completion with a plain flag**, not with state that redraws the screen.
 - **Rapid view switching** can leave two views alive at once. Check it, and give each view a stable, unique identity.
 
 ## Idle and attention loops
@@ -118,7 +117,7 @@ Collapse the choreography; do not just shorten it. Under the platform's reduced-
 1. **Inventory.** List every element that moves for the event, with its file and symbol.
 2. **Cast.** Lead, Support, Decoration or Static. Remove movement from everything that is not Lead or Support.
 3. **Relate.** Together, Overlap, Sequence or Carry for each pair, with the reason.
-4. **Write the timeline before code** (format below). Check budgets: product UI groups finish in about 300ms; no stagger on frequent surfaces.
+4. **Write the timeline before code** (format below). Check budgets: product UI groups finish in about 300ms; no stagger on frequent surfaces. The step is done when every element from the inventory has a row with a role and a relationship.
 5. **Build with the lightest tool** the platform offers that can express the relationships.
 6. **Verify.** Record the interaction and step through it frame by frame. A wave and a queue look alike at full speed in your head and different on a recording. Run the interruption checks. Then imagine the 50th use of the day: if you would skip it, cut it.
 
@@ -138,7 +137,7 @@ One row per moving element, in start order:
 
 ### Part 2: What does not move, and why
 
-Two to five elements whose motion you removed, each with its reason ("Menu items: one entrance per container; the panel carries them").
+Up to five elements whose motion you removed, each with its reason ("Menu items: one entrance per container; the panel carries them"). If you removed none, say so.
 
 ### Part 3: Feel check
 

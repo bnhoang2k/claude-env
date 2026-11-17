@@ -9,8 +9,8 @@ Look for existing easing and duration custom properties, and the motion library 
 ## Where to hunt: web patterns
 
 **Feedback gaps**
-- Pressable elements with no `:active` state: `transform: scale(0.97)` with `transition: transform 160ms ease-out`. Subtle range: 0.95 to 0.98.
-- Destructive actions confirmed by a plain click: a hold-to-confirm fill. Use a `clip-path: inset(0 100% 0 0)` overlay, 2s linear on press, and a 200ms ease-out snap-back on release.
+- Pressable elements with no `:active` state: `transform: scale(0.97)` with `transition: transform 160ms var(--ease-out)`. Subtle range: 0.95 to 0.98.
+- Destructive actions confirmed by a plain click: a hold-to-confirm fill. Use a `clip-path: inset(0 100% 0 0)` overlay, 2s linear on press, and a 200ms `var(--ease-out)` snap-back on release.
 
 **Teleporting state**
 - Content that swaps, appears or vanishes: fade and scale in from `scale(0.95 to 0.97)` and `opacity: 0`, ease-out, never `scale(0)`. Use `@starting-style` for entry without JS.
@@ -22,7 +22,7 @@ Look for existing easing and duration custom properties, and the motion library 
 - Toasts and sheets that exit a different way than they entered: symmetric paths, using `translateY(100%)` percentages, not hardcoded pixels.
 
 **Group entrances**
-- A grid or list that pops in all at once on an occasional view: a 30 to 80ms stagger. Decorative, and it never blocks interaction.
+- A grid or list that pops in all at once on an occasional view: a 30 to 80ms stagger, not uniform (vary timing by importance), with one entrance per container (see `motion:choreograph`). Decorative, and it never blocks interaction.
 
 **Gesture seams**
 - Draggable or swipeable elements that snap: springs (`{ type: "spring", duration: 0.5, bounce: 0.2 }`, bounce 0.1 to 0.3), velocity-based dismissal (`Math.abs(distance) / elapsedMs > ~0.11`), and rubber-banding at boundaries instead of hard stops.
@@ -40,7 +40,7 @@ Prefer the project's own curves. Emil's set, if the project has none:
 
 ## Output rules for web recipes
 
-- Animate `transform` and `opacity` only.
+- Prefer `transform` and `opacity`. Two exceptions: `clip-path` for hold-to-confirm, and measured height for accordions.
 - Include reduced-motion handling: gentler motion, not zero.
 - Gate hover effects with `@media (hover: hover) and (pointer: fine)`.
 - Give exact values, never approximations.

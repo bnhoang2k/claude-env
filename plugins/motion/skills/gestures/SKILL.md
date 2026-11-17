@@ -24,7 +24,9 @@ Is the pointer currently down?
 |-- Yes: TRACK phase. Position maps 1:1 to the pointer.
 |        No easing. No duration. No spring. The element IS the hand.
 `-- No:  RELEASE phase. Physics finishes the motion.
-         A spring seeded with the release velocity. Never a fixed-duration clip.
+         A spring seeded with the release velocity, or an eased transition
+         when the component is built without springs (a CSS-only sheet,
+         hold-to-confirm). Never a clip that restarts from zero.
 ```
 
 ### Track phase
@@ -43,13 +45,13 @@ Is the pointer currently down?
 
 ### Release phase
 
-- **Finish with a spring, seeded with the gesture's velocity.** The element leaves the hand at the speed the hand had. A fixed-duration ease makes every fling land the same way, which reads as fake. Some spring APIs want relative velocity: divide the hand's speed by the distance still to go.
+- **Custom drags finish with a spring, seeded with the gesture's velocity.** The element leaves the hand at the speed the hand had. A fixed-duration ease makes every fling land the same way, which reads as fake. Some spring APIs want relative velocity: divide the hand's speed by the distance still to go.
 - **Project momentum.** Do not snap to the nearest target from the release point. Use the release velocity to project where the motion would come to rest, then pick the target nearest that point. This makes a flick feel like a throw.
 
   `projected = current + (v / 1000) * d / (1 - d)`, with `v` in px/s and `d` about 0.998 for a normal scroll feel (about 0.99 for snappier). Use this exponential-decay form. The textbook `v^2 / (2 * decel)` is not what Apple uses.
 - **Dismiss on distance or on speed.** Passing about 40 to 50% of the travel dismisses, and so does a fast flick over a short distance. Distance-only thresholds make flicks feel ignored.
-- **Decide reverse or commit by the sign of the velocity, not by position.** A hand moving back toward the start at release means reverse, even when it is past halfway.
-- **Bounce belongs only after a drag.** A drag applies force, so a slight bounce on release feels physical. The same element closed by a button press gets no bounce, because no force was applied. Keep bounce small, and remember that small elements need more bounce to read the same.
+- **Decide reverse or commit from the projected endpoint, not from the release position.** Use the projection above. A hand moving fast back toward the start projects back, so it reverses even when it is past halfway.
+- **Bounce belongs only after a drag.** A drag applies force, so a slight bounce on release feels physical. The same element closed by a button press gets no bounce, because no force was applied. Keep bounce small (0.1 to 0.3 in a bounce-style spring API such as Motion's), and remember that small elements need more bounce to read the same.
 - **Snap-back is fast.** If the gesture did not pass the threshold, return quickly. A slow snap-back feels like the interface disagreeing in slow motion.
 
 ### Choosing the spring
@@ -59,7 +61,7 @@ Think in two numbers, not in mass, stiffness and damping.
 - **Damping ratio** sets the overshoot. 1.0 settles with no bounce. Below 1.0 overshoots and oscillates.
 - **Response** is how fast the value reaches its target. Lower is snappier. A spring has no fixed duration: the settle time comes from these numbers.
 
-Start most UI at damping 1.0. Add bounce (about 0.8) only when the gesture carried momentum: a flick, a throw, a drag release. Overshoot on a menu that just faded in feels wrong. Overshoot on a card you flicked feels right. Starting values by interaction are in [web.md](web.md).
+Start most UI at damping ratio 1.0. Lower it to about 0.8 (a little bounce) only when the gesture carried momentum: a flick, a throw, a drag release. Overshoot on a menu that just faded in feels wrong. Overshoot on a card you flicked feels right. Starting values by interaction are in [web.md](web.md).
 
 ## Interruptibility is not optional
 
@@ -80,7 +82,6 @@ The dragged element is rarely alone. An overlay fades, the page behind scales. D
 - **An element dismisses in the direction it entered.** A toast that slides up from the bottom is dismissed by swiping down. Enter and exit share one axis, so the gesture is felt, not learned.
 - **Enter and leave along the same path.** A panel that slides in from the right leaves to the right.
 - **Anchor to the source.** A menu, popover or sheet grows from the element that triggered it, not from its own center.
-- **Mirror the easing on reversible transitions**, so the outbound path matches the return path.
 
 ## Hold gestures are asymmetric
 

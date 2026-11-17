@@ -118,7 +118,7 @@ A missing config folder or set stops the run with `no deny rules configured`.
 
 ### Blindness markers
 
-Each run checks that the reviewer is blind: it asks the reviewer to repeat everything it was given before the question, and fails the run if the answer shows your private context. The check already looks for your deny rules and for the word `superpowers`. If your own session hooks or plugins print a recognisable phrase (a banner, a plugin name), list it in `blind-markers.json`: a JSON list of regular expressions, matched in any case. `data/blind-markers.example.json` holds one placeholder, `["MY-HOOK-BANNER"]`. Copy it to `blind-markers.json` and replace the placeholder with your own phrase. Without the file, only the built-in checks run.
+Each run checks that the reviewer is blind: it asks the reviewer to repeat everything it was given before the question, and fails the run if the answer shows your private context. Your login email does not count, because every Claude run is given it, and neither does a whole word taken from the part before the @ (a first name the reviewer guesses from the address). The check already looks for your deny rules and for the word `superpowers`. If your own session hooks or plugins print a recognisable phrase (a banner, a plugin name), list it in `blind-markers.json`: a JSON list of regular expressions, matched in any case. `data/blind-markers.example.json` holds one placeholder, `["MY-HOOK-BANNER"]`. Copy it to `blind-markers.json` and replace the placeholder with your own phrase. Without the file, only the built-in checks run.
 
 To scan any folder by hand: `node "${CLAUDE_PLUGIN_ROOT}/skills/publish-public/scripts/deny.mjs" scan <dir> --sets base,kit`. It prints `file:line: rule` and exits 1 on a finding.
 

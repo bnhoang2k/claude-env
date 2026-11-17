@@ -50,7 +50,7 @@ Can you name its purpose: feedback, spatial consistency, state indication, preve
 │        └── No → DELETE.
 └── Yes → Is it seen tens of times a day (hover, frequent toggles, list expansion)?
           ├── Yes → REDUCE to the near-imperceptible version (see Reducing).
-          └── No → Is it over budget (UI animation > 300ms, or a slide or scale where a fade would carry the same meaning)?
+          └── No → Is it over budget (a UI animation over 300ms that is not a modal, drawer, sheet or toast; or a slide or scale where a fade would carry the same meaning)?
                    ├── Yes → REDUCE.
                    └── No → KEEP.
 ```
@@ -65,9 +65,9 @@ Reduce means a smaller version of the same motion, never a different animation.
 
 | Today | Reduced to |
 | --- | --- |
-| Hover with scale, lift or shadow growth | A color or opacity change only, 150ms or less, gentle easing |
-| Slide or scale entrance on a frequent surface | Opacity only, 150ms, ease-out |
-| UI animation over 300ms | 200 to 250ms, same curve |
+| Hover with scale, lift or shadow growth | A color or opacity change only, 150ms or less, same curve |
+| Slide or scale entrance on a frequent surface | Opacity only, 150ms, same curve |
+| UI animation over 300ms (not a modal, drawer, sheet or toast) | 200 to 250ms, same curve |
 | Stagger over 80ms per item, or over 300ms total | Cap at 30ms per item, or drop the stagger and fade the group as one |
 | Endless loop (pulse, shimmer, glow) on a persistent element | Run once, or remove the loop and keep the static end state |
 
@@ -128,7 +128,7 @@ If the motion library is no longer used anywhere, say so and propose dropping th
 1. **Recon.** Identify the stack, the motion tools and where motion lives. Read the product's personality and any chosen attention level per surface. A crisp dashboard keeps less than a playful consumer app. Build a frequency map of the animated surfaces.
 2. **Sweep** the hunt list. A class is done when it has yielded candidates with file evidence or has been cleared.
 3. **Gate** every candidate. Record the deciding branch.
-4. **Check hazards** for each Cut and Reduce.
+4. **Check hazards** for each Cut and Reduce. Done when each one lists the hazards that apply, or "none".
 5. **Report** in the format below. Stop here unless the user asked for the cuts.
 6. **Apply** (only on request). Make the cuts and reductions, then the cleanup.
 7. **Verify** (only after applying). Run the type checker and tests if the project has them. Search for every removed name to confirm nothing still uses it.
@@ -147,7 +147,7 @@ One row per proposed change, ordered by how often the user hits it. In report mo
 
 ### Part 2: Kept (required)
 
-List 2 to 5 animations you considered and deliberately kept. Give the reason that saved each.
+List up to 5 animations you considered and deliberately kept. Give the reason that saved each. If none passed the gate, say so.
 
 - `Toast`: enter from the bottom edge. **Kept: prevents a jarring change; occasional frequency.**
 - `Onboarding`: success burst. **Kept: rare, first-time moment.**

@@ -6,9 +6,9 @@ Web details for the rules in [SKILL.md](SKILL.md), from Emil Kowalski's `remove-
 
 | Today | Reduced to |
 | --- | --- |
-| Hover with `scale`, lift (`translate`) or growing `box-shadow` | `color`, `background-color` or `opacity` change only, 150ms or less, `ease` |
-| Slide or scale entrance on a frequent surface | `opacity` only, 150ms, `ease-out` |
-| UI animation over 300ms | 200 to 250ms, same curve |
+| Hover with `scale`, lift (`translate`) or growing `box-shadow` | `color`, `background-color` or `opacity` change only, 150ms or less, same curve |
+| Slide or scale entrance on a frequent surface | `opacity` only, 150ms, same curve |
+| UI animation over 300ms (not a modal, drawer, sheet or toast) | 200 to 250ms, same curve |
 | Stagger over 80ms per item, or over 300ms total | Cap at 30ms per item, or drop the stagger and fade the group as one |
 | `infinite` loop (pulse, shimmer, glow) on a persistent element | Run once (`animation-iteration-count: 1`), or remove the loop and keep the static end state |
 

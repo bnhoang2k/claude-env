@@ -170,6 +170,7 @@ Eleven skills come from other projects. All are MIT licensed, and each LICENSE f
 - `lint-ui` (in `ui-suite`): adapted from [lintapple](https://github.com/gholtzap/lintapple) by Gavin Holtzapple
 - `break-ui` (in `ui-suite`): from Emil Kowalski's design-engineering work. The skill folder records no upstream link, only his name in the LICENSE and SKILL.md.
 - `choreograph`, `gestures`, `animation-performance`, `animation-vocabulary`, `find-animation-opportunities` and `remove-animations` (in `motion`): adapted from [emilkowalski/skills](https://github.com/emilkowalski/skills) by Emil Kowalski. `gestures` also takes the gesture parts of his `apple-design` skill. Each core is rewritten to work on any platform, and his web code moved to a `web.md` beside it.
+- The `harvest` mode of `taste` (in `ui-suite`): adapted from the collection step of his `learn-taste` skill in the same repo. His LICENSE ships beside it as `LICENSE-learn-taste`.
 - `anatomy`: [wheresryan22/anatomy](https://github.com/wheresryan22/anatomy)
 - `anatomy-reveal`: [annnguyentt/anatomy-reveal-skill](https://github.com/annnguyentt/anatomy-reveal-skill)
 - `hairline-create`: [lucasmarkes/hairline](https://github.com/lucasmarkes/hairline)

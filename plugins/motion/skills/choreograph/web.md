@@ -6,38 +6,37 @@ Web code for the relationships in [SKILL.md](SKILL.md), from Emil Kowalski's cho
 
 Pick the lightest tool that can express the relationships:
 
-- **CSS:** an index custom property per item times a delay variable, on a keyframe with `animation-fill-mode: both` so delayed items do not flash their end state first. Best for one-shot entrances.
+- **CSS:** a `--delay` custom property per item, with gaps that shrink along the group, on a keyframe with `animation-fill-mode: both` so delayed items do not flash their end state first. Best for one-shot entrances.
 - **Motion (Framer Motion), declarative:** variants with `delayChildren: stagger(...)` on the parent. `stagger` takes `from` and `ease`, which give non-uniform delays for free. Use it for groups that enter and exit with React state.
 - **Motion, imperative (`useAnimate`):** only when several elements coordinate across several events (hover, click, idle timer) and you must await completion. It is harder to maintain, so not for a simple stagger.
 
 Web names for the core rules:
 
 - A leaving element stops taking space: `AnimatePresence mode="popLayout"`. Without a library, set the leaving element to `position: absolute` at its current place before animating it out.
-- A view swap in one container is a crossfade: `popLayout`, not the default mode, which plays the two views one after the other. `mode="wait"` is only for the two-rich-states case.
+- A view swap in one container is a crossfade: `popLayout`, not the default `sync` mode. `sync` keeps the leaving view in the layout, so both views stack until the exit ends. `mode="wait"`, which plays them one after the other, is only for the two-rich-states case.
 - One timing family per component: set it once with `MotionConfig` or one shared CSS custom property.
 - Exits read state when they start: pass the direction through `custom` on both `AnimatePresence` and the child.
-- Gate actions on completion with a `useRef` boolean, not state. Await several animations with `await Promise.all(...)`.
+- Await several animations with `await Promise.all(...)`.
 - Rapid view switching with `AnimatePresence` can leave two children mounted; give each a stable, unique `key`.
 - Reduced motion: `@media (prefers-reduced-motion: reduce)` or Motion's `useReducedMotion`.
 
-## Overlap: CSS stagger with an index variable
+## Overlap: CSS stagger with a delay variable
 
-For one-shot entrances (a hero, a personal site intro). The delay is computed per element from a custom property, so you don't need one class per item.
+For one-shot entrances (a hero, a personal site intro). Each element carries its own delay in a custom property, so you do not need one class per item. The gaps shrink along the group (120ms, then 80ms), so it reads as a wave, not a metronome.
 
 ```tsx
 <div className="stagger">
-  <h1 style={{ "--i": 0 }}>Title</h1>
-  <p style={{ "--i": 0 }}>First paragraph, same beat as the title</p>
-  <p style={{ "--i": 1 }}>Supporting paragraph</p>
-  <div style={{ "--i": 2 }}>CTAs</div>
+  <h1 style={{ "--delay": "0ms" }}>Title</h1>
+  <p style={{ "--delay": "0ms" }}>First paragraph, same beat as the title</p>
+  <p style={{ "--delay": "120ms" }}>Supporting paragraph</p>
+  <div style={{ "--delay": "200ms" }}>CTAs</div>
 </div>
 ```
 
 ```css
 .stagger > * {
-  --step: 120ms;
   animation: enter 0.6s ease both;
-  animation-delay: calc(var(--step) * var(--i));
+  animation-delay: var(--delay, 0ms);
 }
 
 @keyframes enter {
@@ -103,7 +102,7 @@ const decoration = {
 - Each role gets its own variant (distance, duration). The stagger only sets *when* each one starts.
 - `stagger(0.05, { from: "center" })` radiates out from the middle. Use a number index to radiate from the item the user interacted with.
 - Older Motion versions use `staggerChildren: 0.06` instead of `delayChildren: stagger(...)`.
-- For long lists, give items beyond the first ~6 the same delay as the 6th, so the group never takes longer than ~300ms.
+- For long lists, give items beyond the first 5 the same delay as the 5th, so the group never takes longer than about 300ms.
 
 ## Together: remove the exiting element from the flow
 
@@ -163,7 +162,7 @@ const fadeDuration = useMemo(() => {
         initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.96 }}
-        transition={{ duration: fadeDuration, ease: [0.26, 0.08, 0.25, 1] }}
+        transition={{ duration: fadeDuration, ease: "easeOut" }}
       >
         {content}
       </motion.div>
@@ -218,7 +217,7 @@ For small containers or similar views, swap the 110% slide for a crossfade with 
 
 .checkmark {
   animation: draw 0.4s cubic-bezier(0.645, 0.045, 0.355, 1) forwards;
-  animation-delay: 0.6s; /* = the square's duration */
+  animation-delay: 0.5s; /* just before the square's 0.6s ends */
 }
 
 @keyframes draw {
@@ -226,7 +225,7 @@ For small containers or similar views, swap the 110% slide for a crossfade with 
 }
 ```
 
-With `pathLength="100"` on both paths, `stroke-dasharray: 100; stroke-dashoffset: 100` hides each one with round numbers. To make the handoff read as one gesture, start the checkmark slightly before the square finishes (e.g. 0.5s).
+With `pathLength="100"` on both paths, `stroke-dasharray: 100; stroke-dashoffset: 100` hides each one with round numbers. The checkmark starts 0.1s before the square finishes, so the handoff reads as one gesture.
 
 ## Sequence: morph between two rich states with a crossfade
 
@@ -260,7 +259,6 @@ Use this only when several elements coordinate across several events and you nee
 ```tsx
 const [scope, animate] = useAnimate();
 const running = useRef<ReturnType<typeof animate>[]>([]);
-const ready = useRef(false); // a flag that never renders, so no useState
 
 function play(steps: ReturnType<typeof animate>[]) {
   running.current.forEach((a) => a.stop()); // never stack sequences
@@ -269,7 +267,6 @@ function play(steps: ReturnType<typeof animate>[]) {
 }
 
 const onEnter = async () => {
-  ready.current = false;
   await play([
     animate("[data-animate='icon']", { y: -4 }, { duration: 0.3 }),
     ...[...scope.current.querySelectorAll("[data-animate='line']")].map((el, i) =>
@@ -280,11 +277,9 @@ const onEnter = async () => {
       ),
     ),
   ]);
-  ready.current = true;
 };
 
 const onClick = () => {
-  if (!ready.current) return;
   // A repeat action skips the buildup: the same proportions, earlier in the timeline
   play([animate("[data-animate='bg']", { scale: [1, 0.96, 1.02, 1] }, { duration: 0.4 })]);
 };
