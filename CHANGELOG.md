@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.17
+
+New skill `ui-suite:paint-surface`: when you ask for a page that should look like real paper, cloth, water or glass under light, it asks first whether to paint the surface with paint-kit (https://github.com/bnhoang2k/paint-kit). On yes it clones and builds the kit, uses its `init` command (paint-kit 0.1.2 or newer) and follows the kit's own `AGENTS.md`. `workflow:overnight` is now listed in the README and REFERENCE. Update the ui-suite plugin to get the new skill.
+
 ## 0.2.16
 
 The six motion skills and break-ui carry the 2026-11-13 fixes from emilkowalski/skills: stagger recipes with uneven gaps, the right AnimatePresence mode and Motion spring settings, current Vaul selectors, only `transform` and `opacity` counted as compositor-only, modals, drawers, sheets and toasts allowed past the 300ms cap, and a line-clamp recipe that works. `/ui-suite:taste` gains a `harvest` mode that finds the UI corrections from a session you never logged and runs each one you pick through `add`. Update the motion and ui-suite plugins to get them. In the workflow plugin, publish-public's blindness check no longer fails when the reviewer guesses a first name from your own login email.

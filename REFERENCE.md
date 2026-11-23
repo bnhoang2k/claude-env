@@ -17,13 +17,13 @@ To try a working copy of a group for one session, run `claude --plugin-dir plugi
 Call a skill as `<group>:<skill>`.
 
 - **ui-suite**: UI taste, lint, break-test and consistency skills, with the hooks that inject taste rules, gate unlinted pages, and make Claude point at a page instead of describing it.
-  Skills: `ui-suite:taste`, `ui-suite:ui-taste`, `ui-suite:lint-ui`, `ui-suite:break-ui`, `ui-suite:inspo-sweep`, `ui-suite:unify-ui`, `ui-suite:ui-iteration-guardrail`, `ui-suite:show-me`, `ui-suite:explain-as-machine`.
+  Skills: `ui-suite:taste`, `ui-suite:ui-taste`, `ui-suite:lint-ui`, `ui-suite:break-ui`, `ui-suite:inspo-sweep`, `ui-suite:unify-ui`, `ui-suite:ui-iteration-guardrail`, `ui-suite:show-me`, `ui-suite:explain-as-machine`, `ui-suite:paint-surface`.
 - **motion**: study how a page or clip moves and rebuild the mechanism; choreograph, tune, speed up, add or cut motion.
   Skills: `motion:steal-mechanism`, `motion:choreograph`, `motion:gestures`, `motion:animation-performance`, `motion:animation-vocabulary`, `motion:find-animation-opportunities`, `motion:remove-animations`.
 - **models**: check 3D models and rooms for geometry and layout defects before they ship.
   Skills: `models:build-models`, `models:break-models`, `models:break-scene`.
 - **workflow**: planning, review, documentation and hand-off skills for long agent-driven work.
-  Skills: `workflow:archive-plans`, `workflow:babysitter`, `workflow:behavior-tests`, `workflow:blind-panel`, `workflow:brainstorming`, `workflow:handoff`, `workflow:llm-pipeline-spike`, `workflow:new-project`, `workflow:plan-review`, `workflow:prior-art-check`, `workflow:publish-public`, `workflow:recall`, `workflow:subagent-driven-development`, `workflow:systematic-debugging`, `workflow:where-are-we`, `workflow:workflow-fanout-budget`, `workflow:writing-plans`, `workflow:writing-project-docs`.
+  Skills: `workflow:archive-plans`, `workflow:babysitter`, `workflow:behavior-tests`, `workflow:blind-panel`, `workflow:brainstorming`, `workflow:handoff`, `workflow:llm-pipeline-spike`, `workflow:new-project`, `workflow:overnight`, `workflow:plan-review`, `workflow:prior-art-check`, `workflow:publish-public`, `workflow:recall`, `workflow:subagent-driven-development`, `workflow:systematic-debugging`, `workflow:where-are-we`, `workflow:workflow-fanout-budget`, `workflow:writing-plans`, `workflow:writing-project-docs`.
 - **figures**: isometric technical figures and product reveals built as interactive pages.
   Skills: `figures:anatomy`, `figures:anatomy-reveal`, `figures:hairline-create`.
 - **bnhoang2k**: installs the five groups above. It has no skills of its own.
@@ -66,6 +66,7 @@ python3 plugins/models/skills/break-models/scripts/preflight.py
 | `ui-suite:ui-iteration-guardrail` | Nothing | Nothing |
 | `ui-suite:show-me` | Claude desktop app tools `mcp__visualize__read_me` and `mcp__visualize__show_widget` | Builds the picture as an HTML file or Artifact and says where it is |
 | `ui-suite:explain-as-machine` | The `figures` plugin (the `anatomy` skill), Node, `python3` to serve the page, Chrome (https://www.google.com/chrome/) for the check screenshot. The skill sets `ANATOMY_DIR` itself | No machine page without `figures`; see "Groups that use each other" |
+| `ui-suite:paint-surface` | For the yes path: git, Node 26 and pnpm (https://pnpm.io/installation), and a clone of https://github.com/bnhoang2k/paint-kit built with `pnpm install`, `pnpm exec playwright install chromium` and `pnpm build`, version 0.1.2 or newer for its `init` command. The ask itself needs nothing | Says which tool is missing and asks how to continue |
 | `motion:steal-mechanism` | Claude Code's Workflow tool, `ffmpeg` (https://ffmpeg.org/download.html), and Playwright or Puppeteer (an npm library an agent can drive). Intake adds a clone of https://github.com/bnhoang2k/motion-kit (`MOTION_KIT`), `pnpm` (https://pnpm.io/installation), `pnpm install` run once in the clone, Node inside the kit's `engines.node` range, and the `workflow` plugin's publish scripts (`PUBLISH_PUBLIC_SCRIPTS`). Preflight, with the mode | The skill stops before it launches and shows the `needs` lines |
 | `motion:choreograph` | Nothing. A screen recorder helps the frame-by-frame check | The feel check is reasoned from code and marked as not seen |
 | `motion:gestures` | Nothing. A real touch device helps the touch checklist | Touch findings are marked as not tested on hardware |
@@ -81,6 +82,7 @@ python3 plugins/models/skills/break-models/scripts/preflight.py
 | `workflow:behavior-tests` | Nothing to run beyond the project's own test runner | Write the tests by hand and plant the fault yourself |
 | `workflow:blind-panel` | The Agent tool, for the reviewer subagents | No blind reviewers; review the artifact yourself |
 | `workflow:brainstorming` | Nothing to run. Optional: Node for the visual companion, and the Agent tool for the builder check. | Talk the design through by hand before any code |
+| `workflow:overnight` | Nothing to install. Under a babysitter, the `CronList` and `CronDelete` tools, to stop the keep-alive cron at the end | The keep-alive cron is left running; the morning file says so |
 | `workflow:handoff` | `git`, for the branch and status lines | The prompt carries no git lines |
 | `workflow:llm-pipeline-spike` | Nothing to run. Optional: the built-in `anthropic-skills:deep-research` | Find the cause and write the test by hand; search the web directly |
 | `workflow:new-project` | `bash`, `jq`, `python3`, `git`. The lint-preset step needs the `ui-suite` plugin. `NEW_PROJECT_PORTS` moves the ports file | `instantiate.sh` prints `needs jq: https://jqlang.org/download/` and exits 3 |

@@ -1,6 +1,6 @@
 # claude-env
 
-40 skills for Claude Code: build UI, motion, 3D models and technical figures, and run long
+42 skills for Claude Code: build UI, motion, 3D models and technical figures, and run long
 multi-agent jobs without losing the plan or the budget.
 
 <!-- picture: a few things these skills made -->
@@ -24,6 +24,7 @@ Claude builds UI from your principles and references, not its default look.
 
 - `ui-suite:ui-taste`: your taste (principles, a never list, a gallery), read before any UI work.
 - `ui-suite:taste`: add to it: "I like this", a screenshot, a link.
+- `ui-suite:paint-surface`: when a page should look like real paper, cloth, water or glass under light, ask first whether to paint it with paint-kit.
 - Hook `ui-taste-inject`: pastes your taste in whenever a design skill loads or a UI file is edited.
 
 ## Check UI before it ships
@@ -84,6 +85,7 @@ Big jobs fan out to many agents. Keep the cost known up front and the review hon
 
 - `workflow:workflow-fanout-budget`: cap agents, models and cost before a multi-agent run starts.
 - `workflow:babysitter`: run several plans at once, one session each, and check every merge.
+- `workflow:overnight`: keep a plan running while you are away, write every open question in one morning file, and end with a handoff.
 - `workflow:blind-panel`: send reviewers with no context at a plan or change, and compare what they find.
 - `workflow:plan-review`: one reviewer reads a spec or plan against the real code before you build it.
 - `workflow:llm-pipeline-spike`: test prompt or schema changes on a graded pipeline before trusting them.
