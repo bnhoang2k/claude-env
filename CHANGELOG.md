@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.18
+
+The lint and break Stop hooks now check only production UI. They skip test and story files, test and fixture folders, files outside a git repo, git-ignored files, and folders with no build manifest. The first time a new top-level folder gets UI edits, the hook asks once whether it is production or a prototype, and records the answer in that repo's `.claude/ui-gates.json`. Set `UI_GATES_SCOPE=all` to check everything, as before. The break gate now runs once per session from the main session, and reads its subagents' work there; it no longer fires on SubagentStop. A `git` command that names a UI file no longer counts as editing it.
+
+New command `ui-check` (`plugins/ui-suite/skills/lint-ui/ui-check.mjs`) runs the lint and text-edge checks on a list of pages in one go, with its own local server. break-ui and lint-ui now say to run break-ui and its fixes first, then lint once. In the workflow plugin, the babysitter stamps each clean gates run with the git tree it checked, and skips re-running the gates on a merge whose tree already passed. Update the ui-suite and workflow plugins to get them.
+
 ## 0.2.17
 
 New skill `ui-suite:paint-surface`: when you ask for a page that should look like real paper, cloth, water or glass under light, it asks first whether to paint the surface with paint-kit (https://github.com/bnhoang2k/paint-kit). On yes it clones and builds the kit, uses its `init` command (paint-kit 0.1.2 or newer) and follows the kit's own `AGENTS.md`. `workflow:overnight` is now listed in the README and REFERENCE. Update the ui-suite plugin to get the new skill.

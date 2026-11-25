@@ -7,7 +7,15 @@ description: "Use before calling any web UI or HTML Artifact done, and whenever 
 
 Three checks on the page as it renders. The **copy pass** judges wording, which no tool can. The **ruler** (lintapple) measures boxes and stock phrases. The **text-edge check** catches what the ruler cannot: text pushed out of line by an icon, a dot or padding. The ruler's alignment rule runs only on elements you mark, so an unmarked `Passed: 0 UI findings` says nothing about text edges. The text-edge check needs no marks, and the end-of-turn gate requires it. Together they enforce ui-suite:ui-taste principle 1 (form speaks, words don't) and principle 4 (order you can measure). They do not replace the real-target walk in ui-suite:ui-taste `## 5. Process`, step 1.
 
-Serve the page first. The browser pane refuses `file://`. For loose HTML or an Artifact, run `python3 -m http.server 8765 & SRV=$!; <commands>; kill $SRV` in its folder, in one foreground command. For an app, use its dev server.
+**Run it last, once.** Every edit after a pass needs a new pass, so when ui-suite:break-ui runs in the same task, finish break-ui and its fixes first, then lint once over the demo and worst-case states.
+
+**One command runs both measured checks** (the ruler in section 2 and the text-edge check in section 3):
+
+`npx -y -p lintapple@0.1.20 node ${CLAUDE_PLUGIN_ROOT}/skills/lint-ui/ui-check.mjs <page.html or url> [more ...]`
+
+It serves `.html` paths itself, so there is no server to start, wait for or stop. Pass every changed page and state in one run (an app's dev-server URLs, `?data=worst`). It uses `ui-policy.json` from beside the first page or the current folder, else this skill's default, and prints `Passed: ...` and `Text edges: ...` first, then each page's findings. The end-of-turn gate counts one passing run as both checks, when it names every changed page. Add `--ready '<selector>'` for a page that loads late, and `--widths` as in section 3.
+
+The copy pass and the browser pane need a served page (the pane refuses `file://`): for loose HTML, run `python3 -m http.server 8765 & SRV=$!; <commands>; kill $SRV` in its folder, in one foreground command. For an app, use its dev server.
 
 ## 1. Copy pass (first: cuts change the layout)
 
@@ -27,7 +35,7 @@ Serve the page first. The browser pane refuses `file://`. For loose HTML or an A
    - `data-ui-stack` on stacks, `data-ui-actions` on button groups, `data-ui-container` on surfaces with a visible edge (border or background) that hold buttons, `data-ui-content` on text boxes, `data-ui-number` on changing numbers, `data-ui-radius` and `data-ui-radius-inner` on nested rounded surfaces.
    - Icon buttons need a linked `role="tooltip"` element (`aria-describedby` or `data-ui-tooltip`).
    - `data-ui-embed` on the root of an embedded screen of another product: a facsimile, replica or live demo of that app, set in its own type and colors on purpose. The policy's one built-in exception skips its subtree for that product's design rules (type, contrast, clipping, spacing, number alignment, control sizing, copy). Accessibility and page-level rules still run, and every skipped finding prints as suppressed. Mark only a screen that copies another product; the page's own parts never get it.
-3. Run it: `npx -y lintapple@0.1.20 http://localhost:8765/page.html --config ui-policy.json`. Add `--ready '<selector>'` for a page that loads late. The first run downloads Chromium (about 94 MB). Tally a long run with `grep -E '^[a-z-]+ \(' | sort | uniq -c`.
+3. Run it with `ui-check.mjs` (above), or alone: `npx -y lintapple@0.1.20 http://localhost:8765/page.html --config ui-policy.json`. Add `--ready '<selector>'` for a page that loads late. The first run downloads Chromium (about 94 MB). Tally a long run with `grep -E '^[a-z-]+ \(' | sort | uniq -c`.
 4. Read the exit code. 0 is a pass. 1 is findings. 2 means the check did not finish, which is not a pass. Keep the first output line (`Passed: 0 UI findings ...` or `Failed: N UI findings ...`) in what the command prints. The end-of-turn check (`lint-ui-gate.py`) lets a turn end only when it sees `Passed: 0 UI findings` from a lintapple run on the changed page **and** a passing text-edge check (section 3) or `data-ui-align` marks in the changed code.
 5. Cover every changed state: empty, ui-suite:break-ui's worst-case data, menu or dialog open. A plain run does not test hover, focus or open states (the JSON says "not tested without an interaction plan"). Run a copy of the page with that state rendered, or pass `--interactions <plan.json>` (format: `src/interactions.js` in the package).
 

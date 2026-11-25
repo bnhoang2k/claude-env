@@ -1,7 +1,7 @@
 {
   "name": "motion",
   "description": "Study how a page or clip moves and rebuild it; choreograph, tune, speed up, add or cut motion",
-  "version": "0.2.17",
+  "version": "0.2.18",
   "author": {
     "name": "claude-env maintainers"
   }

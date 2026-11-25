@@ -21,7 +21,9 @@ The babysitter never builds, edits plan code, or runs a plan's tasks itself.
 2. **The gates script.** Write one script that runs the full gates with every env var set,
    and that builds any per-checkout fixture that git ignores (a golden file, for example)
    when it is missing. Every session uses this script. A skipped test counts as a gap,
-   never as a pass.
+   never as a pass. On a clean tree that passes, the script saves its output as
+   `gates/<tree>.log` beside the log, where `<tree>` is `git rev-parse HEAD^{tree}`: a
+   fingerprint of every tracked file. A dirty tree gets no stamp.
 3. **Two lists for the user.** Keep "Calls to check (cost if wrong)" and "User-only" in the
    log. These lists feed the final handoff.
 4. **The cache keep-alive.** Keep every session's
@@ -119,10 +121,18 @@ The babysitter never builds, edits plan code, or runs a plan's tasks itself.
 
 - Each plan merges to main once, at close-out, after one full gates run.
   Inside a plan, steps run only the suites they touched.
-- After that merge, run the gates script yourself once and log its output.
+- After that merge, read `git rev-parse HEAD^{tree}`. When the script saved a passing
+  `gates/<tree>.log` for that exact tree (the session's close-out run, and main did not move
+  under it), log that file's counts instead of running again: the same files give the same
+  result. Otherwise (main moved, or you resolved a conflict) run the gates script once and
+  log its output.
 - Run it from a quiet tree. If a sibling fast-forwards the same working tree during your
   run, the result does not count. Re-run on the new head.
-- A session's own "N passed" is its report, not proof. Your run is the proof.
+- A session's own "N passed" is its report, not proof. The proof is the script's own log
+  for this exact tree, or your run.
+- UI checks (`ui-suite:lint-ui`, `ui-suite:break-ui`) run once, in the session that built
+  the UI. Never run them again on merged work. The UI gates do not count a git merge,
+  checkout or restore as a UI change.
 - **"Merge now?" and nothing else.** When a session reports done with a handoff for the
   next piece, ask only "Merge now?". Skip the question when the user already said to merge
   in this babysitter session. Then merge, run the gates script, log the counts and clean up.

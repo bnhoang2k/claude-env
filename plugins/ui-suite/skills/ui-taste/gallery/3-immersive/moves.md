@@ -601,7 +601,7 @@ Copy the feel, never the layout.
 - **A sweep turns over a still dial: points appear at its soft front and clear at its hard edge, in a known order** `light-is-the-reading`
   Rung fit: Rung 2 has no loop. This sweep is a heartbeat with an order the eye can predict, unlike the existing twinkles on random timers. The label build order (line, square, text) is a small rung 3 detail worth keeping. Nearest existing move: 'A list rolls on a shared beat; the current item is bright and its neighbors fade by distance'. The meridian line is an analogy only, not motion evidence.
   Travels to: Loading (each found result appears where it sits; invented, not seen), Data chart (hour of day or season), a Dashboard single metric, a calendar view.
-  Reduce motion: The wedge parks at 12 o'clock, and all points and labels show at full strength. Parking is our change.
+  Reduce motion: The wedge parks at 12 o'clock, and all points and labels show at full strength. The source has no reduced-motion state; this one is added.
 
 ### Self-playing demos
 

@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
-"""Stop and SubagentStop hook: the break skills run once per session, and their finds get fixed.
+"""Stop hook: the break skills run once per session, and their finds get fixed.
 
 Why it exists: the break skills were skipped when nothing forced them. The hook makes each
 run once per session, and the agent must fix what the run finds.
 
-Reads the whole transcript (a subagent's own transcript on SubagentStop). After the
+Reads the whole transcript, plus the tool calls in this session's subagent transcripts
+(<session-id>/subagents/*.jsonl beside it), merged in by time. So a UI edit an implementer
+subagent made counts at the main session's Stop, and break-ui runs once for the session,
+not once in every subagent (the hook is no longer wired on SubagentStop). After the
 first web UI change (what lint-ui-gate counts as one, including a page a script wrote,
 found by its modified time), a Skill call to ui-suite:break-ui must appear somewhere later in it.
 After the first 3D change (an Edit/Write or shell write of a .glb, .gltf, .blend,
@@ -19,7 +22,11 @@ after an unchecked change does not block.
 A skip also counts when the user picks it on an AskUserQuestion card (an answer such as
 "Skip break (Recommended)"); only the answer value is read, never the question text.
 
-Never blocks when stop_hook_active is set (loop guard). A "skip break" from the user
+Only production UI counts (lib/ui_scope.py; lint-ui-gate asks about unclassified folders,
+and this hook counts their changes once the answer says production).
+
+Never blocks when stop_hook_active is set (loop guard), except once right after a card
+answer that classifies a folder. A "skip break" from the user
 holds across turns, so one skip covers an exploration round: it lasts until a break skill
 runs after it, or until the user says "run break". Gap: if neither happens, the gate stays
 quiet for the rest of the session. Any error exits 0 silently.
@@ -54,6 +61,9 @@ UI_SKILLS = ("break-ui",)
 MODEL_SKILLS = ("break-models", "break-scene")
 PLUGIN_NAME = {"break-ui": "ui-suite:break-ui", "break-models": "models:break-models",
                "break-scene": "models:break-scene"}  # what the reason tells the agent to invoke
+# A subagent line worth parsing names a UI or model file, a Skill call or a Blender change.
+SUB_HINT = re.compile(r"\.(?:html?|css|scss|jsx|tsx|vue|svelte|astro|glb|gltf|blend|fbx|obj|usdz)\b"
+                      r"|\"Skill\"|mcp__blender__", re.I)
 SKIP = "skip break"
 SKIP_SAID = re.compile(r"\bskip\b[^.\n]{0,24}?\bbreak", re.I)  # "skip break", "skip lint and break"
 RUN_SAID = re.compile(r"\brun (?:the )?break", re.I)
@@ -80,10 +90,18 @@ def is_model_change(name, inp, cwd=""):
     return False
 
 
-def is_ui_change(name, inp, cwd="", window=(None, None)):
+def ui_paths(name, inp, cwd="", window=(None, None)):
+    """(production UI paths, asks) this call wrote."""
     if lint.is_ui_change(name, inp, cwd):
-        return True
-    return name == "Bash" and bool(lint.bash_ui_writes(str(inp.get("command", "")), cwd, window))
+        return lint.split_scope([str(inp.get("file_path", ""))], cwd)
+    if name == "Bash":
+        cmd = str(inp.get("command", ""))
+        return lint.split_scope(lint.bash_ui_writes(cmd, cwd, window), cwd, cmd)
+    return [], []
+
+
+def is_ui_change(name, inp, cwd="", window=(None, None)):
+    return bool(ui_paths(name, inp, cwd, window)[0])
 
 
 def _window(entries, i):
@@ -170,13 +188,31 @@ def reason_for(missing):
     names = ", ".join(PLUGIN_NAME.get(m, m) for m in missing)
     return (f"This session changed UI or 3D work and these break skills never ran: {names}. "
             "Invoke each with the Skill tool on what you changed, then fix every break it "
-            "reports before you finish, and say what you fixed. Once per session is enough. "
+            "reports before you finish, and say what you fixed. Do this before any lint run: its "
+            "fixes change the UI, so lint once at the end, over the demo and worst-case states. "
+            "Once per session is enough. "
             f"The user can say \"{SKIP}\" to bypass; it holds until a break skill runs.")
 
 
+def session_asks(entries, cwd=""):
+    """Unclassified folders the session's UI writes fall in."""
+    asks = []
+    for i, entry in enumerate(entries):
+        for block in lint.tool_uses(entry):
+            name, inp = block.get("name"), block.get("input") or {}
+            if not skill_name(name, inp):
+                asks += ui_paths(name, inp, entry.get("cwd") or cwd, _window(entries, i))[1]
+    return list(dict.fromkeys(asks))
+
+
 def decide(entries, stop_hook_active, last_user_text, cwd=""):
-    if stop_hook_active or SKIP_SAID.search(last_user_text or "") or skip_holds(entries):
+    if SKIP_SAID.search(last_user_text or "") or skip_holds(entries):
         return None
+    if stop_hook_active and not lint.scope.rearmed(entries[_turn_start(entries):], lint.card_answers):
+        return None
+    asks = session_asks(entries, cwd)
+    if asks:  # save card answers the lint gate may not have seen (its skip can be on)
+        lint.scope.apply_card_answers([lint.card_answers(e) for e in entries], asks)
     kinds = turn_kinds(entries, cwd)
     missing = [s for s in missing_skills(entries, cwd)
                if ("ui" if s in UI_SKILLS else "model") in kinds]
@@ -184,19 +220,53 @@ def decide(entries, stop_hook_active, last_user_text, cwd=""):
 
 
 def session_entries(path):
-    """Every assistant entry with a tool call and every real user message, read forward;
-    other lines (tool results among them) are skipped unparsed."""
+    """Every assistant entry with a tool call, every real user message, card answer and Stop
+    hook block, read forward; other lines (tool results among them) are skipped unparsed."""
     out = []
     with open(path, encoding="utf-8", errors="replace") as fh:
         for line in fh:
             is_call = '"tool_use"' in line
             is_card = '"tool_result"' in line and (lint.CARD_PREFIX in line or '"answers"' in line)
-            if not is_call and not is_card and ('"user"' not in line or '"tool_result"' in line):
+            is_block = lint.scope.FEEDBACK in line and '"isMeta"' in line
+            if not (is_call or is_card or is_block) and ('"user"' not in line or '"tool_result"' in line):
                 continue
             entry = lint._parse(line)
-            if entry is not None and (is_call or lint.is_real_user(entry) or (is_card and lint.card_answers(entry))):
+            if entry is not None and (is_call or lint.is_real_user(entry) or lint.scope.is_feedback(entry)
+                                      or (is_card and lint.card_answers(entry))):
                 out.append(entry)
     return out
+
+
+def subagent_calls(path):
+    """The tool-call entries of this session's subagents (<stem>/subagents/*.jsonl beside the
+    main transcript). Only calls: a subagent's own prompt is not a user turn here."""
+    folder = os.path.join(os.path.splitext(path)[0], "subagents")
+    out = []
+    try:
+        names = sorted(n for n in os.listdir(folder) if n.endswith(".jsonl"))
+    except OSError:
+        return out
+    for name in names:
+        with open(os.path.join(folder, name), encoding="utf-8", errors="replace") as fh:
+            for line in fh:
+                if '"tool_use"' in line and SUB_HINT.search(line):  # parse only calls that can matter
+                    entry = lint._parse(line)
+                    if entry is not None and lint.tool_uses(entry) and lint._when(entry) is not None:
+                        out.append(entry)
+    return out
+
+
+def merge_by_time(main, extra):
+    """main with extra spliced in by timestamp; main keeps its order, and an extra entry goes
+    after every main entry at or before its time. Main entries with no time take the time
+    of the entry before them."""
+    keyed, last = [], float("-inf")
+    for i, e in enumerate(main):
+        t = lint._when(e)
+        last = t if t is not None else last
+        keyed.append(((last, 0, i), e))
+    keyed += [((lint._when(e), 1, j), e) for j, e in enumerate(extra)]
+    return [e for _, e in sorted(keyed, key=lambda kv: kv[0])]
 
 
 def last_user_text(path):
@@ -207,8 +277,9 @@ def last_user_text(path):
 def main():
     try:
         data = json.load(sys.stdin)
-        path = os.path.expanduser(data.get("agent_transcript_path") or data["transcript_path"])
-        reason = decide(session_entries(path), bool(data.get("stop_hook_active")),
+        path = os.path.expanduser(data["transcript_path"])
+        entries = merge_by_time(session_entries(path), subagent_calls(path))
+        reason = decide(entries, bool(data.get("stop_hook_active")),
                         last_user_text(path), str(data.get("cwd") or ""))
     except Exception:  # never break stopping
         sys.exit(0)

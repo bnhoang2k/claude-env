@@ -260,7 +260,7 @@ Copy the feel, never the layout.
   Reduce motion: Two fixed states switch at a scroll threshold with a short crossfade. No scale or travel.
 
 - **Pick a spot on a flat plan, and the view moves to what you would see from there** `pick-a-seat-on-a-plan`
-  Rung fit: Rung 2 draws depth at one angle and gives the viewer no place. Here the viewer picks a place from a flat plan. It sharpens differences 2 and 7. The user first rated the demo peak, then demoted it, so it is a normal reference. FocusFlight is a view toggle, not a pick on a plan, and its change between views is not seen. Nearest moves: 'The scene answers the viewer's position or tilt' and the Map move that flies to a place.
+  Rung fit: Rung 2 draws depth at one angle and gives the viewer no place. Here the viewer picks a place from a flat plan. It sharpens differences 2 and 7. FocusFlight is a view toggle, not a pick on a plan, and its change between views is not seen. Nearest moves: 'The scene answers the viewer's position or tilt' and the Map move that flies to a place.
   Travels to: Shop (seats, rooms, desks), Map and wayfinding, a Settings layout preview, a Data chart vantage, Dashboard overview and close seats.
   Reduce motion: Read in source: fade to black in 0.25 s, jump, fade back in over 0.35 s. The preview stays a still thumbnail.
 
@@ -357,7 +357,7 @@ Copy the feel, never the layout.
 - **A sweep turns over a still dial: points appear at its soft front and clear at its hard edge, in a known order** `light-is-the-reading`
   Rung fit: Rung 2 has no loop. This sweep is a heartbeat with an order the eye can predict, unlike the existing twinkles on random timers. The label build order (line, square, text) is a small rung 3 detail worth keeping. Nearest existing move: 'A list rolls on a shared beat; the current item is bright and its neighbors fade by distance'. The meridian line is an analogy only, not motion evidence.
   Travels to: Loading (each found result appears where it sits; invented, not seen), Data chart (hour of day or season), a Dashboard single metric, a calendar view.
-  Reduce motion: The wedge parks at 12 o'clock, and all points and labels show at full strength. Parking is our change.
+  Reduce motion: The wedge parks at 12 o'clock, and all points and labels show at full strength. The source has no reduced-motion state; this one is added.
 
 ### Light as the moving thing
 

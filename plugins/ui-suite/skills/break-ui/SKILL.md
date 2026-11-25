@@ -208,7 +208,7 @@ When the user names no level, use standard. Say once, at the end: "Ran at standa
 
 **Short look here:** the worst-case dataset only, at the component's real container width, plus one `hover-shift.js` run. The 320px and widest layouts, 200% zoom, dark mode, RTL, and the Empty, One and Huge states are not checked.
 
-**Cheap check here:** the project's gates (lint, type check, tests), plus `hover-shift.js` when a fix touched a hover. The fixed breaks are not screenshotted again; list them as not checked. **Full fix round here:** Phase 6, every toggle state.
+**Cheap check here:** the project's gates (type check, tests), plus `hover-shift.js` when a fix touched a hover, then one ui-suite:lint-ui run (`ui-check.mjs`) over the demo and worst-case states, after the fixes and never before them: a lint before the fixes is redone. The fixed breaks are not screenshotted again; list them as not checked. **Full fix round here:** Phase 6, every toggle state.
 
 ## Invocation Variants
 

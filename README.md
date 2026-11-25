@@ -34,15 +34,16 @@ Claude builds UI from your principles and references, not its default look.
 Find what a screenshot hides: overlaps, bad data, drift between screens, fixes that break something else.
 
 - `ui-suite:lint-ui`: measure a page for overlapping text, tiny buttons and low contrast.
+- Tool `ui-check.mjs`: runs lint-ui's two measured checks over several pages in one command, and serves `.html` files itself.
 - `ui-suite:inspo-sweep`: search Mobbin and the web cheaply for how other apps handle a UI idea, with cited links.
 - `ui-suite:break-ui`: feed a screen worst-case data (long names, emoji, zero items) and list what broke.
 - `ui-suite:unify-ui`: find screens that build the same thing two ways, and merge them.
 - `ui-suite:ui-iteration-guardrail`: list what must not break before a fix, and check it after each try.
-- Hook `lint-ui-gate`: after a UI edit, blocks the end of Claude's turn once if no passing lint-ui run covers the change. To skip it, write `skip lint` in your next message.
+- Hook `lint-ui-gate`: after an edit to production UI, blocks the end of Claude's turn once if no passing lint-ui run covers the change. Tests, stories, files outside a git repo, git-ignored files and repos with no build manifest (such as `package.json`) never count. The first time UI changes in a new top-level folder of an app repo, Claude asks you on a card whether it holds production UI or prototypes, and the answer is saved in that repo's `.claude/ui-gates.json`. To skip it, write `skip lint` in your next message.
 - Hook `design-read-gate`: before a UI edit in a repo with a DESIGN.md, blocks the edit until Claude has read that DESIGN.md in full since the last compact. To skip it, write `skip design read` in your message.
 - Tool `point.js`: rings parts of the open page with lettered tags, or lists many parts as cards you answer yes or no on the page.
 - Hook `point-gate`: holds a reply that describes the open page in words until Claude points at the parts, and holds rings that overlap. To skip it, write `skip point` in your message.
-- Hook `break-gate`: after a UI or 3D edit, blocks the end of Claude's turn until the matching break skills have run once that session. To skip it, write `skip break` in your next message.
+- Hook `break-gate`: after a production UI or 3D edit, blocks the end of Claude's turn until the matching break skills have run once that session. It uses the same production rules as `lint-ui-gate`, and counts edits made by subagents, so break-ui runs once in the main session instead of in each subagent. To skip it, write `skip break` in your next message.
 - Tool `ui-lock`: installs lint rules in a React repo that refuse raw colors, sizes and buttons outside your design tokens and components.
 
 ## Explain with pictures

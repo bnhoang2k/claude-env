@@ -46,12 +46,20 @@ A skip also counts when the user picks it on an AskUserQuestion card (an answer 
 "Skip lint (Recommended)"). Only the answer value is read, never the question text, so the
 agent cannot pass by writing "skip lint" in its own question. See card_answers.
 
-Never blocks when stop_hook_active is set (loop guard). A "skip lint" from the user holds
+Never blocks when stop_hook_active is set (loop guard), except once right after a card
+answer that classifies a folder (see below). A "skip lint" from the user holds
 across turns, so one skip covers an exploration round: it lasts until a later lint or
 text-edge run (lintapple, text-edge-auto, story-gate, passing or not), or until the user
 says "run lint". Gap: if neither happens, the gate stays quiet for the rest of the session.
 Any error exits 0 silently.
+
+Only production UI counts (see lib/ui_scope.py): tests, stories, scratchpads,
+git-ignored files, notes repos and folders the user called prototypes are skipped. A change
+in a top-level folder not classified yet blocks with a request to ask the user once on a
+card; the gate saves the answer and, when stop_hook_active is set, checks once more right
+after a fresh answer. An agent's own write to the folder record blocks.
 """
+import importlib.util
 import json
 import os
 import posixpath
@@ -92,16 +100,35 @@ FAIL_LINE = re.compile(r"^Failed:", re.M)
 HOVER_PASS = re.compile(r"^Hover shifts: 0\b", re.M)
 SKIP_SAID = re.compile(r"\bskip\b[^.\n]{0,24}?\blint", re.I)  # "skip lint", "Skip lint and break"
 RUN_SAID = re.compile(r"\brun (?:the )?lint", re.I)
-LINT_RUN = re.compile(r"lintapple|text-edge-auto|story-gate")
+LINT_RUN = re.compile(r"lintapple|text-edge-auto|story-gate|ui-check")
+EDGE_TOOLS = ("text-edge-auto", "story-gate", "ui-check")  # scripts that print the Text edges line
 SLACK = 2.0  # seconds either side of a call's window, for clock and file-system rounding
-REASON = ("Web UI changed this turn and no passing lint covers it. Run the ui-suite:lint-ui skill: "
-          "lintapple on the changed page must print 'Passed: 0 UI findings' (keep that line in "
-          "the output), and the text-edge check must print 'Text edges: 0 near-misses' "
-          "(text-edge-auto.mjs, or text-edge-auto.js in the browser pane). An unmarked lintapple "
-          "pass alone does not count: it skips text alignment unless the page has data-ui-align "
-          "marks. A failed run, or a run on a different page, does not count. The user can "
-          "say \"skip lint\" to bypass.")
+UI_CHECK = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                        "skills", "lint-ui", "ui-check.mjs")
+REASON = ("Web UI changed this turn and no passing lint covers it. If the break gate also asked "
+          "for ui-suite:break-ui, run it and its fixes first: a lint before them is wasted, because "
+          "lint must pass after the last change. Then lint once, over every changed page and state "
+          "(demo and worst case) in one command, which serves .html files itself: "
+          f"`npx -y -p lintapple@0.1.20 node {UI_CHECK} <page.html or url> [more]`. It must print "
+          "'Passed: 0 UI findings' and 'Text edges: 0 near-misses'; keep both lines in the output. "
+          "A failed run, or a run that does not name the changed page, does not count. Do not ask "
+          "the user whether to skip; the user can say \"skip lint\" to bypass.")
 CHUNK = 1 << 20  # read the transcript backwards in 1 MiB chunks
+sys.dont_write_bytecode = True  # a .pyc in hooks/ would embed the home path
+
+
+def _load_scope():
+    here = os.path.dirname(os.path.abspath(__file__))
+    spec = importlib.util.spec_from_file_location("ui_scope", os.path.join(here, "lib", "ui_scope.py"))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+scope = _load_scope()
+RECORD_REASON = (f"You wrote the UI gates' folder record ({scope.RECORD}) yourself. Only the "
+                 "user's card answer may classify a folder: put the file back as it was "
+                 "(git checkout -- it, or delete it if it is new) and ask the user instead.")
 
 
 def is_real_user(entry):
@@ -274,12 +301,23 @@ def _when(entry):
         return None
 
 
+GIT_VERB = re.compile(r"^\s*(?:\w+=\S*\s+)*git\s")
+
+
+def _drop_git(cmd):
+    """cmd without its git segments. A merge, checkout, restore or stash brings in code that
+    was already checked where it was written, so a UI file it names is not a new change. A
+    redirect out of git (git show x:page.html > page.html) is still caught by REDIRECT."""
+    return "\n".join(seg for seg in SEGMENT.split(cmd) if not GIT_VERB.match(seg))
+
+
 def touched_in_window(raw, cwd, window):
     """Web files the command names (heredoc bodies included) whose modified time falls in the
     call's window: whatever wrote them, the call did."""
     start, end = window
     if start is None or end is None:
         return []
+    raw = _drop_git(raw)
     out = []
     for p in dict.fromkeys(UI_PATH.findall(raw)):
         if "://" in p or "$" in p or EXEMPT.search(p) or is_temp_write(p, raw, cwd):
@@ -347,7 +385,18 @@ def is_passing_lint(cmd, res):
             and story_gate_ok(cmd, text))
 
 
+def check_targets(cmd):
+    """Every page a ui-check.mjs command checks: URLs and .html paths after the script."""
+    toks = _tokens(cmd)
+    for i, t in enumerate(toks):
+        if "ui-check" in t:
+            return [u for u in toks[i + 1:] if "://" in u or HTML_EXT.search(u)]
+    return []
+
+
 def lint_url(cmd):
+    if "ui-check" in cmd:
+        return next(iter(check_targets(cmd)), None)
     toks = _tokens(cmd)
     for i, t in enumerate(toks):
         if t.startswith("lintapple"):
@@ -359,14 +408,14 @@ def edge_target(cmd):
     """The page a text-edge-auto.mjs command checks: a URL or an .html path."""
     toks = _tokens(cmd)
     for i, t in enumerate(toks):
-        if "text-edge-auto" in t or "story-gate" in t:
+        if any(tool in t for tool in EDGE_TOOLS):
             return next((u for u in toks[i + 1:] if "://" in u or HTML_EXT.search(u)), None)
     return None
 
 
 def is_passing_edge_run(cmd, res):
     """Bash run of the headless text-edge check that printed the pass line and no failure."""
-    if ("text-edge-auto" not in cmd and "story-gate" not in cmd) or res is None:
+    if not any(tool in cmd for tool in EDGE_TOOLS) or res is None:
         return False
     text, is_error = res
     return (not is_error and bool(EDGE_PASS.search(text)) and not EDGE_FAIL.search(text)
@@ -416,10 +465,13 @@ def covers(changed, cmd, url=None):
     html = [p for p in changed if HTML_EXT.search(p)]
     if len(html) < len(changed):
         return True  # a component or style file has no file-to-URL map: any passing run counts
+    names = {os.path.basename(p).lower() for p in html}
+    if "ui-check" in cmd and "$" not in cmd:  # one run over many pages: it must name each one
+        seen = {(urlsplit(t).path.rsplit("/", 1)[-1] or "index.html").lower() for t in check_targets(cmd)}
+        return names <= seen
     url = url or lint_url(cmd)
     if not url:
         return False
-    names = {os.path.basename(p).lower() for p in html}
     if "$" in url:  # a loop over pages: the changed page must be named in the command
         found = {n.lower() for n in re.findall(r"[\w.-]+\.html?", cmd, re.I)}
         return bool(names & found)
@@ -462,39 +514,47 @@ def skip_holds(path):
     return held
 
 
-def decide(entries, stop_hook_active, cwd="", skip_held=False):
-    if stop_hook_active or skip_held:
-        return None
-    start = -1
-    for i in range(len(entries) - 1, -1, -1):
-        if is_real_user(entries[i]):
-            start = i
-            break
-    if start >= 0 and SKIP_SAID.search(user_text(entries[start])):
-        return None
-    turn = entries[start + 1:]
-    if any(card_said(e, SKIP_SAID) for e in turn):
-        return None
+def split_scope(paths, cwd="", cmd=""):
+    """(production paths, asks) among UI paths: asks are (repo top, folder) pairs not yet in
+    the repo's folder record. Skipped paths are dropped."""
+    prod, asks = [], []
+    for p in paths:
+        kind, detail = scope.classify(resolve_write_path(p, cmd, cwd) if cmd else p, cwd)
+        if kind == scope.PRODUCTION:
+            prod.append(p)
+        elif kind == scope.ASK:
+            asks.append(detail)
+    return prod, asks
+
+
+def _scan(turn, cwd):
+    """(uncovered production changes, asks, agent wrote the record) for one turn."""
     results = results_by_id(turn)
     times = result_times(turn)
-    changed = []
+    changed, asks, wrote = [], [], False
     lint_ok = edge_ok = marked = False
     for entry in turn:
         for block in tool_uses(entry):
             name, inp = block.get("name"), block.get("input") or {}
             res = results.get(block.get("id"))
             here = entry.get("cwd") or cwd  # where this call ran, not where the shell is at Stop
+            window = (_when(entry), times.get(block.get("id")))
+            wrote = wrote or scope.record_write(name, inp, here, window, EDIT_TOOLS)
             if is_ui_change(name, inp, here):
-                changed.append(str(inp.get("file_path", "")))
-                lint_ok = edge_ok = False
-                marked = carries_marks(inp, changed) or marked
+                prod, ask = split_scope([str(inp.get("file_path", ""))], here)
+                asks += ask
+                if prod:
+                    changed += prod
+                    lint_ok = edge_ok = False
+                    marked = carries_marks(inp, changed) or marked
             elif name == "Bash":
                 cmd = str(inp.get("command", ""))
-                writes = bash_ui_writes(cmd, here, (_when(entry), times.get(block.get("id"))))
-                if writes:
-                    changed += writes
+                prod, ask = split_scope(bash_ui_writes(cmd, here, window), here, cmd)
+                asks += ask
+                if prod:
+                    changed += prod
                     lint_ok = edge_ok = False
-                    marked = carries_marks(inp, writes) or marked
+                    marked = carries_marks(inp, prod) or marked
                 elif changed:
                     if is_passing_lint(cmd, res) and covers(changed, cmd):
                         lint_ok = True
@@ -504,6 +564,31 @@ def decide(entries, stop_hook_active, cwd="", skip_held=False):
                 edge_ok = True
             if changed and lint_ok and (edge_ok or marked):
                 changed, lint_ok, edge_ok, marked = [], False, False, False
+    return changed, list(dict.fromkeys(asks)), wrote
+
+
+def decide(entries, stop_hook_active, cwd="", skip_held=False):
+    if skip_held:
+        return None
+    start = -1
+    for i in range(len(entries) - 1, -1, -1):
+        if is_real_user(entries[i]):
+            start = i
+            break
+    if start >= 0 and SKIP_SAID.search(user_text(entries[start])):
+        return None
+    turn = entries[start + 1:]
+    if stop_hook_active and not scope.rearmed(turn, card_answers):
+        return None
+    if any(card_said(e, SKIP_SAID) for e in turn):
+        return None
+    changed, asks, wrote = _scan(turn, cwd)
+    if asks and scope.apply_card_answers([card_answers(e) for e in turn], asks):
+        changed, asks, wrote = _scan(turn, cwd)  # the record changed: judge again
+    if wrote:
+        return RECORD_REASON
+    if asks:
+        return scope.ask_reason(asks) + (" " + REASON if changed else "")
     return REASON if changed else None
 
 
@@ -545,8 +630,10 @@ def main():
         data = json.load(sys.stdin)
         path = data["transcript_path"]
         active = bool(data.get("stop_hook_active"))
-        reason = None if active else decide(tail_entries(path), active, str(data.get("cwd") or ""),
-                                            skip_holds(path))
+        tail = tail_entries(path)
+        if active and not scope.rearmed(tail, card_answers):
+            sys.exit(0)  # loop guard, read before the whole-transcript skip scan
+        reason = decide(tail, active, str(data.get("cwd") or ""), skip_holds(path))
     except Exception:  # never break stopping
         sys.exit(0)
     if reason:
