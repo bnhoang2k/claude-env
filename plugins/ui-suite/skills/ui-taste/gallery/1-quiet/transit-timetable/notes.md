@@ -5,7 +5,7 @@ origin: own
 # Transit timetable
 
 - Idea: a city transit timetable: when does the next departure leave from my stop?.
-- Rung 1, Quiet. Look: quiet. Feel: calm.
+- Rung 1, Quiet. Look: quiet.
 - Source: built in an earlier spike.
 
 Copy its feel, not its layout: take the behavior numbers below; do not copy its layout, content or colors.

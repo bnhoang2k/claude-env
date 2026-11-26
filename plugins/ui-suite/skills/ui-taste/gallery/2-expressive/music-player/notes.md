@@ -5,7 +5,7 @@ origin: own
 # Music player
 
 - Idea: a music player: what is playing now, and its controls.
-- Rung 2, Expressive. Look: loud. Feel: sleek.
+- Rung 2, Expressive. Look: loud.
 - Source: built in an earlier spike.
 
 Copy its feel, not its layout: take the behavior numbers below; do not copy its layout, content or colors.

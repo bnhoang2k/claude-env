@@ -5,7 +5,7 @@ origin: own
 # Bike share, linked pictures
 
 - Idea: one day of bike-share trips, as linked charts and a route map.
-- Rung 2, Expressive. Look: quiet. Feel: sleek.
+- Rung 2, Expressive. Look: quiet.
 - Source: built in an earlier spike.
 
 Copy its feel, not its layout: take the behavior numbers below; do not copy its layout, content or colors.

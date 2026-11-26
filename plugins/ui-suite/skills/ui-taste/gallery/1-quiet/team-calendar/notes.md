@@ -5,7 +5,7 @@ origin: own
 # Team calendar
 
 - Idea: a team calendar for a small studio.
-- Rung 1, Quiet. Look: bold. Feel: sleek.
+- Rung 1, Quiet. Look: bold.
 - Source: built in an earlier spike.
 
 Copy its feel, not its layout: take the behavior numbers below; do not copy its layout, content or colors.

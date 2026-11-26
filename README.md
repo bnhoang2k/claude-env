@@ -1,6 +1,6 @@
 # claude-env
 
-42 skills for Claude Code: build UI, motion, 3D models and technical figures, and run long
+43 skills for Claude Code: build UI, motion, 3D models and technical figures, and run long
 multi-agent jobs without losing the plan or the budget.
 
 <!-- picture: a few things these skills made -->
@@ -64,6 +64,7 @@ When prose is not enough, from a quick sketch to a finished figure.
 
 Say what feels off in your own words ("it just randomly appears", "it teleports"), on any platform.
 
+- `motion:use-motion-kit`: any animation on a web page or Artifact takes its numbers from motion-kit, with no question asked first.
 - `motion:choreograph`: plan one timeline when several things move at once, so they read as one motion.
 - `motion:gestures`: make drags, sliders and flings follow the hand and land where they were heading.
 - `motion:animation-performance`: find why motion freezes or stutters, and fix the cause.

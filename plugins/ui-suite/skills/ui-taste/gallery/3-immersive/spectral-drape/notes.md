@@ -5,7 +5,7 @@ origin: own
 # Spectral Drape
 
 - Idea: a glowing drape of about 44,000 dots folded in 3D, drifting on its own; the pointer dents it and a click rolls a ring across it. Rebuilt from the description on pro.reactbits.dev, not from its code.
-- Rung 3, Immersive. Look: bold. Feel: calm.
+- Rung 3, Immersive. Look: bold.
 - Source: built in an earlier spike (WebGL 2, one file, no build).
 
 Copy its feel, not its layout: take the behavior numbers below; do not copy its layout, content or colors.

@@ -30,7 +30,7 @@
 # The repository is the current directory's (see sdd-repo). -C DIR runs as
 # if started in DIR, the way git -C does: a caller working on another
 # checkout or worktree needs no `cd DIR ;` prefix, a compound that harnesses
-# cannot allowlist because DIR differs on every run (#1799).
+# cannot allowlist because DIR differs on every run.
 #
 # Usage: sdd-workspace [-C DIR] PLAN_FILE
 set -euo pipefail
@@ -59,7 +59,7 @@ slug=$(basename "$plan" .md)
 # repo-relative marker check needs both in the same form. Two steps, so a
 # failing sdd-repo stops the script instead of handing cd an empty path.
 # Invoke via bash rather than direct exec: some extractors (Python zipfile)
-# strip Unix exec bits when unpacking marketplace packages (#2040).
+# strip Unix exec bits when unpacking marketplace packages.
 toplevel=$("${BASH:-bash}" "$here/sdd-repo")
 root=$(CDPATH='' cd -- "$toplevel" && pwd -P)
 base="$root/.planning/sdd"

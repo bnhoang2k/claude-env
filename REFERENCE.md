@@ -19,7 +19,7 @@ Call a skill as `<group>:<skill>`.
 - **ui-suite**: UI taste, lint, break-test and consistency skills, with the hooks that inject taste rules, gate unlinted pages, and make Claude point at a page instead of describing it.
   Skills: `ui-suite:taste`, `ui-suite:ui-taste`, `ui-suite:lint-ui`, `ui-suite:break-ui`, `ui-suite:inspo-sweep`, `ui-suite:unify-ui`, `ui-suite:ui-iteration-guardrail`, `ui-suite:show-me`, `ui-suite:explain-as-machine`, `ui-suite:paint-surface`.
 - **motion**: study how a page or clip moves and rebuild the mechanism; choreograph, tune, speed up, add or cut motion.
-  Skills: `motion:steal-mechanism`, `motion:choreograph`, `motion:gestures`, `motion:animation-performance`, `motion:animation-vocabulary`, `motion:find-animation-opportunities`, `motion:remove-animations`.
+  Skills: `motion:use-motion-kit`, `motion:steal-mechanism`, `motion:choreograph`, `motion:gestures`, `motion:animation-performance`, `motion:animation-vocabulary`, `motion:find-animation-opportunities`, `motion:remove-animations`.
 - **models**: check 3D models and rooms for geometry and layout defects before they ship.
   Skills: `models:build-models`, `models:break-models`, `models:break-scene`.
 - **workflow**: planning, review, documentation and hand-off skills for long agent-driven work.
@@ -68,6 +68,7 @@ python3 plugins/models/skills/break-models/scripts/preflight.py
 | `ui-suite:explain-as-machine` | The `figures` plugin (the `anatomy` skill), Node, `python3` to serve the page, Chrome (https://www.google.com/chrome/) for the check screenshot. The skill sets `ANATOMY_DIR` itself | No machine page without `figures`; see "Groups that use each other" |
 | `ui-suite:paint-surface` | For the yes path: git, Node 26 and pnpm (https://pnpm.io/installation), and a clone of https://github.com/bnhoang2k/paint-kit built with `pnpm install`, `pnpm exec playwright install chromium` and `pnpm build`, version 0.1.2 or newer for its `init` command. The ask itself needs nothing | Says which tool is missing and asks how to continue |
 | `motion:steal-mechanism` | Claude Code's Workflow tool, `ffmpeg` (https://ffmpeg.org/download.html), and Playwright or Puppeteer (an npm library an agent can drive). Intake adds a clone of https://github.com/bnhoang2k/motion-kit (`MOTION_KIT`), `pnpm` (https://pnpm.io/installation), `pnpm install` run once in the clone, Node inside the kit's `engines.node` range, and the `workflow` plugin's publish scripts (`PUBLISH_PUBLIC_SCRIPTS`). Preflight, with the mode | The skill stops before it launches and shows the `needs` lines |
+| `motion:use-motion-kit` | Node and npm, git, network access to https://github.com/bnhoang2k/motion-kit, and Chromium through Playwright (the kit's `init` installs both) | Stop and say which is missing; do not invent motion numbers |
 | `motion:choreograph` | Nothing. A screen recorder helps the frame-by-frame check | The feel check is reasoned from code and marked as not seen |
 | `motion:gestures` | Nothing. A real touch device helps the touch checklist | Touch findings are marked as not tested on hardware |
 | `motion:animation-performance` | Nothing. A profiler (browser DevTools or the platform's own) confirms a cause | Findings are marked "verified from code" or "needs a device recording" |
@@ -131,7 +132,7 @@ All of these are environment variables. Most have a working default. `MOTION_KIT
 
 | Name | What it does | Default |
 |---|---|---|
-| `STEAL_BAR_HOME` | Folder for the pages that `steal-mechanism` builds. chezmoi writes it only when the machine sets `[data] brainRepo = "<the brain repo's folder name>"` in `~/.config/chezmoi/chezmoi.toml` | `.steal-mechanism/bars/` in the current folder |
+| `STEAL_BAR_HOME` | Folder for the pages that `steal-mechanism` builds. set it in your shell or dotfiles to keep the pages in one folder | `.steal-mechanism/bars/` in the current folder |
 | `STEAL_CAPTURES` | Folder for captures of other people's sites | `~/.claude/taste/captures/` |
 | `STEAL_CAPTURES_LINK` | Link folder through which a review page reaches the captures | none (absolute paths are used) |
 | `STEAL_TOOLS` | Folder holding `capture.mjs` and `drive.mjs` | none (agents write their own capture script) |

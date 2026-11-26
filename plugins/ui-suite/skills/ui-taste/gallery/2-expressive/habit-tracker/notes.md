@@ -5,7 +5,7 @@ origin: own
 # Habit tracker
 
 - Idea: a daily habit tracker: which habits are not done yet today.
-- Rung 2, Expressive. Look: bold. Feel: snappy.
+- Rung 2, Expressive. Look: bold.
 - Source: built in an earlier spike.
 
 Copy its feel, not its layout: take the behavior numbers below; do not copy its layout, content or colors.

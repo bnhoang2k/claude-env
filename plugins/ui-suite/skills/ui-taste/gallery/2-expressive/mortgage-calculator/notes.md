@@ -5,7 +5,7 @@ origin: own
 # Mortgage calculator
 
 - Idea: a mortgage calculator whose monthly payment traces back to its inputs.
-- Rung 2, Expressive. Look: bold. Feel: calm.
+- Rung 2, Expressive. Look: bold.
 - Source: built in an earlier spike.
 
 Copy its feel, not its layout: take the behavior numbers below; do not copy its layout, content or colors.

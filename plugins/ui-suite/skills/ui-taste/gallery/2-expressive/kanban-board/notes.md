@@ -5,7 +5,7 @@ origin: own
 # Kanban board
 
 - Idea: a kanban board for a small team: which cards are mine, and where each one is.
-- Rung 2, Expressive. Look: quiet. Feel: calm.
+- Rung 2, Expressive. Look: quiet.
 - Source: built in an earlier spike.
 
 Copy its feel, not its layout: take the behavior numbers below; do not copy its layout, content or colors.

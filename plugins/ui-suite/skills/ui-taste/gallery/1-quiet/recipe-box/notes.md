@@ -5,7 +5,7 @@ origin: own
 # Recipe box
 
 - Idea: a personal recipe box: find the recipe to cook now, by name or by what it uses.
-- Rung 1, Quiet. Look: loud. Feel: whimsical.
+- Rung 1, Quiet. Look: loud.
 - Source: built in an earlier spike.
 
 Copy its feel, not its layout: take the behavior numbers below; do not copy its layout, content or colors.

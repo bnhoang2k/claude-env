@@ -5,7 +5,7 @@ origin: own
 # Bike share, quiet
 
 - Idea: one day of bike-share trips in a made-up city, as a chart.
-- Rung 1, Quiet. Look: quiet. Feel: sleek.
+- Rung 1, Quiet. Look: quiet.
 - Source: built in an earlier spike.
 
 Copy its feel, not its layout: take the behavior numbers below; do not copy its layout, content or colors.

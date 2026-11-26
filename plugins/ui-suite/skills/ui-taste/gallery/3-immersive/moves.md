@@ -466,7 +466,7 @@ Copy the feel, never the layout.
   Reduce motion: Inner content moves with its card at a ratio of 1. Pages snap with a short fade.
 
 - **Full-screen pages, one per swipe, with depth during the change** `full-screen-pages-one-per-swipe-with-depth-during-the-change`
-  Rung fit: Rung 3, the user-paced side. Each page fills the screen, and you choose in and out. Rung 3, look dial loud, feel dial whimsical.
+  Rung fit: Rung 3, the user-paced side. Each page fills the screen, and you choose in and out. Rung 3, look dial loud.
   Travels to: A monthly recap on a dashboard, onboarding, a scrollytelling article, release notes in a tool, a lookbook in a shop, a results page. Year or month recaps, milestone pages, onboarding finish, a shop sale story.
   Reduce motion: Pages snap with a short fade and no parallax. The door page shows the next heading as plain text. Fade between pages; art in place.
 
@@ -483,7 +483,7 @@ Copy the feel, never the layout.
 ### Rings, tracks and carousels
 
 - **Small items circle one center object in a tilted 3D ring** `small-items-circle-one-center-object-in-a-tilted-3d-ring`
-  Rung fit: Rung 3 at a whimsical feel and a loud look. Best for a moment seen once per session.
+  Rung fit: Rung 3 at a loud look. Best for a moment seen once per session.
   Travels to: Dashboards (items around a goal), tools (files around a project), shops (variants around a product), profile or achievement pages.
   Reduce motion: Cards fixed around the center, with two side cards drawn edge-on so the ring still reads.
 
@@ -651,7 +651,7 @@ Copy the feel, never the layout.
 ### Calm feels
 
 - **The frame holds still; one place carries all the motion** `the-frame-holds-still-one-place-carries-all-the-motion`
-  Rung fit: The guard rail for rung 3 (principle 2, the frame holds still). Fits look dial quiet and feel dial calm; a loud subject inside it still reads.
+  Rung fit: The guard rail for rung 3 (principle 2, the frame holds still). Fits look dial quiet; a loud subject inside it still reads.
   Travels to: Every kind of page that wants rung 3 without noise: dashboards (one highlighted chart), settings, forms, shops (a single product hero), docs, articles, empty states, onboarding steps.
   Reduce motion: The living thing frozen in its best pose; the frame is already still.
 
@@ -718,7 +718,7 @@ Copy the feel, never the layout.
   Reduce motion: Final layout, all text shown.
 
 - **Cinematic weight: strong at the edges, light in the middle** `cinematic-weight-strong-at-the-edges-light-in-the-middle`
-  Rung fit: Rung 3 with the sleek feel dial.
+  Rung fit: Rung 3.
   Travels to: Detail views in shops, media libraries, dashboards with drill-down, article heroes, maps.
   Reduce motion: Crossfade in and out; the open view at rest.
 
@@ -834,7 +834,7 @@ Copy the feel, never the layout.
   Reduce motion: All tiles settled with final values; no glow, no sparkles.
 
 - **Toy-like whimsy: light objects wobble, drift and drop** `toy-like-whimsy-light-objects-wobble-drift-and-drop`
-  Rung fit: Rung 3 with the whimsical feel dial.
+  Rung fit: Rung 3.
   Travels to: Onboarding, empty states, theme pickers, kids and hobby tools, success screens, footers.
   Reduce motion: Objects at rest, final colors, no wobble.
 
@@ -849,7 +849,7 @@ Copy the feel, never the layout.
   Reduce motion: One balanced pose.
 
 - **A busy, cheerful juggle that never quite rests** `a-busy-cheerful-juggle-that-never-quite-rests`
-  Rung fit: Rung 3 at a whimsical feel, for a bounded moment only.
+  Rung fit: Rung 3, for a bounded moment only.
   Travels to: Loaders, celebration screens, learning apps, game-like progress, the last step of onboarding.
   Reduce motion: The loop's rest pose.
 

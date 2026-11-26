@@ -5,7 +5,7 @@ origin: own
 # Expense form
 
 - Idea: an expense form for a small team.
-- Rung 1, Quiet. Look: quiet. Feel: snappy.
+- Rung 1, Quiet. Look: quiet.
 - Source: built in an earlier spike.
 
 Copy its feel, not its layout: take the behavior numbers below; do not copy its layout, content or colors.

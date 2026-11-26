@@ -6,67 +6,66 @@ References, anti-references and the user's approved designs. Never injected. Fin
 
 The user's own work. Copy the feel, not the layout: never copy an approved page's layout, content or colours. The ladder pages' palettes and type were a random draw, not a choice. Each `gallery/` folder holds page.html, light.png, dark.png and notes.md with the behavior numbers.
 
-- **Spectral Drape** · 3-immersive, bold, calm, backdrop, webgl · gallery/3-immersive/spectral-drape/
+- **Spectral Drape** · 3-immersive, bold, backdrop, webgl · gallery/3-immersive/spectral-drape/
   use when: one living backdrop carries a page with little text (hero, landing, intro)
   take: it drifts on its own, light rides the crests of the folds, and the pointer and a click answer softly (a dent, a gentle ring); tune its glow against measured brightness, not screenshots
   not for: dense reading or tools; text stacked over it without a measured contrast check; strong ripples that read as tearing
-- **Expense form** · 1-quiet, quiet, snappy, form · gallery/1-quiet/expense-form/
+- **Expense form** · 1-quiet, quiet, form · gallery/1-quiet/expense-form/
   use when: a form or list where every change must land at once
   take: changes land at once; the receipt drop zone's states; a dense list whose head row holds in Safari
   not for: showcase pages
-- **Team calendar** · 1-quiet, bold, sleek, calendar · gallery/1-quiet/team-calendar/
+- **Team calendar** · 1-quiet, bold, calendar · gallery/1-quiet/team-calendar/
   use when: overlapping blocks of time share one column
   take: the overlap cascade: the first event fills its column, later ones sit on top with a 2 px edge, and no block is drawn shorter than its real time
   not for: nothing recorded
-- **Recipe box** · 1-quiet, loud, whimsical, search · gallery/1-quiet/recipe-box/
+- **Recipe box** · 1-quiet, loud, search · gallery/1-quiet/recipe-box/
   use when: a loud look must stay calm in behavior
   take: search and servings change the page at once, with no motion at rest
   not for: nothing recorded
-- **Transit timetable** · 1-quiet, quiet, calm, table · gallery/1-quiet/transit-timetable/
+- **Transit timetable** · 1-quiet, quiet, table · gallery/1-quiet/transit-timetable/
   use when: dense rows the user scans for the next item
   take: the next departure stands out on its own row; dense rows you scan, not read
   not for: nothing recorded
-- **Bike share, quiet** · 1-quiet, quiet, sleek, chart · gallery/1-quiet/bike-share/
+- **Bike share, quiet** · 1-quiet, quiet, chart · gallery/1-quiet/bike-share/
   use when: a chart where a few marks matter most
   take: the busiest hours stand out on the marks themselves, with one accent
   not for: nothing recorded
-- **Chat** · 2-expressive, quiet, whimsical, messages · gallery/2-expressive/chat/
+- **Chat** · 2-expressive, quiet, messages · gallery/2-expressive/chat/
   use when: a list of conversations with unread state
   take: unread shown by a badge and a bold row; bounce only answers a touch, so a friend's reply arrives without one
   not for: nothing recorded
-- **Music player** · 2-expressive, loud, sleek, media · gallery/2-expressive/music-player/
+- **Music player** · 2-expressive, loud, media · gallery/2-expressive/music-player/
   use when: media with a loud, type-led look
   take: big type and one colour panel per song; sleek springs with almost no bounce
   not for: nothing recorded
-- **Habit tracker** · 2-expressive, bold, snappy, checklist · gallery/2-expressive/habit-tracker/
+- **Habit tracker** · 2-expressive, bold, checklist · gallery/2-expressive/habit-tracker/
   use when: done and not-done items share one list
   take: not-done rows stay bold and done rows step back; a check fills the ring, rolls the count and pulses today's cell, and any click interrupts it
   not for: nothing recorded
-- **Kanban board** · 2-expressive, quiet, calm, board, drag · gallery/2-expressive/kanban-board/
+- **Kanban board** · 2-expressive, quiet, board, drag · gallery/2-expressive/kanban-board/
   use when: cards move between columns
   take: my cards marked by an edge and avatar; a moved card flies to its column while the gap behind it closes on a calm spring
   not for: nothing recorded
-- **Bike share, expressive** · 2-expressive, quiet, sleek, chart · gallery/2-expressive/bike-share/
+- **Bike share, expressive** · 2-expressive, quiet, chart · gallery/2-expressive/bike-share/
   use when: deciding what rung 2 adds to a chart
   take: the same chart as the quiet version with rung 2 springs; compare the two to see what Expressive adds
   not for: nothing recorded
-- **Bike share, linked pictures** · 2-expressive, quiet, sleek, chart, linked · gallery/2-expressive/bike-share-linked/
+- **Bike share, linked pictures** · 2-expressive, quiet, chart, linked · gallery/2-expressive/bike-share-linked/
   use when: several charts and a map show one dataset
   take: hovering an hour lights both charts and filters the map; a picked station's routes draw out of its dot, then its share fills the bars in order
   not for: nothing recorded
-- **Cache explainer** · 2-expressive, quiet, sleek, explainer, diagram · gallery/2-expressive/cache-explainer/
+- **Cache explainer** · 2-expressive, quiet, explainer, diagram · gallery/2-expressive/cache-explainer/
   use when: explaining a system step by step with one figure
   take: the figure is the explanation: an arm on a gantry carries blocks between a 3-slot rack and a shelf, and the lit block is the one the step is about
   not for: nothing recorded
-- **Mortgage calculator** · 2-expressive, bold, calm, calculator, form · gallery/2-expressive/mortgage-calculator/
+- **Mortgage calculator** · 2-expressive, bold, calculator, form · gallery/2-expressive/mortgage-calculator/
   use when: inputs drive several outputs and the user should see what moved
   take: lines run from the changed input to each part it moved, labelled “up $29”; each input shows how much it moves the payment
   not for: nothing recorded
-- **Photo editor** · 2-expressive, loud, snappy, history, tool · gallery/2-expressive/photo-editor/
+- **Photo editor** · 2-expressive, loud, history, tool · gallery/2-expressive/photo-editor/
   use when: a tool with an undo history worth scrubbing
   take: the tools a step changed get a ring, a tick marks the old value, and the thumb springs to the new one
-  not for: its code-drawn lake picture (waits for a still-kit)
-- **Flight search** · 2-expressive, quiet, whimsical, filters · gallery/2-expressive/flight-search/
+- **Flight search** · 2-expressive, quiet, filters · gallery/2-expressive/flight-search/
   use when: filters remove items from a result list
   take: each filter says how many flights it removed, and each removed flight says why in plain words; the latest change is the one accent
   not for: nothing recorded

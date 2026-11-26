@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.19
+
+New skill `motion:use-motion-kit`: whenever you ask for animation on a web page, web app or Artifact, it installs motion-kit (https://github.com/bnhoang2k/motion-kit) and follows the kit's own `AGENTS.md`, without asking first. The UI taste file no longer has the `data-motion` feel dial (calm, sleek, snappy, whimsical): a page's motion feel is the motion-kit example it copies. A short Kits note in the taste ladder now routes motion to motion-kit, lit surfaces to paint-kit and 3D to model-kit, so every UI session sees it. The taste starter was distilled to fit the hook's payload budget. Update the motion and ui-suite plugins to get them.
+
 ## 0.2.18
 
 The lint and break Stop hooks now check only production UI. They skip test and story files, test and fixture folders, files outside a git repo, git-ignored files, and folders with no build manifest. The first time a new top-level folder gets UI edits, the hook asks once whether it is production or a prototype, and records the answer in that repo's `.claude/ui-gates.json`. Set `UI_GATES_SCOPE=all` to check everything, as before. The break gate now runs once per session from the main session, and reads its subagents' work there; it no longer fires on SubagentStop. A `git` command that names a UI file no longer counts as editing it.
@@ -22,7 +26,6 @@ The lint and break Stop hooks now accept a skip you pick on a question card. Bef
 
 The folders that hold plans and specs now say "Planning", not "Superpowers". Three names change:
 
-- The brain repo folder `Superpowers/` is now `Planning/`.
 - The in-repo folder `docs/superpowers/` is now `docs/planning/`.
 - The working folder `.superpowers/` is now `.planning/`.
 

@@ -5,7 +5,7 @@ origin: own
 # Chat
 
 - Idea: a chat app for friends: which conversations have unread messages.
-- Rung 2, Expressive. Look: quiet. Feel: whimsical.
+- Rung 2, Expressive. Look: quiet.
 - Source: built in an earlier spike.
 
 Copy its feel, not its layout: take the behavior numbers below; do not copy its layout, content or colors.

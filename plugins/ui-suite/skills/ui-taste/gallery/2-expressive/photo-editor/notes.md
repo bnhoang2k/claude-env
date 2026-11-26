@@ -5,7 +5,7 @@ origin: own
 # Photo editor
 
 - Idea: a photo editor with an undo history you can scrub.
-- Rung 2, Expressive. Look: loud. Feel: snappy.
+- Rung 2, Expressive. Look: loud.
 - Source: built in an earlier spike.
 
 Copy its feel, not its layout: take the behavior numbers below; do not copy its layout, content or colors.
