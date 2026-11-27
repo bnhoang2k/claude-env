@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "threeway/1.0 SESSION_STATUS",
+  "type": "object",
+  "required": [
+    "protocol",
+    "type",
+    "session_id",
+    "message_id",
+    "iteration",
+    "status",
+    "open",
+    "done"
+  ],
+  "properties": {
+    "protocol": {
+      "const": "threeway/1.0"
+    },
+    "type": {
+      "const": "SESSION_STATUS"
+    },
+    "session_id": {
+      "type": "string"
+    },
+    "message_id": {
+      "type": "string"
+    },
+    "reply_to": {
+      "type": "string"
+    },
+    "iteration": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "status": {
+      "enum": [
+        "open",
+        "closed"
+      ]
+    },
+    "open": {
+      "type": "array"
+    },
+    "done": {
+      "type": "array"
+    }
+  }
+}

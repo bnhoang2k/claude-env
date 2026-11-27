@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.20
+
+New skill `workflow:threeway`: you, ChatGPT and Claude work one problem together in a chat inside a ChatGPT project. Claude posts the kickoff, and reads the chat only when you say `check`, `go`, `ready`, `review`, `status` or `close` in Claude's own chat. ChatGPT asks for evidence or experiments in fenced `threeway` blocks; Claude runs one only after your `go`. On `ready`, ChatGPT writes a handoff, which Claude saves and builds from after your yes. It drives ChatGPT through Claude in Chrome, and ships the text for the ChatGPT project's instructions. Update the workflow plugin to get it.
+
 ## 0.2.19
 
 New skill `motion:use-motion-kit`: whenever you ask for animation on a web page, web app or Artifact, it installs motion-kit (https://github.com/bnhoang2k/motion-kit) and follows the kit's own `AGENTS.md`, without asking first. The UI taste file no longer has the `data-motion` feel dial (calm, sleek, snappy, whimsical): a page's motion feel is the motion-kit example it copies. A short Kits note in the taste ladder now routes motion to motion-kit, lit surfaces to paint-kit and 3D to model-kit, so every UI session sees it. The taste starter was distilled to fit the hook's payload budget. Update the motion and ui-suite plugins to get them.

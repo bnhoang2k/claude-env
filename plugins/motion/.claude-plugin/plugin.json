@@ -1,7 +1,7 @@
 {
   "name": "motion",
   "description": "Study how a page or clip moves and rebuild it; take every motion number from motion-kit; choreograph, tune, speed up, add or cut motion",
-  "version": "0.2.19",
+  "version": "0.2.20",
   "author": {
     "name": "claude-env maintainers"
   }

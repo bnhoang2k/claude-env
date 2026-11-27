@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "threeway/1.0 CLAUDE_PROPOSAL",
+  "type": "object",
+  "required": [
+    "protocol",
+    "type",
+    "session_id",
+    "message_id",
+    "proposal",
+    "rationale",
+    "evidence"
+  ],
+  "properties": {
+    "protocol": {
+      "const": "threeway/1.0"
+    },
+    "type": {
+      "const": "CLAUDE_PROPOSAL"
+    },
+    "session_id": {
+      "type": "string"
+    },
+    "message_id": {
+      "type": "string",
+      "pattern": "^PRO-\\d{3,}$"
+    },
+    "reply_to": {
+      "type": "string"
+    },
+    "proposal": {
+      "type": "string",
+      "minLength": 1
+    },
+    "rationale": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence": {
+      "type": "array"
+    }
+  }
+}

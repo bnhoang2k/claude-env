@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "threeway/1.0 CLAUDE_REQUEST",
+  "type": "object",
+  "required": [
+    "protocol",
+    "type",
+    "session_id",
+    "message_id",
+    "operation",
+    "objective",
+    "questions",
+    "deliverables",
+    "permission",
+    "priority"
+  ],
+  "properties": {
+    "protocol": {
+      "const": "threeway/1.0"
+    },
+    "type": {
+      "const": "CLAUDE_REQUEST"
+    },
+    "session_id": {
+      "type": "string"
+    },
+    "message_id": {
+      "type": "string",
+      "pattern": "^REQ-\\d{3,}$"
+    },
+    "reply_to": {
+      "type": "string"
+    },
+    "operation": {
+      "enum": [
+        "investigate",
+        "experiment",
+        "evidence"
+      ]
+    },
+    "objective": {
+      "type": "string",
+      "minLength": 1
+    },
+    "questions": {
+      "type": "array"
+    },
+    "deliverables": {
+      "type": "array"
+    },
+    "permission": {
+      "enum": [
+        "read_only",
+        "isolated_experiment"
+      ]
+    },
+    "priority": {
+      "enum": [
+        "blocking",
+        "parallel",
+        "optional"
+      ]
+    }
+  }
+}

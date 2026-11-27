@@ -1,6 +1,6 @@
 # claude-env
 
-43 skills for Claude Code: build UI, motion, 3D models and technical figures, and run long
+44 skills for Claude Code: build UI, motion, 3D models and technical figures, and run long
 multi-agent jobs without losing the plan or the budget.
 
 <!-- picture: a few things these skills made -->
@@ -92,6 +92,7 @@ Big jobs fan out to many agents. Keep the cost known up front and the review hon
 - `workflow:plan-review`: one reviewer reads a spec or plan against the real code before you build it.
 - `workflow:llm-pipeline-spike`: test prompt or schema changes on a graded pipeline before trusting them.
 - `workflow:prior-art-check`: before building a tool, check whether one already exists.
+- `workflow:threeway`: work one problem with ChatGPT in a ChatGPT project chat; Claude carries the evidence, runs ChatGPT's requests after your `go`, and saves its handoffs.
 - Hook `agent-model-gate`: denies an Agent call that has no `model` set, so a subagent never inherits the costliest model by accident.
 - Hook `workflow-tier-gate`: denies a Workflow script whose `agent()` calls have no `model`.
 - Hook `subagent-bg-gate`: denies a test or build command that a subagent starts in the background, because its finish notice may never arrive.

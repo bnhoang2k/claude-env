@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "threeway/1.0 CLAUDE_ACTION",
+  "type": "object",
+  "required": [
+    "protocol",
+    "type",
+    "session_id",
+    "message_id",
+    "action",
+    "changes",
+    "evidence"
+  ],
+  "properties": {
+    "protocol": {
+      "const": "threeway/1.0"
+    },
+    "type": {
+      "const": "CLAUDE_ACTION"
+    },
+    "session_id": {
+      "type": "string"
+    },
+    "message_id": {
+      "type": "string",
+      "pattern": "^ACT-\\d{3,}$"
+    },
+    "reply_to": {
+      "type": "string"
+    },
+    "action": {
+      "type": "string",
+      "minLength": 1
+    },
+    "changes": {
+      "type": "array"
+    },
+    "evidence": {
+      "type": "array"
+    }
+  }
+}

@@ -1,0 +1,192 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "threeway/1.0 SESSION_HANDOFF",
+  "type": "object",
+  "required": [
+    "protocol",
+    "type",
+    "session_id",
+    "message_id",
+    "handoff_id",
+    "iteration",
+    "disposition",
+    "objective",
+    "current_state",
+    "diagnosis",
+    "evidence_and_reasoning",
+    "decisions",
+    "rejected_approaches",
+    "preserve",
+    "implementation_direction",
+    "prescriptive_requirements",
+    "implementation_freedom",
+    "acceptance_criteria",
+    "visual_references",
+    "open_questions",
+    "disagreements",
+    "validation_plan"
+  ],
+  "properties": {
+    "protocol": {
+      "const": "threeway/1.0"
+    },
+    "type": {
+      "const": "SESSION_HANDOFF"
+    },
+    "session_id": {
+      "type": "string"
+    },
+    "message_id": {
+      "type": "string"
+    },
+    "reply_to": {
+      "type": "string"
+    },
+    "handoff_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^HO-[0-9]+$"
+    },
+    "iteration": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "disposition": {
+      "enum": [
+        "implementation_ready",
+        "experiment_ready",
+        "direction_only",
+        "blocked",
+        "finalized"
+      ]
+    },
+    "objective": {
+      "type": [
+        "string",
+        "array"
+      ]
+    },
+    "current_state": {
+      "type": [
+        "string",
+        "array"
+      ]
+    },
+    "diagnosis": {
+      "type": [
+        "string",
+        "array"
+      ]
+    },
+    "evidence_and_reasoning": {
+      "type": [
+        "string",
+        "array"
+      ]
+    },
+    "decisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "text",
+          "status",
+          "confirmed_by_user",
+          "source"
+        ],
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "confirmed",
+              "recommended",
+              "exploratory"
+            ]
+          },
+          "confirmed_by_user": {
+            "type": "boolean"
+          },
+          "source": {
+            "type": "string"
+          }
+        },
+        "if": {
+          "properties": {
+            "status": {
+              "const": "confirmed"
+            }
+          }
+        },
+        "then": {
+          "properties": {
+            "confirmed_by_user": {
+              "const": true
+            }
+          }
+        }
+      }
+    },
+    "rejected_approaches": {
+      "type": [
+        "string",
+        "array"
+      ]
+    },
+    "preserve": {
+      "type": [
+        "string",
+        "array"
+      ]
+    },
+    "implementation_direction": {
+      "type": [
+        "string",
+        "array"
+      ]
+    },
+    "prescriptive_requirements": {
+      "type": [
+        "string",
+        "array"
+      ]
+    },
+    "implementation_freedom": {
+      "type": [
+        "string",
+        "array"
+      ]
+    },
+    "acceptance_criteria": {
+      "type": [
+        "string",
+        "array"
+      ]
+    },
+    "visual_references": {
+      "type": [
+        "string",
+        "array"
+      ]
+    },
+    "open_questions": {
+      "type": [
+        "string",
+        "array"
+      ]
+    },
+    "disagreements": {
+      "type": [
+        "string",
+        "array"
+      ]
+    },
+    "validation_plan": {
+      "type": [
+        "string",
+        "array"
+      ]
+    }
+  }
+}

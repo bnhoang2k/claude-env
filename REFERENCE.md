@@ -23,7 +23,7 @@ Call a skill as `<group>:<skill>`.
 - **models**: check 3D models and rooms for geometry and layout defects before they ship.
   Skills: `models:build-models`, `models:break-models`, `models:break-scene`.
 - **workflow**: planning, review, documentation and hand-off skills for long agent-driven work.
-  Skills: `workflow:archive-plans`, `workflow:babysitter`, `workflow:behavior-tests`, `workflow:blind-panel`, `workflow:brainstorming`, `workflow:handoff`, `workflow:llm-pipeline-spike`, `workflow:new-project`, `workflow:overnight`, `workflow:plan-review`, `workflow:prior-art-check`, `workflow:publish-public`, `workflow:recall`, `workflow:subagent-driven-development`, `workflow:systematic-debugging`, `workflow:where-are-we`, `workflow:workflow-fanout-budget`, `workflow:writing-plans`, `workflow:writing-project-docs`.
+  Skills: `workflow:archive-plans`, `workflow:babysitter`, `workflow:behavior-tests`, `workflow:blind-panel`, `workflow:brainstorming`, `workflow:handoff`, `workflow:llm-pipeline-spike`, `workflow:new-project`, `workflow:overnight`, `workflow:plan-review`, `workflow:prior-art-check`, `workflow:publish-public`, `workflow:recall`, `workflow:subagent-driven-development`, `workflow:systematic-debugging`, `workflow:threeway`, `workflow:where-are-we`, `workflow:workflow-fanout-budget`, `workflow:writing-plans`, `workflow:writing-project-docs`.
 - **figures**: isometric technical figures and product reveals built as interactive pages.
   Skills: `figures:anatomy`, `figures:anatomy-reveal`, `figures:hairline-create`.
 - **bnhoang2k**: installs the five groups above. It has no skills of its own.
@@ -84,6 +84,7 @@ python3 plugins/models/skills/break-models/scripts/preflight.py
 | `workflow:blind-panel` | The Agent tool, for the reviewer subagents | No blind reviewers; review the artifact yourself |
 | `workflow:brainstorming` | Nothing to run. Optional: Node for the visual companion, and the Agent tool for the builder check. | Talk the design through by hand before any code |
 | `workflow:overnight` | Nothing to install. Under a babysitter, the `CronList` and `CronDelete` tools, to stop the keep-alive cron at the end | The keep-alive cron is left running; the morning file says so |
+| `workflow:threeway` | Claude in Chrome (the browser extension), signed in to ChatGPT, with a ChatGPT project for the chats (default name "Claude Projects"). `python3` for the helper script | Without Chrome, nothing reaches ChatGPT; copy the kickoff and replies by hand |
 | `workflow:handoff` | `git`, for the branch and status lines | The prompt carries no git lines |
 | `workflow:llm-pipeline-spike` | Nothing to run. Optional: the built-in `anthropic-skills:deep-research` | Find the cause and write the test by hand; search the web directly |
 | `workflow:new-project` | `bash`, `jq`, `python3`, `git`. The lint-preset step needs the `ui-suite` plugin. `NEW_PROJECT_PORTS` moves the ports file | `instantiate.sh` prints `needs jq: https://jqlang.org/download/` and exits 3 |

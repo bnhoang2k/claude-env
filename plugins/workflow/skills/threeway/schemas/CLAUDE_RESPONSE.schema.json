@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "threeway/1.0 CLAUDE_RESPONSE",
+  "type": "object",
+  "required": [
+    "protocol",
+    "type",
+    "session_id",
+    "message_id",
+    "reply_to",
+    "status",
+    "answers",
+    "evidence",
+    "limits"
+  ],
+  "properties": {
+    "protocol": {
+      "const": "threeway/1.0"
+    },
+    "type": {
+      "const": "CLAUDE_RESPONSE"
+    },
+    "session_id": {
+      "type": "string"
+    },
+    "message_id": {
+      "type": "string",
+      "pattern": "^RES-\\d{3,}$"
+    },
+    "reply_to": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "enum": [
+        "done",
+        "partial",
+        "refused",
+        "failed"
+      ]
+    },
+    "answers": {
+      "type": "array"
+    },
+    "evidence": {
+      "type": "array"
+    },
+    "limits": {
+      "type": "array"
+    }
+  }
+}
