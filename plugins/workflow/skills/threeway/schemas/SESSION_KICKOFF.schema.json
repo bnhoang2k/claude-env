@@ -51,6 +51,34 @@
     "open_question": {
       "type": "string",
       "minLength": 1
+    },
+    "continues_from": {
+      "type": "string",
+      "minLength": 1,
+      "description": "the old chat's URL and the handoff that seeds this chat"
+    },
+    "next_ids": {
+      "type": "object",
+      "required": [
+        "REQ",
+        "iteration"
+      ],
+      "description": "{REQ: next request ID, iteration: current iteration}",
+      "properties": {
+        "REQ": {
+          "type": "string",
+          "pattern": "^REQ-[0-9]{3,}$"
+        },
+        "iteration": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
     }
+  },
+  "dependentRequired": {
+    "continues_from": [
+      "next_ids"
+    ]
   }
 }

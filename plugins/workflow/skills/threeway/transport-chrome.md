@@ -26,6 +26,14 @@ Probed 2026-11-27 in a ChatGPT project chat (second probe, read-only):
 - Long answers can appear as `data-client-defined-widget="writing_block"` blocks.
 - Projects open from the sidebar's "..." menu. A "Space" button in the sidebar is team
   onboarding, not projects.
+- Seen 2026-11-27 in a temporary chat: a long user message shows only its first ~10,000
+  characters behind "Show more", and the rest is not in the page at all (`innerText` and
+  `textContent` both stop there). Turns far from the screen are taken out of the page too, so
+  a read sees only the turns near the scroll position. Never size a chat from the page.
+- Text put in the message box with `document.execCommand('insertText', …)` stayed as text at
+  40,308 characters; it did not turn into an attached file. The send button is
+  `button[aria-label="Send"]`, and a reply is still streaming while a button whose label holds
+  "Stop" shows.
 
 Not yet seen: how an intelligenceUI graphic appears in the page.
 
@@ -61,6 +69,7 @@ Run with `javascript_tool`. It returns the turns file shape that `ingest` reads:
       message_id: attr(u, 'data-chatgpt-selection-message-id')
         || (attr(u, 'data-chatgpt-search-message-ids') || '').split(/\s+/)[0] || null,
       state: h.closest('[data-talvt-turn-state]')?.getAttribute('data-talvt-turn-state') || 'unknown',
+      chars: u.innerText.length,  // for TW size; a long user turn shows only its first ~10,000
       blocks: [...u.querySelectorAll('pre')].map(pre => ({
         lang: langOf(pre),
         text: (pre.querySelector('code') || pre).innerText,
@@ -130,6 +139,11 @@ Each line: capability, date, result. The first live run adds the rest.
 - Installing the project instructions as above: 2026-11-27. The 5,374-character text saved;
   after a reload its SHA-256 matched the file's. The first try (fill and close, no keystroke)
   saved nothing.
+- Updating the project instructions by a typed change: 2026-11-27. Put the caret after the
+  unchanged text with `setSelectionRange`, typed only the added sentence with `computer`
+  `type` (real keys, so Save appeared at once), saved. After a reload the textbox held 5,494
+  characters and its SHA-256 matched the file's. For a small change this avoids replacing the
+  whole text.
 
 - Reading roles, message IDs and turn state with the snippet above: 2026-11-27, read-only run
   on a 4-message chat returned 4 messages, 4 distinct UUIDs, correct roles, all `complete`.
@@ -137,6 +151,20 @@ Each line: capability, date, result. The first live run adds the rest.
   no IDs.
 
 ## Known limits
+
+- How long a chat stays whole (measured 2026-11-27, one run, a temporary chat, the model the
+  account picked, "Medium" in the composer). The first message held five planted facts; then
+  40,308-character blocks of plain English words, each answered "ok"; a recall question every
+  four blocks. Sizes count every character sent and received. At 643,050 ChatGPT listed all
+  five and said they were in its context. At 803,806 it still listed them (they had been
+  repeated in each recall answer) but said it "cannot directly verify them against the
+  original message". At 1,687,844 it said it could not see the first message at all, only "a
+  retained summary". So between about 640,000 and 800,000 characters, ChatGPT replaces the
+  start of the chat with a summary, and only what was repeated later survives word for word.
+  `CHAT_CHAR_LIMIT` is 480,000: three quarters of 643,050, so a rollover happens before the
+  loss with a margin. Limits of the measurement: one run; filler words, not code or JSON,
+  which hold more tokens per character, so a real chat may reach the edge sooner; text sent
+  as attached files may be read by search rather than held in context (not tested).
 
 - Unverified until the live run: that `file_upload` reaches ChatGPT's file input and that
   ChatGPT reads an attached `.md`; how intelligenceUI graphics render; whether a set title

@@ -45,7 +45,8 @@ one fenced code block tagged `threeway` per request. One JSON object per block:
   user's files).
 - `priority`: `blocking`, `parallel` or `optional`.
 - Number requests `REQ-001`, `REQ-002`, … through the whole chat. Never reuse a number,
-  even to correct a request; send a new one.
+  even to correct a request; send a new one. If the kickoff has `next_ids` (a chat that
+  continues an older one), start from its `REQ` and its `iteration` instead.
 - For a comparison, ask for named variants (A is the current state, B and C change one thing
   each) and say which settings must stay fixed.
 - Keep JSON valid: double quotes, no trailing commas, no comments.

@@ -31,6 +31,17 @@ def schema(kind):
         props["message_id"]["pattern"] = f"^{t.ID_PATTERNS[kind]}$"
     props.update({k: prop(v) for k, v in t.TYPE_FIELDS[kind].items()})
     required = list(t.ENVELOPE) + list(t.TYPE_FIELDS[kind])
+    if kind == "SESSION_KICKOFF":  # optional: a rollover kickoff (see KICKOFF_OPTIONAL)
+        props["continues_from"] = {"type": "string", "minLength": 1,
+                                   "description": t.KICKOFF_OPTIONAL["continues_from"]}
+        props["next_ids"] = {
+            "type": "object", "required": ["REQ", "iteration"],
+            "description": t.KICKOFF_OPTIONAL["next_ids"],
+            "properties": {"REQ": {"type": "string", "pattern": "^REQ-[0-9]{3,}$"},
+                           "iteration": {"type": "integer", "minimum": 0}}}
+        props_dep = {"dependentRequired": {"continues_from": ["next_ids"]}}
+    else:
+        props_dep = {}
     if kind == "SESSION_HANDOFF":
         props["handoff_id"]["pattern"] = "^HO-[0-9]+$"
         for s in t.HANDOFF_SECTIONS:
@@ -46,7 +57,7 @@ def schema(kind):
         required += list(t.HANDOFF_SECTIONS)
     return {"$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": f"{t.PROTOCOL} {kind}", "type": "object",
-            "required": required, "properties": props}
+            "required": required, "properties": props, **props_dep}
 
 
 def main():

@@ -52,7 +52,10 @@ A Claude-only type found in a ChatGPT turn is ignored (`bad value: type`).
 ## Fields per type
 
 - `SESSION_KICKOFF`: `repo`, `task`, `mode` (`blind` | `informed` | `staged`), `objective`,
-  `open_question`.
+  `open_question`. A kickoff that continues a chat that grew too long (a rollover) adds
+  `continues_from` (the old chat's URL and the seed handoff ID) and `next_ids`
+  (`{"REQ": "REQ-nnn", "iteration": n}`, where numbering resumes). `continues_from` needs
+  `next_ids`: a new chat that restarts at `REQ-001` would be ignored as `duplicate`.
 - `CLAUDE_REQUEST`: `operation` (`investigate` | `experiment` | `evidence`), `objective`,
   `questions` (list), `deliverables` (list), `permission` (`read_only` |
   `isolated_experiment`), `priority` (`blocking` | `parallel` | `optional`; reported only,
@@ -103,6 +106,12 @@ apart. Every block below passes `threeway.py`'s checks (a test runs them).
 
 ```threeway
 {"protocol": "threeway/1.0", "type": "SESSION_KICKOFF", "session_id": "my-app--window-light-2026-11-27", "message_id": "KO-001", "repo": "my-app", "task": "Window light", "mode": "blind", "objective": "Make the window light read as real sunlight.", "open_question": "Why does the light look fake?"}
+```
+
+A rollover kickoff, in a new chat that continues the one above after `HO-2`:
+
+```threeway
+{"protocol": "threeway/1.0", "type": "SESSION_KICKOFF", "session_id": "my-app--window-light-2026-11-27", "message_id": "KO-002", "repo": "my-app", "task": "Window light", "mode": "blind", "objective": "Make the window light read as real sunlight.", "open_question": "Carry on from HO-2: does the projected frame shadow read right?", "continues_from": "https://chatgpt.com/c/old-chat after HO-2", "next_ids": {"REQ": "REQ-006", "iteration": 2}}
 ```
 
 ```threeway

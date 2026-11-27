@@ -67,6 +67,14 @@ TYPE_FIELDS = {
                        "done": list},
     "SESSION_HANDOFF": {"handoff_id": str, "iteration": int, "disposition": DISPOSITIONS},
 }
+# Optional kickoff fields for a chat that continues an older one (a rollover). ChatGPT numbers
+# requests from REQ-001 in a new chat unless told otherwise, and ingest drops a repeated ID as a
+# duplicate, so a rollover kickoff must say where the numbering resumes.
+KICKOFF_OPTIONAL = {"continues_from": "the old chat's URL and the handoff that seeds this chat",
+                    "next_ids": "{REQ: next request ID, iteration: current iteration}"}
+# A chat's size, in characters of captured chat text, past which Claude recommends a rollover.
+# Measured, not chosen: transport-chrome.md ("Known limits") gives the run and the margin.
+CHAT_CHAR_LIMIT = 480_000  # three quarters of 643,050, the last size the first turn was seen
 
 
 class BadInput(Exception):
@@ -112,6 +120,27 @@ def validate(payload) -> list[str]:
             errors.append(err)
     if kind == "SESSION_HANDOFF":
         errors += _validate_handoff(payload)
+    if kind == "SESSION_KICKOFF":
+        errors += _validate_kickoff_extras(payload)
+    return errors
+
+
+def _validate_kickoff_extras(p: dict) -> list[str]:
+    errors = []
+    if "continues_from" in p:
+        value = p["continues_from"]
+        if not (isinstance(value, str) and value.strip()):
+            errors.append("bad value: continues_from")
+        if "next_ids" not in p:
+            errors.append("missing field: next_ids")
+    if "next_ids" in p:
+        ids = p["next_ids"]
+        it = ids.get("iteration") if isinstance(ids, dict) else None
+        ok = (isinstance(ids, dict) and isinstance(ids.get("REQ"), str)
+              and re.fullmatch(r"REQ-\d{3,}", ids["REQ"]) is not None
+              and isinstance(it, int) and not isinstance(it, bool) and it >= 0)
+        if not ok:
+            errors.append("bad value: next_ids")
     return errors
 
 
@@ -194,6 +223,54 @@ def save_state(session_id: str, state: dict, folder: Path | None = None) -> None
     _atomic_write(folder / "state.json", json.dumps(state, indent=2, ensure_ascii=False) + "\n")
 
 
+def _sessions(repo_slug: str | None = None) -> list[tuple[Path, dict]]:
+    """Every readable session, optionally for one repo slug: (folder, state)."""
+    pattern = f"{repo_slug}/*/state.json" if repo_slug else "*/*/state.json"
+    out = []
+    for state_file in home().glob(pattern):
+        try:
+            out.append((state_file.parent, json.loads(state_file.read_text())))
+        except (OSError, ValueError):
+            continue
+    return out
+
+
+def _date_of(folder: Path) -> str:
+    """A session folder is named <YYYY-MM-DD>-<task-slug>."""
+    return folder.name[:10]
+
+
+def _newest_first(rows: list[tuple[Path, dict]]) -> list[tuple[Path, dict]]:
+    return sorted(rows, key=lambda r: (_date_of(r[0]), r[1].get("created") or ""), reverse=True)
+
+
+# ---------- chats (one session can span several ChatGPT chats) ----------
+
+def _chat_entry(url: str, seed: str | None = None) -> dict:
+    return {"url": url, "opened": now(), "closed": None, "reason": None,
+            "seed_handoff": seed, "chars": 0}
+
+
+def _chats(state: dict) -> list[dict]:
+    """The session's chats, oldest first. A state from before chats existed gets one entry."""
+    chats = state.setdefault("chats", [])
+    if not chats and state.get("chat_url"):
+        chats.append(_chat_entry(state["chat_url"]))
+    return chats
+
+
+def _current_chat(state: dict) -> dict | None:
+    chats = _chats(state)
+    return chats[-1] if chats and chats[-1]["closed"] is None else None
+
+
+def _next_ids(state: dict) -> dict:
+    """Where ChatGPT's numbering resumes: the next free REQ number and the iteration."""
+    nums = [int(m.group(1)) for mid in [*state["requests"], *state["seen_ids"]]
+            if (m := re.fullmatch(r"REQ-(\d+)", mid))]
+    return {"REQ": f"REQ-{max(nums, default=0) + 1:03d}", "iteration": state["iteration"]}
+
+
 # ---------- commands ----------
 
 def cmd_init(a) -> dict:
@@ -206,9 +283,21 @@ def cmd_init(a) -> dict:
     folder = home() / repo_s / f"{date}-{task_s}"
     title = f"{a.repo} · {a.task} · {date}"
     if (folder / "state.json").exists():
+        if a.new:
+            raise BadInput(f"a session for this task already exists on {date}; "
+                           "--new needs another date")
         state = json.loads((folder / "state.json").read_text())
         return {"session_id": state["session_id"], "dir": str(folder),
-                "title": state["title"], "existing": True}
+                "title": state["title"], "chat_url": state.get("chat_url"), "existing": True}
+    if not a.new:
+        # The same problem on another day: reopen its newest open session, so it keeps its chat.
+        open_same = [r for r in _sessions(repo_s)
+                     if r[1].get("status") == "open" and slug(r[1].get("task", "")) == task_s]
+        if open_same:
+            old_folder, state = _newest_first(open_same)[0]
+            return {"session_id": state["session_id"], "dir": str(old_folder),
+                    "title": state["title"], "chat_url": state.get("chat_url"),
+                    "existing": True, "reused_from_date": _date_of(old_folder)}
     try:
         other = session_dir(session_id)
     except BadInput:
@@ -226,6 +315,7 @@ def cmd_init(a) -> dict:
         "revealed": a.mode == "informed",
         "title": title,
         "chat_url": None,
+        "chats": [],
         "iteration": 0,
         "status": "open",
         "last_handoff": None,
@@ -240,7 +330,34 @@ def cmd_init(a) -> dict:
 
 
 def cmd_status(a) -> dict:
-    return load_state(a.session)
+    state = load_state(a.session)
+    _chats(state)
+    return {**state, "next_ids": _next_ids(state)}  # next_ids is printed, never stored
+
+
+def cmd_list(a) -> list:
+    rows = _sessions(slug(a.repo) if a.repo else None)
+    if a.open:
+        rows = [r for r in rows if r[1].get("status") == "open"]
+    return [{"session_id": s["session_id"], "task": s.get("task"), "date": _date_of(f),
+             "status": s.get("status"), "chat_url": s.get("chat_url"),
+             "iteration": s.get("iteration")} for f, s in _newest_first(rows)]
+
+
+def cmd_size(a) -> dict:
+    """The current chat's size. --add counts what Claude posted (the line and every attached
+    file), which the page never shows in full; ingest counts the turns it reads."""
+    state = load_state(a.session)
+    chat = _current_chat(state)
+    if chat is None:
+        raise BadInput("no chat yet: set --chat-url")
+    if a.add is not None:
+        if a.add < 0:
+            raise BadInput("bad value: add")
+        chat["chars"] += a.add
+        save_state(a.session, state)
+    return {"chat_url": chat["url"], "chars": chat["chars"], "limit": CHAT_CHAR_LIMIT,
+            "over": chat["chars"] > CHAT_CHAR_LIMIT}
 
 
 def cmd_mark(a) -> dict:
@@ -285,8 +402,26 @@ def _bool(text: str) -> bool:
 
 def cmd_set(a) -> dict:
     state = load_state(a.session)
+    if a.chat_url is not None and a.rollover is not None:
+        raise BadInput("give --chat-url or --rollover, not both")
     if a.chat_url is not None:
+        chat = _current_chat(state)
+        if chat is None:
+            _chats(state).append(_chat_entry(a.chat_url))
+        else:
+            chat["url"] = a.chat_url  # a fix to the current chat, not a new one
         state["chat_url"] = a.chat_url
+    if a.rollover is not None:
+        chat = _current_chat(state)
+        if chat is None:
+            raise BadInput("no chat yet: set --chat-url")
+        if not a.seed:
+            raise BadInput("--rollover needs --seed HO-n (the handoff that seeds the new chat)")
+        if not (session_dir(a.session) / "handoffs" / f"{a.seed}.json").exists():
+            raise BadInput(f"no saved handoff: {a.seed}")
+        chat["closed"], chat["reason"] = now(), "length"
+        state["chats"].append(_chat_entry(a.rollover, a.seed))
+        state["chat_url"] = a.rollover
     if a.revealed is not None:
         state["revealed"] = _bool(a.revealed)
     if a.status is not None:
@@ -313,6 +448,9 @@ def extract(turns, state: dict) -> dict:
     seen = set(state["seen_ids"])
     reported = set(state.get("reported_ignored", []))
     new, ignored, incomplete = [], [], []
+    # Chat size: each complete turn's text length counts once toward the current chat.
+    chat = _current_chat(state)
+    counted = set(chat.setdefault("counted_turns", [])) if chat else set()
 
     rejected_handoffs = []
 
@@ -336,6 +474,12 @@ def extract(turns, state: dict) -> dict:
             raise BadInput("bad value: turn blocks")
         blocks = [(i, b) for i, b in enumerate(raw_blocks)
                   if isinstance(b, dict) and b.get("lang") == "threeway"]
+        size = turn.get("chars")
+        if chat is not None and turn.get("state") == "complete" and turn_id not in counted \
+                and isinstance(size, int) and not isinstance(size, bool) and size >= 0:
+            counted.add(turn_id)
+            chat["counted_turns"].append(turn_id)
+            chat["chars"] += size
         if turn.get("role") != "assistant":
             for i, _ in blocks:
                 ignore(turn_id, i, "user turn")
@@ -571,11 +715,24 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--mode", choices=MODES, default="blind")
     s.add_argument("--branch")
     s.add_argument("--date", help="YYYY-MM-DD, default today")
+    s.add_argument("--new", action="store_true",
+                   help="start a fresh session even if this task has an open one on another day")
     s.set_defaults(fn=cmd_init)
 
-    s = sub.add_parser("status", help="print state.json")
+    s = sub.add_parser("status", help="print state.json plus next_ids")
     s.add_argument("session")
     s.set_defaults(fn=cmd_status)
+
+    s = sub.add_parser("list", help="list sessions, newest first")
+    s.add_argument("--repo")
+    s.add_argument("--open", action="store_true", help="only open sessions")
+    s.set_defaults(fn=cmd_list)
+
+    s = sub.add_parser("size", help="the current chat's size against the rollover limit")
+    s.add_argument("session")
+    s.add_argument("--add", type=int,
+                   help="characters Claude just posted (its line plus every attached file)")
+    s.set_defaults(fn=cmd_size)
 
     s = sub.add_parser("mark", help="set a request's status")
     s.add_argument("session")
@@ -598,6 +755,9 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--title")
     s.add_argument("--bump-iteration", action="store_true",
                    help="add one to the iteration (a review round)")
+    s.add_argument("--rollover", metavar="URL",
+                   help="close the current chat (too long) and continue in this new one")
+    s.add_argument("--seed", metavar="HO-n", help="with --rollover: the handoff that seeds it")
     s.set_defaults(fn=cmd_set)
 
     s = sub.add_parser("ingest", help="extract new payloads from turns read off the page")

@@ -41,8 +41,12 @@ Files in this skill:
 Session data lives in `~/.claude/threeway/<repo>/<date>-<task>/` (override with
 `THREEWAY_HOME`), never in a repo. `state.json` survives a page reload and a new Claude
 session: on any command, start from `TW status <session>`, not from memory. If the session
-ID is not in the conversation, list `~/.claude/threeway/*/*/state.json` and match the repo
-and task.
+ID is not in the conversation, run `TW list --repo <repo> --open` and match the task.
+
+One problem keeps one session for as long as it is open, across days: `init` reopens an
+open session with the same repo and task from any date, so the problem keeps its chat. A
+session can span several chats when a long one rolls over (see "Rollover"); `chat_url` is
+always the current one, and `chats` keeps the history.
 
 ## Assessment modes
 
@@ -65,8 +69,12 @@ Pick one at `start` and name it in the kickoff. The user can override.
 Triggers: "start", "three-way this", "bring in ChatGPT".
 
 1. Settle the repo, branch, task and mode with the user (one short question if unclear).
-2. `TW init --repo <repo> --task "<task>" --mode <mode> --branch <branch>`. If it returns
-   `"existing": true`, this problem already has a session: reuse its chat.
+   Run `TW list --repo <repo> --open` first. If an open session is the same problem under
+   other words, ask the user whether to continue it (recommended) or start fresh.
+2. `TW init --repo <repo> --task "<task>" --mode <mode> --branch <branch>` (add `--new` only
+   when the user wants a fresh session for a task that has an open one). If it returns
+   `"existing": true`, this problem already has a session: reuse its chat (`chat_url`), go
+   on with `check`, and post no new kickoff. `reused_from_date` says it came from another day.
 3. Gather evidence from the repo: screenshots, code excerpts, logs. Label each `EV-nnn`
    and save it under the session's `evidence/`. `TW log <session> evidence --json
    '{"label", "path", "shows"}'` for each.
@@ -79,8 +87,10 @@ Triggers: "start", "three-way this", "bring in ChatGPT".
    install it in the project (steps in `transport-chrome.md`). Installing changes the user's
    account: do it only on their yes.
 6. Start a new chat in the project and post the kickoff (see `transport-chrome.md`).
-7. Save the chat URL: `TW set <session> --chat-url <url>`. After ChatGPT's first reply,
-   set the chat title to the `title` from `init` (`<repo> · <task> · <YYYY-MM-DD>`).
+7. Save the chat URL: `TW set <session> --chat-url <url>`, then count the kickoff:
+   `TW size <session> --add <characters of the line plus every attached file>`. After
+   ChatGPT's first reply, set the chat title to the `title` from `init`
+   (`<repo> · <task> · <YYYY-MM-DD>`).
 8. Tell the user the chat is open and that they talk to ChatGPT there, then come back with
    `check`, `go` or `ready`.
 
@@ -99,7 +109,9 @@ Triggers: "start", "three-way this", "bring in ChatGPT".
    waiting and the user can say `ready`.
 5. Add your view where it helps: a request that would mislead, cannot run, or costs too
    much; two requests to merge; one to reshape. Say it in one line each.
-6. Stop. Run nothing. Wait for `go`.
+6. `TW size <session>`. If `over` is true, say so and recommend a rollover (see
+   "Rollover").
+7. Stop. Run nothing. Wait for `go`.
 
 ### go
 
@@ -117,7 +129,9 @@ Triggers: "start", "three-way this", "bring in ChatGPT".
 4. Post it with its evidence files (see `transport-chrome.md`, posting checks first). If the
    composer holds text or ChatGPT is still answering, do not post: keep the post file, tell
    the user, and post on their next message.
-5. `TW mark <session> <id> --status done` for each request answered.
+5. `TW mark <session> <id> --status done` for each request answered, and
+   `TW size <session> --add <characters posted>` (the line plus every attached file). Do the
+   same `--add` after every other post (a `ready` request line, a review, a close).
 
 ### ready
 
@@ -144,7 +158,9 @@ Triggers: "start", "three-way this", "bring in ChatGPT".
    false, "source", "chatgpt_status"}'`. Ask the user in the Claude chat to confirm the ones
    ChatGPT marked `confirmed`; log each one they confirm again with `"confirmed_by_user":
    true` and `"source": "the user, Claude chat"`.
-8. Stop. Building from the handoff waits for the user's yes.
+8. `TW size <session>`. If `over` is true, this handoff is the natural seed for a new chat:
+   recommend a rollover (see "Rollover").
+9. Stop. Building from the handoff waits for the user's yes.
 
 ### review
 
@@ -168,6 +184,26 @@ requests, last handoff, chat URL. Post a `SESSION_STATUS` block only if the user
 3. `TW set <session> --status closed`.
 4. List open issues: requests not done, open questions, disagreements, experiment folders
    still on disk (offer to remove each one whose evidence is saved).
+
+## Rollover
+
+ChatGPT shows no context gauge, so `TW size` keeps a stand-in: the characters in the current
+chat, counted from Claude's own posts (`size --add`) and from every turn `ingest` reads (each
+once). The page shows a long message cut short, so never measure size off the page. Past
+`limit`, ChatGPT may lose the chat's start; the limit and how it was measured are in
+`transport-chrome.md` ("Known limits").
+
+A rollover needs the user's yes. Then:
+
+1. Get a handoff for the current state (`ready`) and save it (`TW handoff`).
+2. Write a rollover kickoff: the original objective, constraints and mode, the saved handoff,
+   every request still open, and a `SESSION_KICKOFF` block with `continues_from` (the old
+   chat's URL and the handoff ID) and `next_ids` from `TW status`. Without `next_ids`,
+   ChatGPT restarts at `REQ-001`, and `ingest` drops it as a duplicate.
+3. Start a new chat in the same project and post it, then
+   `TW set <session> --rollover <new url> --seed HO-n` and `TW size <session> --add <chars>`.
+4. Post one `[Claude]` line in the old chat with the new chat's URL, and tell the user to talk
+   to ChatGPT there from now on.
 
 ## Experiments (isolated, controlled)
 

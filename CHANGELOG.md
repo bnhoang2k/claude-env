@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.21
+
+`workflow:threeway` keeps one problem in one ChatGPT chat across days: `start` reopens an open session with the same repo and task from any date (`--new` starts fresh, and `list` shows open sessions). It also tracks how long the chat has grown, because ChatGPT shows no context gauge: in a measured run, ChatGPT replaced the start of a chat with a summary somewhere between about 640,000 and 800,000 characters. Past 480,000 characters, `check` and `ready` recommend moving to a new chat seeded with the last handoff; the new kickoff tells ChatGPT where request numbering resumes. The ChatGPT project's instructions gain one line for that, so paste the new `chatgpt-instructions.md` into your project. Update the workflow plugin to get it.
+
 ## 0.2.20
 
 New skill `workflow:threeway`: you, ChatGPT and Claude work one problem together in a chat inside a ChatGPT project. Claude posts the kickoff, and reads the chat only when you say `check`, `go`, `ready`, `review`, `status` or `close` in Claude's own chat. ChatGPT asks for evidence or experiments in fenced `threeway` blocks; Claude runs one only after your `go`. On `ready`, ChatGPT writes a handoff, which Claude saves and builds from after your yes. It drives ChatGPT through Claude in Chrome, and ships the text for the ChatGPT project's instructions. Update the workflow plugin to get it.
