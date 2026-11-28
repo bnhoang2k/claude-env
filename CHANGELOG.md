@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.22
+
+`workflow:threeway` now works on ChatGPT's current page. The reading snippet finds fenced `threeway` blocks again (ChatGPT stopped using `pre`), and gives a block in your own turn the right language. Session IDs match whatever the capital letters, so a request or handoff is no longer dropped as "wrong session" when ChatGPT copies a capital from the repo name. Figure capture takes image figures from the page source (the exact file) and screenshots only drawn ones; the notes now say how to get long text out of the page. Update the workflow plugin to get it.
+
 ## 0.2.21
 
 `workflow:threeway` keeps one problem in one ChatGPT chat across days: `start` reopens an open session with the same repo and task from any date (`--new` starts fresh, and `list` shows open sessions). It also tracks how long the chat has grown, because ChatGPT shows no context gauge: in a measured run, ChatGPT replaced the start of a chat with a summary somewhere between about 640,000 and 800,000 characters. Past 480,000 characters, `check` and `ready` recommend moving to a new chat seeded with the last handoff; the new kickoff tells ChatGPT where request numbering resumes. The ChatGPT project's instructions gain one line for that, so paste the new `chatgpt-instructions.md` into your project. Update the workflow plugin to get it.

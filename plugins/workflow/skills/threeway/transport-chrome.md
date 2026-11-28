@@ -55,12 +55,27 @@ Run with `javascript_tool`. It returns the turns file shape that `ingest` reads:
     return u;
   };
   const attr = (u, n) => u.getAttribute(n) || u.querySelector(`[${n}]`)?.getAttribute(n) || null;
-  const langOf = (pre) => {  // UNVERIFIED: no fenced block seen on the page yet
-    const code = pre.querySelector('code');
+  // ChatGPT renders a fenced block as `code.CodeContent-…` in plain divs; older pages used `pre`.
+  const CODE = 'pre, code[class*="CodeContent"]';
+  const blocksOf = (u) => {
+    const all = [...u.querySelectorAll(CODE)];
+    return all.filter(el => !all.some(o => o !== el && o.contains(el)));  // drop nested duplicates
+  };
+  const langOf = (el, u) => {
+    const code = el.matches('code') ? el : el.querySelector('code');
+    const dl = el.getAttribute('data-language') || code?.getAttribute('data-language');
+    if (dl) return dl.toLowerCase();  // a user turn: `pre > code[data-language]`, no header label
     const cls = [...(code?.classList || [])].find(c => c.startsWith('language-'));
     if (cls) return cls.slice('language-'.length);
-    const label = pre.querySelector('div, span');  // header label above the code
-    return (label?.textContent || '').trim().split(/\s/)[0].toLowerCase();
+    // The label is text above the code: the nearest ancestor with any text before the code has it.
+    for (let a = el.parentElement; a && u.contains(a); a = a.parentElement) {
+      const r = document.createRange();
+      r.setStart(a, 0);
+      r.setEndBefore(el);
+      const before = r.toString().trim();
+      if (before) return before.split(/\s/)[0].toLowerCase();
+    }
+    return '';
   };
   return [...document.querySelectorAll(ROLE)].map(h => {
     const u = unitOf(h);
@@ -70,10 +85,10 @@ Run with `javascript_tool`. It returns the turns file shape that `ingest` reads:
         || (attr(u, 'data-chatgpt-search-message-ids') || '').split(/\s+/)[0] || null,
       state: h.closest('[data-talvt-turn-state]')?.getAttribute('data-talvt-turn-state') || 'unknown',
       chars: u.innerText.length,  // for TW size; a long user turn shows only its first ~10,000
-      blocks: [...u.querySelectorAll('pre')].map(pre => ({
-        lang: langOf(pre),
-        text: (pre.querySelector('code') || pre).innerText,
-        in_quote: !!pre.closest('blockquote'),
+      blocks: blocksOf(u).map(el => ({
+        lang: langOf(el, u),
+        text: (el.querySelector('code') || el).innerText,
+        in_quote: !!el.closest('blockquote'),
       })),
     };
   });
@@ -115,12 +130,32 @@ the page title with the state's title and set it back if ChatGPT changed it.
 
 ## Figure capture
 
-1. Find each `Figure VIS-nnn` caption in the transcript and the visual nearest to it.
-2. Scroll the visual into view and save a region screenshot with `computer` `zoom`
-   (`save_to_disk`). A visual taller than the window gets several shots, `VIS-nnn-1.png`, ….
-3. Copy each into the session's `figures/` and record it with `threeway.py figure`, with the
-   caption and the `Text equivalent:` line.
-4. A visual that cannot be captured is recorded with `--failed "<why>"`, never skipped.
+Take an image figure from the page source (the exact file) and a drawn figure by screenshot.
+Seen 2026-11-27 on the first live run: screenshots alone cut off 3 of 13 figures (taller than
+the visible area), and none was lost.
+
+1. Scroll the turn into view first. ChatGPT removes turns far from the scroll position from
+   the page, figures included, and `scrollHeight` changes as you scroll, so saved scroll
+   positions fail. Run one `javascript_tool` call per figure or per half of the chat: a call
+   times out at about 45 s.
+2. Find the `Figure VIS-nnn` caption (a `span` inside `div.DilRenderer-…`). The visual is the
+   caption's previous sibling, climbing at most about 5 parents. Do not take the first `img`
+   found walking up: that can be a stray image from earlier in the turn.
+3. An image figure is an `img.Image-…` whose `src` is
+   `https://images.openai.com/static-rsc-4/<token>?purpose=inline` (about 225 characters).
+   Download the full `src` (a copy cut short returns HTTP 500). It gives the original file at
+   `naturalWidth` × `naturalHeight`.
+4. A user-uploaded image is `img[alt="User attachment"]` with a `blob:` `src`. In the page:
+   `fetch(blob)` → base64 → `navigator.clipboard.writeText`. Then
+   `LC_ALL=en_US.UTF-8 pbpaste | base64 -d > file`. The bytes match the original.
+5. A drawn figure (a `div.Box-…` with `data-d-component` attributes, HTML text, at most an
+   icon `svg`, no `img` or `canvas`) is not a file. Save a region screenshot with `computer`
+   `zoom` (`save_to_disk`); a figure taller than the window gets several shots,
+   `VIS-nnn-1.png`, …. The source gives the text and structure for the `Text equivalent:` line;
+   only the screenshot gives the look.
+6. Copy each file into the session's `figures/` and record it with `threeway.py figure`, with
+   the caption and the `Text equivalent:` line.
+7. A visual that cannot be captured is recorded with `--failed "<why>"`, never skipped.
 
 ## Project instructions
 
@@ -169,5 +204,19 @@ Each line: capability, date, result. The first live run adds the rest.
 - Unverified until the live run: that `file_upload` reaches ChatGPT's file input and that
   ChatGPT reads an attached `.md`; how intelligenceUI graphics render; whether a set title
   stays; the project instructions' upper length limit (5,374 characters saved, so the limit is
-  higher; keep the text under 7,500 characters); that ChatGPT code blocks render as `pre` and expose a `language-` class or a header label for
-  `langOf` (the probed chat had only inline code, so no fenced block was seen).
+  higher; keep the text under 7,500 characters).
+
+- Fenced blocks, seen 2026-11-27 on the first live run. ChatGPT no longer renders them as
+  `pre`. The page uses `code[class*="CodeContent"]` (class `whitespace-pre! block
+  text-size-code CodeContent-…`) inside plain divs, with the language label ("threeway") as
+  text in a header div above it. The snippet selects `pre, code[class*="CodeContent"]`, drops
+  nested duplicates, and reads the language from the nearest ancestor's text before the code.
+  A snippet that queried only `pre` returned 0 blocks while a SESSION_HANDOFF and a
+  CLAUDE_REQUEST were on the page. A user turn renders its block as `pre > code[data-language]` with no header label, so
+  `data-language` is read first; without it the walk took the first word of the message text
+  (`[claude]`). A `language-` class is the next fallback, but none was seen.
+
+- `javascript_tool` cuts each returned string at about 1,000 characters, so a long turn does
+  not come back whole. Get it out of the page with `navigator.clipboard.writeText(JSON.stringify(turns))`,
+  then save it with `LC_ALL=en_US.UTF-8 pbpaste > turns.json`. Without the UTF-8 locale,
+  `pbpaste` breaks non-ASCII characters.

@@ -190,6 +190,11 @@ def now() -> str:
     return _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="seconds")
 
 
+def same_session(a, b) -> bool:
+    """Session IDs match ignoring case: ChatGPT may copy a capital from the repo name."""
+    return isinstance(a, str) and isinstance(b, str) and a.casefold() == b.casefold()
+
+
 def session_dir(session_id: str) -> Path:
     """Find a session's folder by scanning state files (no index to go stale)."""
     root = home()
@@ -504,7 +509,7 @@ def extract(turns, state: dict) -> dict:
                 ignore(turn_id, i, "wrong protocol")
                 continue
             if isinstance(payload, dict) and "session_id" in payload \
-                    and payload["session_id"] != state["session_id"]:
+                    and not same_session(payload["session_id"], state["session_id"]):
                 ignore(turn_id, i, "wrong session")
                 continue
             if errors:
@@ -634,7 +639,7 @@ def cmd_handoff(a) -> dict:
             payload, errors = None, ["invalid JSON"]
     if not errors and payload["type"] != "SESSION_HANDOFF":
         errors = ["bad value: type"]
-    if not errors and payload["session_id"] != state["session_id"]:
+    if not errors and not same_session(payload["session_id"], state["session_id"]):
         errors = ["wrong session"]
     if not errors and payload["iteration"] < state["iteration"]:
         errors = ["bad value: iteration"]

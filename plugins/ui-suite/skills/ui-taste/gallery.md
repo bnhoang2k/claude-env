@@ -65,6 +65,7 @@ The user's own work. Copy the feel, not the layout: never copy an approved page'
 - **Photo editor** · 2-expressive, loud, history, tool · gallery/2-expressive/photo-editor/
   use when: a tool with an undo history worth scrubbing
   take: the tools a step changed get a ring, a tick marks the old value, and the thumb springs to the new one
+  not for: nothing recorded
 - **Flight search** · 2-expressive, quiet, filters · gallery/2-expressive/flight-search/
   use when: filters remove items from a result list
   take: each filter says how many flights it removed, and each removed flight says why in plain words; the latest change is the one accent
