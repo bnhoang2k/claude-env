@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.24
+
+`workflow:project-dashboard` keeps the owner's view short. Each finding gets at most two evidence records, a picture and a plain-English write-up; raw data, scripts and profiles are uploaded with no record and listed in the write-up's "For agents" section, so agents still find them. A finding that closes a milestone is one report. Update the workflow plugin to get it.
+
 ## 0.2.23
 
 New skill `workflow:project-dashboard`: agents report to a project's live dashboard. It finds the link file `.claude-dashboard.json`, claims a task, reports at meaningful moments in one atomic batch, attaches evidence, takes over a task whose lease ran out, and keeps an offline outbox. A session start hint tells a session when the project has a dashboard. `setup.md` gives a project its own dashboard, and only the owner and editors can write its database. Update the workflow plugin to get it.

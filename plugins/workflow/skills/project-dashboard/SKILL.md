@@ -44,7 +44,7 @@ Use it when the owner says a finished task needs more work. Read the done claim,
 
 ## Reporting
 
-Report at meaningful moments only: start, milestone, setback, a decision you need, done. Do not report every small change. A report that says nothing new costs the owner attention.
+Report at meaningful moments only: start, milestone, setback, a decision you need, done. Do not report every small change. A report that says nothing new costs the owner attention. A finding that closes a milestone is one `milestone` report, not a `progress` report followed by a `milestone` report.
 
 ### Step `report`
 
@@ -81,7 +81,14 @@ Sub-plans. A large phase is planned in chunks, one sub-plan at a time. Only the 
 
 ## Contextual evidence
 
-A picture or file that backs a claim goes on the dashboard as evidence.
+The page has two readers. The owner reads it to see, in plain words, what is going on. Agents read it to find the detail behind a claim. Keep the two in separate layers, so the owner's view stays short while agents still have everything.
+
+- **Owner layer (drawn on the page).** The page draws every evidence record of a task, so each record costs the owner attention. Give each finding at most two evidence records: one picture and one plain-English write-up. Write event `text` in non-technical words: what happened and what it means.
+- **Agent layer (stored, not drawn).** Raw data, scripts, logs and profiles are uploaded as assets with no evidence record. The write-up ends with a `## For agents` section that lists each such file's `url` and sha256. An agent finds the detail by reading the write-up.
+
+Test before each record: "Will the owner look at this?" If not, upload it as an asset only and link it from the write-up.
+
+Steps for a record in the owner layer:
 
 1. Upload the file to the dashboard Artifact as an asset (`Artifact` tool, `asset: true`, `url` = the dashboard's Artifact link). Use the `url` the result gives, exactly as given.
 2. Create `evidence/<id>`: `{id, title, asset_url, sha256, kind, status, task, phase, source, provenance, relevance}`. `status` is one of `approved`, `exploratory`, `rejected`, `superseded`, `withdrawn`. `source` is a commit, a file path with its hash, or a dated quote. `provenance` says how the file was made. `relevance` says why it matters to the task.
