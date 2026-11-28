@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.23
+
+New skill `workflow:project-dashboard`: agents report to a project's live dashboard. It finds the link file `.claude-dashboard.json`, claims a task, reports at meaningful moments in one atomic batch, attaches evidence, takes over a task whose lease ran out, and keeps an offline outbox. A session start hint tells a session when the project has a dashboard. `setup.md` gives a project its own dashboard, and only the owner and editors can write its database. Update the workflow plugin to get it.
+
 ## 0.2.22
 
 `workflow:threeway` now works on ChatGPT's current page. The reading snippet finds fenced `threeway` blocks again (ChatGPT stopped using `pre`), and gives a block in your own turn the right language. Session IDs match whatever the capital letters, so a request or handoff is no longer dropped as "wrong session" when ChatGPT copies a capital from the repo name. Figure capture takes image figures from the page source (the exact file) and screenshots only drawn ones; the notes now say how to get long text out of the page. Update the workflow plugin to get it.

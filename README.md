@@ -1,6 +1,6 @@
 # claude-env
 
-44 skills for Claude Code: build UI, motion, 3D models and technical figures, and run long
+45 skills for Claude Code: build UI, motion, 3D models and technical figures, and run long
 multi-agent jobs without losing the plan or the budget.
 
 <!-- picture: a few things these skills made -->
@@ -123,6 +123,7 @@ Design before code, plan in small tasks, and prove each test can fail.
 Long work outlives one session. Pick it back up without re-explaining.
 
 - `workflow:where-are-we`: mid-run status: is it stuck, is it done, what next.
+- `workflow:project-dashboard`: report a project's progress to its live dashboard, and take over a task another agent left.
 - `workflow:handoff`: write a prompt that moves a task into a fresh session with nothing lost.
 - `workflow:recall`: catch up on a project after time away.
 - `workflow:writing-project-docs`: keep project docs in one shape: living docs edited in place, logs appended.
